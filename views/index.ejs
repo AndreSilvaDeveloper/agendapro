@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Salão - Agenda</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-6">
+  <div class="max-w-2xl mx-auto bg-white p-6 rounded shadow">
+    <h1 class="text-2xl font-bold mb-4">Cadastrar Cliente</h1>
+    <form action="/client" method="POST" class="space-y-3">
+      <input type="text" name="name" placeholder="Nome" required class="w-full p-2 border rounded">
+      <input type="text" name="phone" placeholder="Telefone" required class="w-full p-2 border rounded">
+      <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Cadastrar</button>
+    </form>
+
+    <h2 class="text-xl font-semibold mt-6 mb-2">Clientes</h2>
+    <ul class="space-y-2">
+      <% clients.forEach(c => { %>
+        <li class="p-3 bg-gray-50 rounded border hover:bg-gray-100">
+          <a href="/client/<%= c._id %>" class="text-blue-600 hover:underline"><%= c.name %> - <%= c.phone %></a>
+        </li>
+      <% }) %>
+    </ul>
+  </div>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Clientes</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-6">
+  <div class="max-w-2xl mx-auto bg-white p-6 rounded shadow">
+    <h1 class="text-2xl font-bold mb-4">Cadastrar Cliente</h1>
+
+    <form action="/client" method="POST" class="space-y-3 mb-6">
+      <input type="text" name="name" placeholder="Nome" required class="w-full p-2 border rounded">
+      <input type="text" name="phone" placeholder="Telefone" required class="w-full p-2 border rounded">
+      <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Cadastrar</button>
+    </form>
+
+    <!-- 🔍 Formulário de busca -->
+    <h2 class="text-xl font-semibold mb-2">Buscar Cliente</h2>
+    <form action="/search" method="GET" class="flex space-x-2 mb-6">
+      <input type="text" name="q" placeholder="Nome ou telefone" class="flex-1 p-2 border rounded" required>
+      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Buscar</button>
+    </form>
+
+    <h2 class="text-xl font-semibold mb-2">Clientes</h2>
+ <ul class="space-y-2">
+  <% clients.forEach(c => { %>
+    <li class="p-3 bg-gray-50 rounded border hover:bg-gray-100 flex justify-between items-center">
+      <a href="/client/<%= c._id %>" class="text-blue-600 hover:underline">
+        <%= c.name %> - <%= c.phone %>
+      </a>
+      <form action="/client/<%= c._id %>/delete" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este cliente?')">
+        <button class="ml-4 text-red-600 hover:underline text-sm">Excluir</button>
+      </form>
+    </li>
+  <% }) %>
+</ul>
+
+  </div>
+</body>
+</html>

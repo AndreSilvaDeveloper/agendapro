@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title><%= client.name %> - Detalhes</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-6">
+  <div class="max-w-3xl mx-auto bg-white p-6 rounded shadow">
+    <div class="flex justify-between items-center mb-4">
+      <h1 class="text-2xl font-bold">Cliente: <%= client.name %></h1>
+      <form action="/client/<%= client._id %>/delete" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este cliente?')">
+        <button class="text-red-600 hover:underline text-sm">Excluir Cliente</button>
+      </form>
+    </div>
+
+    <p class="mb-6 text-gray-600">Telefone: <%= client.phone %></p>
+
+    <h2 class="text-xl font-semibold mb-2">Novo Agendamento</h2>
+    <form action="/appointment" method="POST" onsubmit="return processForm()" class="space-y-4 mb-6">
+      <input type="hidden" name="clientId" value="<%= client._id %>">
+      <input type="date" name="date" required class="w-full p-2 border rounded">
+
+      <!-- SERVIÇOS -->
+      <div>
+        <h3 class="font-semibold text-lg mb-2">Serviços</h3>
+        <div id="services" class="space-y-2"></div>
+        <button type="button" onclick="addService()" class="bg-green-500 text-white px-3 py-1 rounded">+ Adicionar Serviço</button>
+      </div>
+
+      <!-- PRODUTOS -->
+      <div>
+        <h3 class="font-semibold text-lg mb-2">Produtos</h3>
+        <div id="products" class="space-y-2"></div>
+        <button type="button" onclick="addProduct()" class="bg-purple-500 text-white px-3 py-1 rounded">+ Adicionar Produto</button>
+      </div>
+
+      <!-- Campos ocultos com JSON final -->
+      <input type="hidden" name="services" id="servicesInput">
+      <input type="hidden" name="products" id="productsInput">
+
+      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Agendar</button>
+    </form>
+
+   <h2 class="text-xl font-semibold mb-3">Agendamentos</h2>
+<ul class="space-y-4">
+  <% appointments.forEach(a => { %>
+    <% if (a.services.length > 0 || a.products.length > 0) { %>
+      <li class="p-4 bg-gray-50 rounded border">
+        <strong class="block mb-2"><%= a.date.toLocaleDateString() %></strong>
+
+        <div>
+          <span class="font-semibold">Serviços:</span>
+          <ul class="list-disc pl-6">
+            <% a.services.forEach((s, i) => { %>
+              <li class="flex justify-between">
+                <span><%= s.name %> - R$ <%= s.price %></span>
+                <form action="/appointment/<%= a._id %>/remove-service/<%= i %>" method="POST" onsubmit="return confirm('Excluir serviço?')">
+                  <button class="text-red-600 text-sm hover:underline">Excluir</button>
+                </form>
+              </li>
+            <% }) %>
+          </ul>
+        </div>
+
+        <div class="mt-2">
+          <span class="font-semibold">Produtos:</span>
+          <ul class="list-disc pl-6">
+            <% a.products.forEach((p, i) => { %>
+              <li class="flex justify-between">
+                <span><%= p.name %> - R$ <%= p.price %></span>
+                <form action="/appointment/<%= a._id %>/remove-product/<%= i %>" method="POST" onsubmit="return confirm('Excluir produto?')">
+                  <button class="text-red-600 text-sm hover:underline">Excluir</button>
+                </form>
+              </li>
+            <% }) %>
+          </ul>
+        </div>
+      </li>
+    <% } %>
+  <% }) %>
+</ul>
+
+
+    <div class="mt-6">
+      <h3 class="text-lg font-semibold">Total por Serviços: <span class="text-green-600">R$ <%= totalService %></span></h3>
+      <h3 class="text-lg font-semibold">Total por Produtos: <span class="text-purple-600">R$ <%= totalProduct %></span></h3>
+      <h2 class="text-xl font-bold mt-2">Total Geral: <span class="text-blue-700">R$ <%= total %></span></h2>
+    </div>
+
+    <a href="/" class="inline-block mt-6 text-blue-600 hover:underline">← Voltar</a>
+
+    <!-- Script -->
+    <script>
+      function addService() {
+        const container = document.getElementById('services');
+        const div = document.createElement('div');
+        div.className = 'flex gap-2';
+        div.innerHTML = `
+          <input type="text" placeholder="Nome do serviço" class="p-2 border rounded w-1/2 service-name">
+          <input type="number" placeholder="Preço" class="p-2 border rounded w-1/2 service-price">
+        `;
+        container.appendChild(div);
+      }
+
+      function addProduct() {
+        const container = document.getElementById('products');
+        const div = document.createElement('div');
+        div.className = 'flex gap-2';
+        div.innerHTML = `
+          <input type="text" placeholder="Nome do produto" class="p-2 border rounded w-1/2 product-name">
+          <input type="number" placeholder="Preço" class="p-2 border rounded w-1/2 product-price">
+        `;
+        container.appendChild(div);
+      }
+
+      function processForm() {
+        const services = [];
+        const serviceNames = document.querySelectorAll('.service-name');
+        const servicePrices = document.querySelectorAll('.service-price');
+
+        for (let i = 0; i < serviceNames.length; i++) {
+          const name = serviceNames[i].value.trim();
+          const price = parseFloat(servicePrices[i].value);
+          if (name && !isNaN(price)) {
+            services.push({ name, price });
+          }
+        }
+
+        const products = [];
+        const productNames = document.querySelectorAll('.product-name');
+        const productPrices = document.querySelectorAll('.product-price');
+
+        for (let i = 0; i < productNames.length; i++) {
+          const name = productNames[i].value.trim();
+          const price = parseFloat(productPrices[i].value);
+          if (name && !isNaN(price)) {
+            products.push({ name, price });
+          }
+        }
+
+        document.getElementById('servicesInput').value = JSON.stringify(services);
+        document.getElementById('productsInput').value = JSON.stringify(products);
+
+        return true;
+      }
+    </script>
+  </div>
+</body>
+</html>
