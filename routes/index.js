@@ -10,11 +10,11 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 // Twilio
-const twilio = require('twilio')(
+const twilio = require('twilio');
+const twilioClient = twilio(
   process.env.TWILIO_ACCOUNT_SID,
   process.env.TWILIO_AUTH_TOKEN
 );
-
 // Autenticação
 function authMiddleware(req, res, next) {
   if (req.session && req.session.loggedIn) return next();
@@ -55,6 +55,9 @@ router.post('/client', authMiddleware, async (req, res) => {
   await Client.create({ name, phone });
   res.redirect('/');
 });
+
+
+
 
 // --- Criar Agendamento + SMS ---
 router.post('/appointment', authMiddleware, async (req, res) => {
@@ -118,15 +121,19 @@ router.post('/appointment', authMiddleware, async (req, res) => {
 
   // Busca dados do cliente e envia SMS
   const client = await Client.findById(clientId);
+
+  // extrai nome do primeiro serviço ou usa termo genérico
+  const firstService = parsedServices[0]?.name || 'serviço';
+
   let raw = client.phone.replace(/\D/g, '');
   if (!raw.startsWith('55')) raw = '55' + raw;
   const toE164 = '+' + raw;
 
   try {
-    await twilio.messages.create({
+    await twilioClient.messages.create({
       to:   toE164,
       from: process.env.TWILIO_PHONE_NUMBER,
-      body: `Olá ${client.name}! Seu agendamento está confirmado para ${dayjs(start)
+      body: `Olá ${client.name}! Seu agendamento de ${firstService} está confirmado para ${dayjs(start)
         .tz('America/Sao_Paulo')
         .format('DD/MM/YYYY [às] HH:mm')}.`
     });
@@ -137,6 +144,8 @@ router.post('/appointment', authMiddleware, async (req, res) => {
 
   res.redirect(`/client/${clientId}`);
 });
+
+
 // --- Página do Cliente (Futuros) ---
 router.get('/client/:id', authMiddleware, async (req, res) => {
   const client = await Client.findById(req.params.id);
@@ -226,6 +235,59 @@ router.post('/appointment/:id/remove-product/:idx', authMiddleware, async (req, 
   a.products.splice(req.params.idx,1);
   await a.save();
   res.redirect(`/client/${a.clientId}`);
+});
+
+
+
+
+// Rota de cancelamento de agendamento
+router.post('/appointment/:id/cancel', authMiddleware, async (req, res) => {
+  try {
+    const appt = await Appointment.findById(req.params.id).populate('clientId');
+    if (!appt) return res.status(404).send('Agendamento não encontrado.');
+
+    // extrai nome do primeiro serviço ou usa termo genérico
+    const firstService = appt.services[0]?.name || 'serviço';
+
+    // formata telefone em E.164
+    let raw = appt.clientId.phone.replace(/\D/g, '');
+    if (!raw.startsWith('55')) raw = '55' + raw;
+    const toE164 = '+' + raw;
+
+    // verifica configuração de envio
+    const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+    const serviceSid  = process.env.TWILIO_MESSAGING_SERVICE_SID;
+    if (!fromNumber && !serviceSid) {
+      console.error(
+        (!fromNumber ? 'TWILIO_PHONE_NUMBER' : '') +
+        (!fromNumber && !serviceSid ? ' e ' : '') +
+        (!serviceSid ? 'TWILIO_MESSAGING_SERVICE_SID' : '') +
+        ' não definidos.'
+      );
+      return res.status(500).send('Configuração do Twilio ausente.');
+    }
+
+    // monta opções de mensagem
+    const msgOpts = { to: toE164 };
+    if (fromNumber)      msgOpts.from = fromNumber;
+    else if (serviceSid) msgOpts.messagingServiceSid = serviceSid;
+
+    msgOpts.body = `Olá ${appt.clientId.name}! Seu agendamento de ${firstService} para ${dayjs(appt.date)
+      .tz('America/Sao_Paulo')
+      .format('DD/MM/YYYY [às] HH:mm')} foi cancelado.`;
+
+    // envia SMS
+    await twilioClient.messages.create(msgOpts);
+    console.log('SMS de cancelamento enviado para', toE164);
+
+    // remove do banco
+    await Appointment.deleteOne({ _id: appt._id });
+
+    res.redirect(`/client/${appt.clientId._id}`);
+  } catch (err) {
+    console.error('Erro ao cancelar agendamento:', err);
+    res.status(500).send('Erro ao cancelar agendamento.');
+  }
 });
 
 // --- Pagamentos com Método ---
@@ -358,5 +420,7 @@ router.get('/financeiro', authMiddleware, async (req, res) => {
     monthLabel, monthValue, totals, details, overallTotal
   });
 });
+
+
 
 module.exports = router;
