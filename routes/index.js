@@ -10,6 +10,7 @@ const timezone = require('dayjs/plugin/timezone');
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+
 // middleware de autenticação
 function authMiddleware(req, res, next) {
   if (req.session && req.session.loggedIn) return next();
@@ -222,24 +223,69 @@ router.post('/appointment/:id/remove-product/:idx', authMiddleware, async (req, 
   await a.save();
   res.redirect(`/client/${a.clientId}`);
 });
+
+
+
+
 router.post('/appointment/:id/pay-service/:idx', authMiddleware, async (req, res) => {
-  const { amount, description } = req.body;
+  const { amount, description, method } = req.body;
   const a = await Appointment.findById(req.params.id);
+  const item = a.services[req.params.idx];
+
   const val = parseFloat(amount);
-  if (isNaN(val) || val <= 0) return res.send("Valor inválido.");
-  a.services[req.params.idx].payments.push({ amount: val, paidAt: new Date(), description: description||'' });
+  if (isNaN(val) || val <= 0) {
+    return res.send("Valor inválido.");
+  }
+
+  // normaliza e mapeia method para um dos valores do enum
+  const m = method.trim().toLowerCase();
+let key;
+if (m.includes('pix')) key = 'Pix';
+else if (m.includes('dinheiro')) key = 'Dinheiro';
+else if (m.includes('cartão') || m.includes('cartao')) key = 'Cartão';
+else return res.send("Método inválido. Use Pix, Dinheiro ou Cartão.");
+
+item.payments.push({
+  amount: val,
+  paidAt: new Date(),
+  description: description || '',
+  method: key
+});
   await a.save();
   res.redirect(`/client/${a.clientId}`);
 });
+
+// Pagamento de produto
 router.post('/appointment/:id/pay-product/:idx', authMiddleware, async (req, res) => {
-  const { amount, description } = req.body;
+  const { amount, description, method } = req.body;
   const a = await Appointment.findById(req.params.id);
+  const item = a.products[req.params.idx];
+
   const val = parseFloat(amount);
-  if (isNaN(val) || val <= 0) return res.send("Valor inválido.");
-  a.products[req.params.idx].payments.push({ amount: val, paidAt: new Date(), description: description||'' });
+  if (isNaN(val) || val <= 0) {
+    return res.send("Valor inválido.");
+  }
+
+  const m = method.trim().toLowerCase();
+  let key;
+  if (m.includes('pix')) key = 'Pix';
+  else if (m.includes('dinheiro')) key = 'Dinheiro';
+  else if (m.includes('cartão') || m.includes('cartao')) key = 'Cartão';
+  else return res.send("Método inválido. Use Pix, Dinheiro ou Cartão.");
+
+  item.payments.push({
+    amount:     val,
+    paidAt:     new Date(),
+    description: description || '',
+    method:     key
+  });
+
   await a.save();
   res.redirect(`/client/${a.clientId}`);
 });
+
+
+
 router.post('/appointment/:id/remove-payment/service/:sIdx/:pIdx', authMiddleware, async (req, res) => {
   const a = await Appointment.findById(req.params.id);
   a.services[req.params.sIdx].payments.splice(req.params.pIdx, 1);
@@ -315,87 +361,73 @@ router.post('/appointment/:id/edit-product/:idx', async (req, res) => {
 
 
 
+
 router.get('/financeiro', authMiddleware, async (req, res) => {
-  // busca todos os agendamentos com cliente
-  const ags = await Appointment.find().populate('clientId');
+  const { month } = req.query; // ex: "2025-06"
+  const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
-  // arrays para detalhamento
-  const receivedServices  = [];
-  const pendingServices   = [];
-  const receivedProducts  = [];
-  const pendingProducts   = [];
+  let filter = {};
+  let monthLabel = '';
+  let monthValue = '';
 
-  let totalReceivedServices = 0;
-  let totalPendingServices  = 0;
-  let totalReceivedProducts = 0;
-  let totalPendingProducts  = 0;
+  if (month) {
+    const [year, mon] = month.split('-');
+    monthValue = month;
+    monthLabel = `${monthNames[parseInt(mon, 10) - 1]} de ${year}`;
+
+    // intervalo do primeiro ao último dia do mês, em SP
+    const start = dayjs.tz(`${month}-01T00:00:00`, 'America/Sao_Paulo').toDate();
+    const end   = dayjs(start).endOf('month').toDate();
+    filter.date = { $gte: start, $lte: end };
+  }
+
+  // só busca esse mês (ou, se month vazio, busca todos)
+  const ags = await Appointment.find(filter)
+    .populate('clientId')
+    .exec();
+
+  const totals  = {};
+  const details = {};
 
   ags.forEach(a => {
-    const clientName    = a.clientId.name;
-    const apptDateStr   = a.date.toLocaleDateString('pt-BR');
-    const apptTimeStr   = a.date.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit', hour12:false });
+    const date = dayjs(a.date)
+      .tz('America/Sao_Paulo')
+      .format('DD/MM/YYYY');
 
-    // serviços
-    a.services.forEach(s => {
-      const paidSum = (s.payments || []).reduce((sum,p)=>sum + (p.amount||0), 0);
-      // detalha pagamentos já recebidos
-      s.payments.forEach(p => {
-        receivedServices.push({
-          client: clientName,
-          apptOn: `${apptDateStr} ${apptTimeStr}`,
-          item: s.name,
-          when: new Date(p.paidAt).toLocaleDateString('pt-BR'),
-          amount: p.amount,
-          desc: p.description || ''
-        });
-        totalReceivedServices += p.amount;
-      });
-      // calcula pendente
-      const pend = s.price - paidSum;
-      if (pend > 0) {
-        pendingServices.push({
-          client: clientName,
-          apptOn: `${apptDateStr} ${apptTimeStr}`,
-          item: s.name,
-          amount: pend
-        });
-        totalPendingServices += pend;
-      }
-    });
+    // junta serviços + produtos
+    [...a.services, ...a.products].forEach(item => {
+      (item.payments || []).forEach(p => {
+        const m = (p.method || '').toLowerCase();
+        let key;
+        if (m.includes('pix'))                        key = 'Pix';
+        else if (m.includes('dinheiro'))              key = 'Dinheiro';
+        else if (m.includes('cartão') || m.includes('cartao')) key = 'Cartão';
+        else return;
 
-    // produtos (mesma lógica)
-    a.products.forEach(pdt => {
-      const paidSum = (pdt.payments || []).reduce((sum,p)=>sum + (p.amount||0), 0);
-      pdt.payments.forEach(p => {
-        receivedProducts.push({
-          client: clientName,
-          apptOn: `${apptDateStr} ${apptTimeStr}`,
-          item: pdt.name,
-          when: new Date(p.paidAt).toLocaleDateString('pt-BR'),
-          amount: p.amount,
-          desc: p.description || ''
+        totals[key]  = (totals[key]  || 0) + p.amount;
+        details[key] = details[key] || [];
+        details[key].push({
+          date,
+          client: a.clientId.name,
+          item:   item.name,
+          amount: p.amount.toFixed(2),
+          description: p.description || ''
         });
-        totalReceivedProducts += p.amount;
       });
-      const pend = pdt.price - paidSum;
-      if (pend > 0) {
-        pendingProducts.push({
-          client: clientName,
-          apptOn: `${apptDateStr} ${apptTimeStr}`,
-          item: pdt.name,
-          amount: pend
-        });
-        totalPendingProducts += pend;
-      }
     });
   });
+
+  // soma geral
+  const overallTotal = Object.values(totals).reduce((sum, v) => sum + v, 0);
 
   res.render('financeiro', {
-    receivedServices,  pendingServices,
-    receivedProducts,  pendingProducts,
-    totalReceivedServices, totalPendingServices,
-    totalReceivedProducts, totalPendingProducts
+    monthLabel,
+    monthValue,
+    totals,
+    details,
+    overallTotal
   });
 });
+
 
 module.exports = router;

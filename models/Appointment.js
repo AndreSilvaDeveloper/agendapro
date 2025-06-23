@@ -1,9 +1,19 @@
+// models/Appointment.js
 const mongoose = require('mongoose');
 
 const paymentSchema = new mongoose.Schema({
   amount: Number,
   paidAt: Date,
-  description: String
+  description: String,
+  method: {
+    type: String,
+    enum: [
+      'Pix','pix',
+      'Dinheiro','dinheiro',
+      'Cartão','cartão','Cartao','cartao'
+    ],
+    required: true
+  }
 });
 
 const serviceSchema = new mongoose.Schema({
