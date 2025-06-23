@@ -1,27 +1,30 @@
-const express = require('express');
-const router = express.Router();
-const Client = require('../models/Client');
-const Appointment = require('../models/Appointment');
-const dayjs = require('dayjs');
-require('dayjs/plugin/utc');
-require('dayjs/plugin/timezone');
-const utc = require('dayjs/plugin/utc');
-const timezone = require('dayjs/plugin/timezone');
+// routes/index.js
+const express    = require('express');
+const router     = express.Router();
+const Client     = require('../models/Client');
+const Appointment= require('../models/Appointment');
+const dayjs      = require('dayjs');
+const utc        = require('dayjs/plugin/utc');
+const timezone   = require('dayjs/plugin/timezone');
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+// Twilio
+const twilio = require('twilio')(
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN
+);
 
-// middleware de autenticação
+// Autenticação
 function authMiddleware(req, res, next) {
   if (req.session && req.session.loggedIn) return next();
   res.redirect('/login');
 }
 
-// --- Rotas de Login/Logout ---
+// --- Login / Logout ---
 router.get('/login', (req, res) => {
   res.render('login', { error: null });
 });
-
 router.post('/login', (req, res) => {
   const { username, password } = req.body;
   if (username === 'samara' && password === '160793') {
@@ -30,7 +33,6 @@ router.post('/login', (req, res) => {
   }
   res.render('login', { error: 'Usuário ou senha inválidos' });
 });
-
 router.get('/logout', (req, res) => {
   req.session.destroy(() => res.redirect('/login'));
 });
@@ -40,13 +42,10 @@ router.get('/', authMiddleware, async (req, res) => {
   const clients = await Client.find();
   res.render('home', { clients });
 });
-
 router.get('/search', authMiddleware, async (req, res) => {
   const q = req.query.q?.trim() || '';
   const regex = new RegExp(q, 'i');
-  const clients = await Client.find({
-    $or: [{ name: regex }, { phone: regex }]
-  });
+  const clients = await Client.find({ $or: [{ name: regex }, { phone: regex }] });
   res.render('home', { clients });
 });
 
@@ -57,20 +56,18 @@ router.post('/client', authMiddleware, async (req, res) => {
   res.redirect('/');
 });
 
-
-
-
+// --- Criar Agendamento + SMS ---
 router.post('/appointment', authMiddleware, async (req, res) => {
   const { clientId, date, time, duration, services, products, force } = req.body;
   const parsedServices = services ? JSON.parse(services) : [];
   const parsedProducts = products ? JSON.parse(products) : [];
 
-  // monta início e fim no fuso de SP
+  // Início e fim no fuso SP
   const start = dayjs.tz(`${date}T${time}`, 'America/Sao_Paulo').toDate();
   const dur   = parseInt(duration, 10);
   const end   = new Date(start.getTime() + dur * 60000);
 
-  // *** AQUI você precisa declarar 'conflict' ***
+  // Verifica conflito
   const conflict = await Appointment.findOne({
     date: { $lt: end },
     $expr: {
@@ -82,41 +79,36 @@ router.post('/appointment', authMiddleware, async (req, res) => {
   });
 
   if (conflict && !force) {
+    // Pergunta se quer forçar
     return res.send(`
 <!DOCTYPE html>
-<html lang="pt-BR">
-<head><meta charset="UTF-8"><title>Confirmar Agendamento</title></head>
-<body>
+<html lang="pt-BR"><head><meta charset="UTF-8"><title>Confirmar Agendamento</title></head><body>
   <script>
     if (confirm("⚠️ Já existe outro agendamento nesse horário. Deseja agendar assim mesmo?")) {
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = '/appointment';
+      const f = document.createElement('form');
+      f.method = 'POST';
+      f.action = '/appointment';
       const data = ${JSON.stringify({ clientId, date, time, duration, services, products, force: true })};
-      for (const key in data) {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = typeof data[key] === 'string'
-          ? data[key]
-          : JSON.stringify(data[key]);
-        form.appendChild(input);
+      for (const k in data) {
+        const i = document.createElement('input');
+        i.type = 'hidden'; i.name = k;
+        i.value = typeof data[k] === 'string' ? data[k] : JSON.stringify(data[k]);
+        f.appendChild(i);
       }
-      document.body.appendChild(form);
-      form.submit();
+      document.body.appendChild(f);
+      f.submit();
     } else {
       history.back();
     }
   </script>
-</body>
-</html>
+</body></html>
     `);
   }
 
-  // se não houver conflito (ou veio force=true), salva normalmente
+  // Sem conflito ou forçado: salva
   parsedServices.forEach(s => s.payments = []);
   parsedProducts.forEach(p => p.payments = []);
-  await Appointment.create({
+  const appt = await Appointment.create({
     clientId,
     date: start,
     duration: dur,
@@ -124,35 +116,49 @@ router.post('/appointment', authMiddleware, async (req, res) => {
     products: parsedProducts
   });
 
+  // Busca dados do cliente e envia SMS
+  const client = await Client.findById(clientId);
+  let raw = client.phone.replace(/\D/g, '');
+  if (!raw.startsWith('55')) raw = '55' + raw;
+  const toE164 = '+' + raw;
+
+  try {
+    await twilio.messages.create({
+      to:   toE164,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      body: `Olá ${client.name}! Seu agendamento está confirmado para ${dayjs(start)
+        .tz('America/Sao_Paulo')
+        .format('DD/MM/YYYY [às] HH:mm')}.`
+    });
+    console.log('SMS enviado para', toE164);
+  } catch (err) {
+    console.error('Falha ao enviar SMS:', err.message);
+  }
+
   res.redirect(`/client/${clientId}`);
 });
-
-// --- Página do Cliente (apenas futuros) ---
+// --- Página do Cliente (Futuros) ---
 router.get('/client/:id', authMiddleware, async (req, res) => {
   const client = await Client.findById(req.params.id);
   const all     = await Appointment.find({ clientId: client._id });
+  const midnight= dayjs().tz('America/Sao_Paulo').startOf('day').toDate();
 
-  // filtra a partir de hoje (meia-noite SP)
-  const midnight = dayjs().tz('America/Sao_Paulo').startOf('day').toDate();
   const upcoming = all
     .filter(a => a.date >= midnight)
     .map(a => ({
       ...a.toObject(),
-      formatted: dayjs(a.date)
-                  .tz('America/Sao_Paulo')
-                  .format('DD/MM/YYYY [às] HH:mm')
+      formatted: dayjs(a.date).tz('America/Sao_Paulo').format('DD/MM/YYYY [às] HH:mm')
     }));
 
-  // soma totais
   let totalService = 0, totalProduct = 0, totalPaid = 0;
   upcoming.forEach(a => {
     a.services.forEach(s => {
       totalService += s.price;
-      totalPaid    += (s.payments||[]).reduce((sum, p) => sum + (p.amount||0), 0);
+      totalPaid    += (s.payments||[]).reduce((sum,p)=>sum+(p.amount||0),0);
     });
     a.products.forEach(p => {
       totalProduct += p.price;
-      totalPaid    += (p.payments||[]).reduce((sum, p) => sum + (p.amount||0), 0);
+      totalPaid    += (p.payments||[]).reduce((sum,p)=>sum+(p.amount||0),0);
     });
   });
 
@@ -161,35 +167,33 @@ router.get('/client/:id', authMiddleware, async (req, res) => {
     appointments: upcoming,
     totalService,
     totalProduct,
-    total: totalService + totalProduct,
+    total: totalService+totalProduct,
     totalPaid
   });
 });
 
-// --- Histórico (passados) ---
+// --- Histórico (Passados) ---
 router.get('/client/:id/historico', authMiddleware, async (req, res) => {
-  const client = await Client.findById(req.params.id);
-  const all     = await Appointment.find({ clientId: client._id });
+  const client   = await Client.findById(req.params.id);
+  const all      = await Appointment.find({ clientId: client._id });
   const midnight = dayjs().tz('America/Sao_Paulo').startOf('day').toDate();
 
   const past = all
     .filter(a => a.date < midnight)
     .map(a => ({
       ...a.toObject(),
-      formatted: dayjs(a.date)
-                  .tz('America/Sao_Paulo')
-                  .format('DD/MM/YYYY [às] HH:mm')
+      formatted: dayjs(a.date).tz('America/Sao_Paulo').format('DD/MM/YYYY [às] HH:mm')
     }));
 
   let totalService = 0, totalProduct = 0, totalPaid = 0;
   past.forEach(a => {
     a.services.forEach(s => {
       totalService += s.price;
-      totalPaid    += (s.payments||[]).reduce((sum, p) => sum + (p.amount||0), 0);
+      totalPaid    += (s.payments||[]).reduce((sum,p)=>sum+(p.amount||0),0);
     });
     a.products.forEach(p => {
       totalProduct += p.price;
-      totalPaid    += (p.payments||[]).reduce((sum, p) => sum + (p.amount||0), 0);
+      totalPaid    += (p.payments||[]).reduce((sum,p)=>sum+(p.amount||0),0);
     });
   });
 
@@ -198,149 +202,98 @@ router.get('/client/:id/historico', authMiddleware, async (req, res) => {
     appointments: past,
     totalService,
     totalProduct,
-    total: totalService + totalProduct,
+    total: totalService+totalProduct,
     totalPaid
   });
 });
 
-// --- Excluir cliente + agendamentos ---
+// --- Excluir Cliente + Agendamentos ---
 router.post('/client/:id/delete', authMiddleware, async (req, res) => {
   await Client.findByIdAndDelete(req.params.id);
   await Appointment.deleteMany({ clientId: req.params.id });
   res.redirect('/');
 });
 
-// --- Remoções de serviço/produto/pagamento ---
+// --- Remover Serviço / Produto ---
 router.post('/appointment/:id/remove-service/:idx', authMiddleware, async (req, res) => {
   const a = await Appointment.findById(req.params.id);
-  a.services.splice(req.params.idx, 1);
+  a.services.splice(req.params.idx,1);
   await a.save();
   res.redirect(`/client/${a.clientId}`);
 });
 router.post('/appointment/:id/remove-product/:idx', authMiddleware, async (req, res) => {
   const a = await Appointment.findById(req.params.id);
-  a.products.splice(req.params.idx, 1);
+  a.products.splice(req.params.idx,1);
   await a.save();
   res.redirect(`/client/${a.clientId}`);
 });
 
-
-
-
+// --- Pagamentos com Método ---
 router.post('/appointment/:id/pay-service/:idx', authMiddleware, async (req, res) => {
   const { amount, description, method } = req.body;
-  const a = await Appointment.findById(req.params.id);
-  const item = a.services[req.params.idx];
-
-  const val = parseFloat(amount);
-  if (isNaN(val) || val <= 0) {
-    return res.send("Valor inválido.");
-  }
-
-  // normaliza e mapeia method para um dos valores do enum
-  const m = method.trim().toLowerCase();
-let key;
-if (m.includes('pix')) key = 'Pix';
-else if (m.includes('dinheiro')) key = 'Dinheiro';
-else if (m.includes('cartão') || m.includes('cartao')) key = 'Cartão';
-else return res.send("Método inválido. Use Pix, Dinheiro ou Cartão.");
-
-item.payments.push({
-  amount: val,
-  paidAt: new Date(),
-  description: description || '',
-  method: key
-});
+  const a     = await Appointment.findById(req.params.id);
+  const item  = a.services[req.params.idx];
+  const val   = parseFloat(amount);
+  if (isNaN(val)||val<=0) return res.send("Valor inválido.");
+  if (!['Pix','Dinheiro','Cartão'].includes(method)) return res.send("Método inválido.");
+  item.payments.push({ amount:val, paidAt:new Date(), description:description||'', method });
   await a.save();
   res.redirect(`/client/${a.clientId}`);
 });
-
-// Pagamento de produto
 router.post('/appointment/:id/pay-product/:idx', authMiddleware, async (req, res) => {
   const { amount, description, method } = req.body;
-  const a = await Appointment.findById(req.params.id);
-  const item = a.products[req.params.idx];
-
-  const val = parseFloat(amount);
-  if (isNaN(val) || val <= 0) {
-    return res.send("Valor inválido.");
-  }
-
-  const m = method.trim().toLowerCase();
-  let key;
-  if (m.includes('pix')) key = 'Pix';
-  else if (m.includes('dinheiro')) key = 'Dinheiro';
-  else if (m.includes('cartão') || m.includes('cartao')) key = 'Cartão';
-  else return res.send("Método inválido. Use Pix, Dinheiro ou Cartão.");
-
-  item.payments.push({
-    amount:     val,
-    paidAt:     new Date(),
-    description: description || '',
-    method:     key
-  });
-
+  const a     = await Appointment.findById(req.params.id);
+  const item  = a.products[req.params.idx];
+  const val   = parseFloat(amount);
+  if (isNaN(val)||val<=0) return res.send("Valor inválido.");
+  if (!['Pix','Dinheiro','Cartão'].includes(method)) return res.send("Método inválido.");
+  item.payments.push({ amount:val, paidAt:new Date(), description:description||'', method });
   await a.save();
   res.redirect(`/client/${a.clientId}`);
 });
 
-
-
+// --- Remover Pagamento ---
 router.post('/appointment/:id/remove-payment/service/:sIdx/:pIdx', authMiddleware, async (req, res) => {
   const a = await Appointment.findById(req.params.id);
-  a.services[req.params.sIdx].payments.splice(req.params.pIdx, 1);
+  a.services[req.params.sIdx].payments.splice(req.params.pIdx,1);
   await a.save();
   res.redirect(`/client/${a.clientId}`);
 });
 router.post('/appointment/:id/remove-payment/product/:pIdx/:ppIdx', authMiddleware, async (req, res) => {
   const a = await Appointment.findById(req.params.id);
-  a.products[req.params.pIdx].payments.splice(req.params.ppIdx, 1);
+  a.products[req.params.pIdx].payments.splice(req.params.ppIdx,1);
   await a.save();
   res.redirect(`/client/${a.clientId}`);
 });
 
-
-
-// agenda por dia
+// --- Agenda por Dia (ordenado) ---
 router.get('/agendamentos-por-dia', authMiddleware, async (req, res) => {
   const { date } = req.query;
-  if (!date) {
-    return res.render('agenda-dia', { date: null, results: [] });
-  }
+  if (!date) return res.render('agenda-dia',{ date:null, results:[] });
 
-  const start = dayjs.tz(`${date}T00:00:00`, 'America/Sao_Paulo').toDate();
-  const end   = dayjs.tz(`${date}T23:59:59`, 'America/Sao_Paulo').toDate();
+  const start = dayjs.tz(`${date}T00:00:00`,'America/Sao_Paulo').toDate();
+  const end   = dayjs.tz(`${date}T23:59:59`,'America/Sao_Paulo').toDate();
 
-  // busca e popula cliente, já ordenando por date ASC
   const ags = await Appointment.find({
-    date: { $gte: start, $lte: end }
-  })
-  .sort({ date: 1 })            // ← aqui
-  .populate('clientId');
+    date:{ $gte:start, $lte:end }
+  }).sort({ date:1 }).populate('clientId');
 
-  const results = ags
-    .filter(a => a.services.length > 0)
-    .map(a => ({
-      clientId:    a.clientId,
-      services:    a.services,
-      timeFormatted: dayjs(a.date)
-                       .tz('America/Sao_Paulo')
-                       .format('HH:mm')
-    }));
+  const results = ags.filter(a=>a.services.length>0).map(a=>({
+    clientId: a.clientId,
+    services: a.services,
+    timeFormatted: dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm')
+  }));
 
-  res.render('agenda-dia', { date, results });
+  res.render('agenda-dia',{ date, results });
 });
 
-
-// ── EDIÇÃO DE CLIENTE ─────────────────────────────────────────────────────────
-router.post('/client/:id/edit', async (req, res) => {
+// --- Editar Cliente, Serviço, Produto ---
+router.post('/client/:id/edit', authMiddleware, async (req, res) => {
   const { name, phone } = req.body;
-  await Client.findByIdAndUpdate(req.params.id, { name, phone });
+  await Client.findByIdAndUpdate(req.params.id,{ name, phone });
   res.redirect(`/client/${req.params.id}`);
 });
-
-// ── EDIÇÃO DE SERVIÇO ─────────────────────────────────────────────────────────
-router.post('/appointment/:id/edit-service/:idx', async (req, res) => {
+router.post('/appointment/:id/edit-service/:idx', authMiddleware, async (req, res) => {
   const a = await Appointment.findById(req.params.id);
   const { name, price } = req.body;
   a.services[req.params.idx].name  = name;
@@ -348,9 +301,7 @@ router.post('/appointment/:id/edit-service/:idx', async (req, res) => {
   await a.save();
   res.redirect(`/client/${a.clientId}`);
 });
-
-// ── EDIÇÃO DE PRODUTO ─────────────────────────────────────────────────────────
-router.post('/appointment/:id/edit-product/:idx', async (req, res) => {
+router.post('/appointment/:id/edit-product/:idx', authMiddleware, async (req, res) => {
   const a = await Appointment.findById(req.params.id);
   const { name, price } = req.body;
   a.products[req.params.idx].name  = name;
@@ -359,75 +310,53 @@ router.post('/appointment/:id/edit-product/:idx', async (req, res) => {
   res.redirect(`/client/${a.clientId}`);
 });
 
-
-
-
+// --- Financeiro por Mês ---
 router.get('/financeiro', authMiddleware, async (req, res) => {
-  const { month } = req.query; // ex: "2025-06"
-  const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const { month } = req.query;
+  const monthNames= ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
-  let filter = {};
-  let monthLabel = '';
-  let monthValue = '';
-
+  let filter={}, monthLabel='', monthValue='';
   if (month) {
     const [year, mon] = month.split('-');
     monthValue = month;
-    monthLabel = `${monthNames[parseInt(mon, 10) - 1]} de ${year}`;
-
-    // intervalo do primeiro ao último dia do mês, em SP
-    const start = dayjs.tz(`${month}-01T00:00:00`, 'America/Sao_Paulo').toDate();
+    monthLabel = `${monthNames[parseInt(mon,10)-1]} de ${year}`;
+    const start = dayjs.tz(`${month}-01T00:00:00`,'America/Sao_Paulo').toDate();
     const end   = dayjs(start).endOf('month').toDate();
-    filter.date = { $gte: start, $lte: end };
+    filter.date={ $gte:start, $lte:end };
   }
 
-  // só busca esse mês (ou, se month vazio, busca todos)
-  const ags = await Appointment.find(filter)
-    .populate('clientId')
-    .exec();
-
+  const ags = await Appointment.find(filter).populate('clientId').exec();
   const totals  = {};
   const details = {};
 
   ags.forEach(a => {
-    const date = dayjs(a.date)
-      .tz('America/Sao_Paulo')
-      .format('DD/MM/YYYY');
-
-    // junta serviços + produtos
-    [...a.services, ...a.products].forEach(item => {
-      (item.payments || []).forEach(p => {
-        const m = (p.method || '').toLowerCase();
+    const date = dayjs(a.date).tz('America/Sao_Paulo').format('DD/MM/YYYY');
+    [...a.services,...a.products].forEach(item => {
+      (item.payments||[]).forEach(p => {
+        const m = (p.method||'').toLowerCase();
         let key;
-        if (m.includes('pix'))                        key = 'Pix';
-        else if (m.includes('dinheiro'))              key = 'Dinheiro';
-        else if (m.includes('cartão') || m.includes('cartao')) key = 'Cartão';
+        if (m.includes('pix'))                    key='Pix';
+        else if (m.includes('dinheiro'))          key='Dinheiro';
+        else if (m.includes('cartão')||m.includes('cartao')) key='Cartão';
         else return;
 
-        totals[key]  = (totals[key]  || 0) + p.amount;
-        details[key] = details[key] || [];
+        totals[key]  = (totals[key]||0)+p.amount;
+        details[key] = details[key]||[];
         details[key].push({
           date,
           client: a.clientId.name,
           item:   item.name,
           amount: p.amount.toFixed(2),
-          description: p.description || ''
+          description: p.description||''
         });
       });
     });
   });
 
-  // soma geral
-  const overallTotal = Object.values(totals).reduce((sum, v) => sum + v, 0);
-
-  res.render('financeiro', {
-    monthLabel,
-    monthValue,
-    totals,
-    details,
-    overallTotal
+  const overallTotal = Object.values(totals).reduce((sum,v)=>sum+v,0);
+  res.render('financeiro',{
+    monthLabel, monthValue, totals, details, overallTotal
   });
 });
-
 
 module.exports = router;
