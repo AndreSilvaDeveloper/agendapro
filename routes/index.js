@@ -1,76 +1,70 @@
-// routes/index.js
-const express    = require('express');
-const router     = express.Router();
-const Client     = require('../models/Client');
-const Appointment= require('../models/Appointment');
-const dayjs      = require('dayjs');
-const utc        = require('dayjs/plugin/utc');
-const timezone   = require('dayjs/plugin/timezone');
-dayjs.extend(utc);
-dayjs.extend(timezone);
+require('dotenv').config()
+const express     = require('express')
+const router      = express.Router()
+const axios       = require('axios')
+const Client      = require('../models/Client')
+const Appointment = require('../models/Appointment')
+const dayjs       = require('dayjs')
+const utc         = require('dayjs/plugin/utc')
+const timezone    = require('dayjs/plugin/timezone')
+dayjs.extend(utc)
+dayjs.extend(timezone)
 
-// Twilio
-const twilio = require('twilio');
-const twilioClient = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
-// Autenticação
+// middleware de autenticação
 function authMiddleware(req, res, next) {
-  if (req.session && req.session.loggedIn) return next();
-  res.redirect('/login');
+  if (req.session && req.session.loggedIn) return next()
+  res.redirect('/login')
 }
 
 // --- Login / Logout ---
 router.get('/login', (req, res) => {
-  res.render('login', { error: null });
-});
+  res.render('login', { error: null })
+})
 router.post('/login', (req, res) => {
-  const { username, password } = req.body;
+  const { username, password } = req.body
   if (username === 'samara' && password === '160793') {
-    req.session.loggedIn = true;
-    return res.redirect('/');
+    req.session.loggedIn = true
+    return res.redirect('/')
   }
-  res.render('login', { error: 'Usuário ou senha inválidos' });
-});
+  res.render('login', { error: 'Usuário ou senha inválidos' })
+})
 router.get('/logout', (req, res) => {
-  req.session.destroy(() => res.redirect('/login'));
-});
+  req.session.destroy(() => res.redirect('/login'))
+})
 
 // --- Home e Busca de Clientes ---
 router.get('/', authMiddleware, async (req, res) => {
-  const clients = await Client.find();
-  res.render('home', { clients });
-});
+  const clients = await Client.find()
+  res.render('home', { clients })
+})
 router.get('/search', authMiddleware, async (req, res) => {
-  const q = req.query.q?.trim() || '';
-  const regex = new RegExp(q, 'i');
-  const clients = await Client.find({ $or: [{ name: regex }, { phone: regex }] });
-  res.render('home', { clients });
-});
+  const q      = req.query.q?.trim() || ''
+  const regex  = new RegExp(q, 'i')
+  const clients = await Client.find({ $or: [{ name: regex }, { phone: regex }] })
+  res.render('home', { clients })
+})
 
 // --- Criar Cliente ---
 router.post('/client', authMiddleware, async (req, res) => {
-  const { name, phone } = req.body;
-  await Client.create({ name, phone });
-  res.redirect('/');
-});
+  const { name, phone } = req.body
+  await Client.create({ name, phone })
+  res.redirect('/')
+})
 
 
 
 
-// --- Criar Agendamento + SMS ---
 router.post('/appointment', authMiddleware, async (req, res) => {
-  const { clientId, date, time, duration, services, products, force } = req.body;
-  const parsedServices = services ? JSON.parse(services) : [];
-  const parsedProducts = products ? JSON.parse(products) : [];
+  const { clientId, date, time, duration, services, products, force } = req.body
+  const parsedServices = services ? JSON.parse(services) : []
+  const parsedProducts = products ? JSON.parse(products) : []
 
-  // Início e fim no fuso SP
-  const start = dayjs.tz(`${date}T${time}`, 'America/Sao_Paulo').toDate();
-  const dur   = parseInt(duration, 10);
-  const end   = new Date(start.getTime() + dur * 60000);
+  // monta início e fim no fuso SP
+  const start = dayjs.tz(`${date}T${time}`, 'America/Sao_Paulo').toDate()
+  const dur   = parseInt(duration, 10)
+  const end   = new Date(start.getTime() + dur * 60000)
 
-  // Verifica conflito
+  // verifica conflito
   const conflict = await Appointment.findOne({
     date: { $lt: end },
     $expr: {
@@ -79,107 +73,96 @@ router.post('/appointment', authMiddleware, async (req, res) => {
         start
       ]
     }
-  });
-
+  })
   if (conflict && !force) {
-    // Pergunta se quer forçar
+    // pergunta se quer forçar
     return res.send(`
-<!DOCTYPE html>
-<html lang="pt-BR"><head><meta charset="UTF-8"><title>Confirmar Agendamento</title></head><body>
-  <script>
-    if (confirm("⚠️ Já existe outro agendamento nesse horário. Deseja agendar assim mesmo?")) {
-      const f = document.createElement('form');
-      f.method = 'POST';
-      f.action = '/appointment';
-      const data = ${JSON.stringify({ clientId, date, time, duration, services, products, force: true })};
-      for (const k in data) {
-        const i = document.createElement('input');
-        i.type = 'hidden'; i.name = k;
-        i.value = typeof data[k] === 'string' ? data[k] : JSON.stringify(data[k]);
-        f.appendChild(i);
-      }
-      document.body.appendChild(f);
-      f.submit();
-    } else {
-      history.back();
-    }
-  </script>
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Confirmar Agendamento</title></head><body>
+<script>
+if (confirm("⚠️ Já existe outro agendamento nesse horário. Deseja agendar assim mesmo?")) {
+  const f = document.createElement('form')
+  f.method = 'POST'; f.action = '/appointment'
+  const data = ${JSON.stringify({clientId,date,time,duration,services,products,force:true})}
+  for (const k in data) {
+    const i = document.createElement('input')
+    i.type='hidden'; i.name=k
+    i.value=typeof data[k]==='string'?data[k]:JSON.stringify(data[k])
+    f.appendChild(i)
+  }
+  document.body.appendChild(f); f.submit()
+} else history.back()
+</script>
 </body></html>
-    `);
+    `)
   }
 
-  // Sem conflito ou forçado: salva
-  parsedServices.forEach(s => s.payments = []);
-  parsedProducts.forEach(p => p.payments = []);
+  // salva agendamento
+  parsedServices.forEach(s => s.payments = [])
+  parsedProducts.forEach(p => p.payments = [])
   const appt = await Appointment.create({
-    clientId,
-    date: start,
-    duration: dur,
-    services: parsedServices,
-    products: parsedProducts
-  });
+    clientId, date: start, duration: dur,
+    services: parsedServices, products: parsedProducts
+  })
 
-  // Busca dados do cliente e envia SMS
-  const client = await Client.findById(clientId);
+  // envia SMS de confirmação
+  const client      = await Client.findById(clientId)
+  const firstService = parsedServices[0]?.name || 'serviço'
+  let raw           = client.phone.replace(/\D/g, '')
+  if (!raw.startsWith('55')) raw = '55' + raw
+  const toE164      = '+' + raw
+ const msg = `Ei, ${client.name}! Aqui é do Studio Kadosh 💖 Seu agendamento de ${firstService} está marcado para ` +
+            `${dayjs(start).tz('America/Sao_Paulo').format('DD/MM/YYYY [às] HH:mm')} – mal podemos esperar te ver por aqui! 😉`;
 
-  // extrai nome do primeiro serviço ou usa termo genérico
-  const firstService = parsedServices[0]?.name || 'serviço';
-
-  let raw = client.phone.replace(/\D/g, '');
-  if (!raw.startsWith('55')) raw = '55' + raw;
-  const toE164 = '+' + raw;
 
   try {
-    await twilioClient.messages.create({
-      to:   toE164,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      body: `Olá ${client.name}! Seu agendamento de ${firstService} está confirmado para ${dayjs(start)
-        .tz('America/Sao_Paulo')
-        .format('DD/MM/YYYY [às] HH:mm')}.`
-    });
-    console.log('SMS enviado para', toE164);
-  } catch (err) {
-    console.error('Falha ao enviar SMS:', err.message);
+    const resp = await axios.post('https://textbelt.com/text', {
+      phone:   toE164,
+      message: msg,
+      key:     process.env.TEXTBELT_API_KEY
+    })
+    if (!resp.data.success) console.error('Textbelt erro:', resp.data.error)
+    else console.log('SMS enviado para', toE164)
+  } catch (e) {
+    console.error('Falha ao chamar Textbelt:', e.message)
   }
 
-  res.redirect(`/client/${clientId}`);
-});
+  res.redirect(`/client/${clientId}`)
+})
 
 
-// --- Página do Cliente (Futuros) ---
+
 router.get('/client/:id', authMiddleware, async (req, res) => {
-  const client = await Client.findById(req.params.id);
-  const all     = await Appointment.find({ clientId: client._id });
-  const midnight= dayjs().tz('America/Sao_Paulo').startOf('day').toDate();
+  const client = await Client.findById(req.params.id)
+  const all    = await Appointment.find({ clientId: client._id })
+  const midnight = dayjs().tz('America/Sao_Paulo').startOf('day').toDate()
 
   const upcoming = all
     .filter(a => a.date >= midnight)
     .map(a => ({
       ...a.toObject(),
       formatted: dayjs(a.date).tz('America/Sao_Paulo').format('DD/MM/YYYY [às] HH:mm')
-    }));
+    }))
 
-  let totalService = 0, totalProduct = 0, totalPaid = 0;
+  let totalService = 0, totalProduct = 0, totalPaid = 0
   upcoming.forEach(a => {
     a.services.forEach(s => {
-      totalService += s.price;
-      totalPaid    += (s.payments||[]).reduce((sum,p)=>sum+(p.amount||0),0);
-    });
+      totalService += s.price
+      totalPaid    += (s.payments||[]).reduce((s,p)=>s+(p.amount||0),0)
+    })
     a.products.forEach(p => {
-      totalProduct += p.price;
-      totalPaid    += (p.payments||[]).reduce((sum,p)=>sum+(p.amount||0),0);
-    });
-  });
+      totalProduct += p.price
+      totalPaid    += (p.payments||[]).reduce((s,p)=>s+(p.amount||0),0)
+    })
+  })
 
   res.render('client', {
     client,
     appointments: upcoming,
-    totalService,
-    totalProduct,
-    total: totalService+totalProduct,
+    totalService, totalProduct,
+    total: totalService + totalProduct,
     totalPaid
-  });
-});
+  })
+})
 
 // --- Histórico (Passados) ---
 router.get('/client/:id/historico', authMiddleware, async (req, res) => {
@@ -240,55 +223,41 @@ router.post('/appointment/:id/remove-product/:idx', authMiddleware, async (req, 
 
 
 
-// Rota de cancelamento de agendamento
 router.post('/appointment/:id/cancel', authMiddleware, async (req, res) => {
   try {
-    const appt = await Appointment.findById(req.params.id).populate('clientId');
-    if (!appt) return res.status(404).send('Agendamento não encontrado.');
+    const appt = await Appointment.findById(req.params.id).populate('clientId')
+    if (!appt) return res.status(404).send('Agendamento não encontrado.')
 
-    // extrai nome do primeiro serviço ou usa termo genérico
-    const firstService = appt.services[0]?.name || 'serviço';
+    // prepara dados
+    const firstService = appt.services[0]?.name || 'serviço'
+    let raw           = appt.clientId.phone.replace(/\D/g, '')
+    if (!raw.startsWith('55')) raw = '55' + raw
+    const toE164      = '+' + raw
+   const cancelMsg = `Oi, ${appt.clientId.name}! Aqui é do Studio Kadosh 💔 Seu agendamento de ${firstService} para ` +
+                  `${dayjs(appt.date).tz('America/Sao_Paulo').format('DD/MM/YYYY [às] HH:mm')} foi cancelado. ` +
+                  `Qualquer coisa, estamos por aqui! 😊`;
 
-    // formata telefone em E.164
-    let raw = appt.clientId.phone.replace(/\D/g, '');
-    if (!raw.startsWith('55')) raw = '55' + raw;
-    const toE164 = '+' + raw;
-
-    // verifica configuração de envio
-    const fromNumber = process.env.TWILIO_PHONE_NUMBER;
-    const serviceSid  = process.env.TWILIO_MESSAGING_SERVICE_SID;
-    if (!fromNumber && !serviceSid) {
-      console.error(
-        (!fromNumber ? 'TWILIO_PHONE_NUMBER' : '') +
-        (!fromNumber && !serviceSid ? ' e ' : '') +
-        (!serviceSid ? 'TWILIO_MESSAGING_SERVICE_SID' : '') +
-        ' não definidos.'
-      );
-      return res.status(500).send('Configuração do Twilio ausente.');
-    }
-
-    // monta opções de mensagem
-    const msgOpts = { to: toE164 };
-    if (fromNumber)      msgOpts.from = fromNumber;
-    else if (serviceSid) msgOpts.messagingServiceSid = serviceSid;
-
-    msgOpts.body = `Olá ${appt.clientId.name}! Seu agendamento de ${firstService} para ${dayjs(appt.date)
-      .tz('America/Sao_Paulo')
-      .format('DD/MM/YYYY [às] HH:mm')} foi cancelado.`;
 
     // envia SMS
-    await twilioClient.messages.create(msgOpts);
-    console.log('SMS de cancelamento enviado para', toE164);
+    const resp = await axios.post('https://textbelt.com/text', {
+      phone:   toE164,
+      message: cancelMsg,
+      key:     process.env.TEXTBELT_API_KEY
+    })
+    if (!resp.data.success) console.error('Textbelt cancel erro:', resp.data.error)
+    else console.log('SMS cancel enviado para', toE164)
 
     // remove do banco
-    await Appointment.deleteOne({ _id: appt._id });
+    await Appointment.deleteOne({ _id: appt._id })
 
-    res.redirect(`/client/${appt.clientId._id}`);
+    res.redirect(`/client/${appt.clientId._id}`)
   } catch (err) {
-    console.error('Erro ao cancelar agendamento:', err);
-    res.status(500).send('Erro ao cancelar agendamento.');
+    console.error('Erro no cancelamento:', err)
+    res.status(500).send('Erro ao cancelar agendamento.')
   }
-});
+})
+
+
 
 // --- Pagamentos com Método ---
 router.post('/appointment/:id/pay-service/:idx', authMiddleware, async (req, res) => {
