@@ -7,8 +7,12 @@ const Appointment = require('../models/Appointment')
 const dayjs       = require('dayjs')
 const utc         = require('dayjs/plugin/utc')
 const timezone    = require('dayjs/plugin/timezone')
+const isoWeek   = require('dayjs/plugin/isoWeek');
 dayjs.extend(utc)
 dayjs.extend(timezone)
+dayjs.extend(isoWeek);
+
+
 
 // middleware de autenticação
 function authMiddleware(req, res, next) {
@@ -341,38 +345,61 @@ router.post('/appointment/:id/edit-product/:idx', authMiddleware, async (req, re
   res.redirect(`/client/${a.clientId}`);
 });
 
-// --- Financeiro por Mês ---
-router.get('/financeiro', authMiddleware, async (req, res) => {
-  const { month } = req.query;
-  const monthNames= ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
-  let filter={}, monthLabel='', monthValue='';
+
+
+
+// routes/index.js (trecho dentro de router.get('/financeiro', ...))
+router.get('/financeiro', authMiddleware, async (req, res) => {
+  const { month, week } = req.query;
+  const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  let filter     = {};
+  let monthLabel = '', monthValue = '';
+  let weekLabel  = '', weekValue  = '';
+
   if (month) {
+    // filtro por mês
     const [year, mon] = month.split('-');
     monthValue = month;
-    monthLabel = `${monthNames[parseInt(mon,10)-1]} de ${year}`;
-    const start = dayjs.tz(`${month}-01T00:00:00`,'America/Sao_Paulo').toDate();
+    monthLabel = `${monthNames[Number(mon)-1]} de ${year}`;
+    const start = dayjs.tz(`${month}-01T00:00:00`, 'America/Sao_Paulo').toDate();
     const end   = dayjs(start).endOf('month').toDate();
-    filter.date={ $gte:start, $lte:end };
+    filter.date = { $gte: start, $lte: end };
+  } else if (week) {
+    // filtro por semana ISO: week vem no formato "2025-W25"
+    weekValue = week;
+    const [year, wk] = week.split('-W').map(Number);
+    const startOfWeek = dayjs().year(year).isoWeek(wk)
+      .tz('America/Sao_Paulo').startOf('isoWeek');
+    const endOfWeek   = startOfWeek.clone().endOf('isoWeek');
+
+    weekLabel = `Semana de ${startOfWeek.format('DD/MM/YYYY')} a ${endOfWeek.format('DD/MM/YYYY')}`;
+    filter.date = {
+      $gte: startOfWeek.toDate(),
+      $lte: endOfWeek.toDate()
+    };
   }
 
-  const ags = await Appointment.find(filter).populate('clientId').exec();
+  // busca os agendamentos
+  const ags = await Appointment.find(filter).populate('clientId');
+
+  // cálculo de totals, details e overallTotal
   const totals  = {};
   const details = {};
-
   ags.forEach(a => {
     const date = dayjs(a.date).tz('America/Sao_Paulo').format('DD/MM/YYYY');
-    [...a.services,...a.products].forEach(item => {
+    [...a.services, ...a.products].forEach(item => {
       (item.payments||[]).forEach(p => {
-        const m = (p.method||'').toLowerCase();
         let key;
-        if (m.includes('pix'))                    key='Pix';
-        else if (m.includes('dinheiro'))          key='Dinheiro';
-        else if (m.includes('cartão')||m.includes('cartao')) key='Cartão';
+        const m = (p.method||'').toLowerCase();
+        if (m.includes('pix')) key = 'Pix';
+        else if (m.includes('dinheiro')) key = 'Dinheiro';
+        else if (m.includes('cartão')||m.includes('cartao')) key = 'Cartão';
         else return;
 
-        totals[key]  = (totals[key]||0)+p.amount;
-        details[key] = details[key]||[];
+        totals[key]  = (totals[key]||0) + p.amount;
+        details[key] = details[key] || [];
         details[key].push({
           date,
           client: a.clientId.name,
@@ -383,12 +410,16 @@ router.get('/financeiro', authMiddleware, async (req, res) => {
       });
     });
   });
+  const overallTotal = Object.values(totals).reduce((sum,v) => sum+v, 0);
 
-  const overallTotal = Object.values(totals).reduce((sum,v)=>sum+v,0);
-  res.render('financeiro',{
-    monthLabel, monthValue, totals, details, overallTotal
+  res.render('financeiro', {
+    monthLabel, monthValue,
+    weekLabel,  weekValue,
+    totals,     details,
+    overallTotal
   });
 });
+
 
 
 

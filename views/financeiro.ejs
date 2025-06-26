@@ -2,22 +2,36 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Financeiro – <%= monthLabel %></title>
+  <title>Financeiro – 
+    <% if (monthLabel) { %><%= monthLabel %>
+    <% } else if (weekLabel) { %><%= weekLabel %>
+    <% } else { %>Geral<% } %>
+  </title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100 p-6">
   <div class="max-w-4xl mx-auto bg-white p-6 rounded shadow">
     <h1 class="text-2xl font-bold mb-4">
-      Financeiro – <%= monthLabel || 'Todos os meses' %>
+      Financeiro –
+      <% if (monthLabel) { %><%= monthLabel %>
+      <% } else if (weekLabel) { %><%= weekLabel %>
+      <% } else { %>Geral<% } %>
     </h1>
 
-    <form method="GET" action="/financeiro" class="flex items-center gap-2 mb-6">
-      <label for="month" class="font-semibold">Mês:</label>
-      <input type="month" id="month" name="month" value="<%= monthValue %>"
-             class="p-2 border rounded">
+    <form method="GET" action="/financeiro" class="flex flex-wrap items-center gap-4 mb-6">
+      <div>
+        <label class="font-semibold">Mês:</label>
+        <input type="month" name="month" value="<%= monthValue %>"
+               class="p-2 border rounded">
+      </div>
+      <div>
+        <label class="font-semibold">Semana:</label>
+        <input type="week" name="week" value="<%= weekValue %>"
+               class="p-2 border rounded">
+      </div>
       <button type="submit"
               class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
-        Buscar
+        Filtrar
       </button>
     </form>
 
@@ -53,14 +67,11 @@
     %>
       <section class="mb-8">
         <h4 class="text-lg font-medium mb-2">Detalhes – <%= method %></h4>
-
         <% if (list.length) { %>
           <ul class="space-y-2">
             <% list.forEach(d => { %>
               <li class="p-4 bg-gray-50 rounded border">
-                <strong>
-                  <%= d.date %> – <%= d.client %> – <%= d.item %>: R$ <%= d.amount %>
-                </strong>
+                <strong><%= d.date %> – <%= d.client %> – <%= d.item %>: R$ <%= d.amount %></strong>
                 <% if (d.description) { %>
                   <p class="text-sm italic text-gray-700 mt-1"><%= d.description %></p>
                 <% } %>
