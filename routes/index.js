@@ -27,7 +27,7 @@ router.post('/login', (req, res) => {
   const { username, password } = req.body;
   if (username === 'samara' && password === '160793') {
     req.session.loggedIn = true;
-    return res.redirect('/');
+    return res.redirect('/dashboard');
   }
   res.render('login', { error: 'Usuário ou senha inválidos' });
 });
@@ -35,8 +35,70 @@ router.get('/logout', (req, res) => {
   req.session.destroy(() => res.redirect('/login'));
 });
 
+// Redireciona root para dashboard
+router.get('/', authMiddleware, (req, res) => {
+  res.redirect('/dashboard');
+});
+
+// --- Dashboard unificado ---
+router.get('/dashboard', authMiddleware, async (req, res) => {
+  // referência SP
+  const nowSP      = () => dayjs().tz('America/Sao_Paulo');
+  const hojeStart  = nowSP().startOf('day');
+  const hojeEnd    = nowSP().endOf('day');
+  const amanhaStart= hojeStart.add(1, 'day');
+  const amanhaEnd  = hojeEnd.add(1, 'day');
+
+  // próximos de hoje
+  const proximosHoje = await Appointment.find({
+    date: { $gte: hojeStart.toDate(), $lte: hojeEnd.toDate() }
+  })
+    .populate('clientId')
+    .sort({ date: 1 })
+    .then(list => list.map(a => ({
+      name: a.clientId.name,
+      time: dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm')
+    })));
+
+  // próximos de amanhã
+  const proximosAmanha = await Appointment.find({
+    date: { $gte: amanhaStart.toDate(), $lte: amanhaEnd.toDate() }
+  })
+    .populate('clientId')
+    .sort({ date: 1 })
+    .then(list => list.map(a => ({
+      name: a.clientId.name,
+      time: dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm')
+    })));
+
+  // todos os agendamentos para calcular receita
+  const all = await Appointment.find().populate('clientId');
+  let receitaHoje   = 0;
+  let receitaSemana = 0;
+  let receitaMes    = 0;
+
+  all.forEach(a => {
+    [...a.services, ...a.products].forEach(item => {
+      (item.payments || []).forEach(p => {
+        const paid = dayjs(p.paidAt).tz('America/Sao_Paulo');
+        if (paid.isSame(hojeStart, 'day'))   receitaHoje   += p.amount;
+        if (paid.isSame(hojeStart, 'week'))  receitaSemana += p.amount;
+        if (paid.isSame(hojeStart, 'month')) receitaMes    += p.amount;
+      });
+    });
+  });
+
+  res.render('dashboard', {
+    proximosHoje,
+    proximosAmanha,
+    receitaHoje,
+    receitaSemana,
+    receitaMes
+  });
+});
+
 // --- Home e Busca de Clientes ---
-router.get('/', authMiddleware, async (req, res) => {
+router.get('/clients', authMiddleware, async (req, res) => {
   const clients = await Client.find();
   res.render('home', { clients });
 });
@@ -49,37 +111,30 @@ router.get('/search', authMiddleware, async (req, res) => {
   res.render('home', { clients });
 });
 
-
 // --- Criar Cliente (com validação de duplicata) ---
 router.post('/client', authMiddleware, async (req, res) => {
-  const { name, phone } = req.body;
-  const trimmedName     = name.trim();
-  const normalizedPhone = phone.replace(/\D/g, '');
+  const { name, phone }   = req.body;
+  const trimmedName       = name.trim();
+  const normalizedPhone   = phone.replace(/\D/g, '');
 
-  // Verifica se já existe cliente com mesmo nome ou telefone
   const existing = await Client.findOne({
     $or: [
       { name: trimmedName },
-      { phone: { $regex: normalizedPhone + '$' } } // termina com esse número (ignora formatação)
+      { phone: { $regex: normalizedPhone + '$' } }
     ]
   });
 
   if (existing) {
-    // Se chegar aqui, nome ou telefone já cadastrado
     const errorMsg = existing.name === trimmedName
       ? 'Já existe um cliente cadastrado com esse nome.'
       : 'Já existe um cliente cadastrado com esse telefone.';
-
-    // Renderiza a home com todos os clientes e a mensagem de erro
     const clients = await Client.find();
     return res.render('home', { clients, error: errorMsg });
   }
 
-  // Se for novo, cria normalmente
   await Client.create({ name: trimmedName, phone: normalizedPhone });
-  res.redirect('/');
+  res.redirect('/clients');
 });
-
 
 // --- Criar Agendamento + SMS ---
 router.post('/appointment', authMiddleware, async (req, res) => {
@@ -87,12 +142,10 @@ router.post('/appointment', authMiddleware, async (req, res) => {
   const parsedServices = services ? JSON.parse(services) : [];
   const parsedProducts = products ? JSON.parse(products) : [];
 
-  // Inicio/fim em SP
   const start = dayjs.tz(`${date}T${time}`, 'America/Sao_Paulo').toDate();
   const dur   = parseInt(duration, 10);
   const end   = new Date(start.getTime() + dur * 60000);
 
-  // Conflito?
   const conflict = await Appointment.findOne({
     date: { $lt: end },
     $expr: {
@@ -103,28 +156,23 @@ router.post('/appointment', authMiddleware, async (req, res) => {
     }
   });
   if (conflict && !force) {
-    // pergunta se força
     return res.send(`
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Confirmar Agendamento</title></head><body>
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Confirmar</title></head><body>
 <script>
-  if (confirm("⚠️ Já existe outro agendamento nesse horário. Deseja agendar assim mesmo?")) {
-    const f = document.createElement('form');
-    f.method='POST'; f.action='/appointment';
-    const data = ${JSON.stringify({ clientId,date,time,duration,services,products,force:true })};
-    for (const k in data) {
-      const i = document.createElement('input');
-      i.type='hidden'; i.name=k;
-      i.value=typeof data[k]==='string'?data[k]:JSON.stringify(data[k]);
-      f.appendChild(i);
-    }
-    document.body.appendChild(f); f.submit();
-  } else history.back();
-</script>
-</body></html>
-    `);
+if (confirm("⚠️ Conflito de horário. Agendar mesmo assim?")) {
+  const f = document.createElement('form'); f.method='POST'; f.action='/appointment';
+  const data = ${JSON.stringify({ clientId,date,time,duration,services,products,force:true })};
+  for (const k in data) {
+    const i=document.createElement('input'); i.type='hidden'; i.name=k;
+    i.value=typeof data[k]==='string'?data[k]:JSON.stringify(data[k]);
+    f.appendChild(i);
+  }
+  document.body.appendChild(f);
+  f.submit();
+} else history.back();
+</script></body></html>`);
   }
 
-  // salva agendamento
   parsedServices.forEach(s => s.payments = []);
   parsedProducts.forEach(p => p.payments = []);
   const appt = await Appointment.create({
@@ -132,27 +180,25 @@ router.post('/appointment', authMiddleware, async (req, res) => {
     services: parsedServices, products: parsedProducts
   });
 
-  // prepara SMS
+  // SMS via Textbelt
   const client       = await Client.findById(clientId);
   const firstService = parsedServices[0]?.name || 'serviço';
   let raw            = client.phone.replace(/\D/g, '');
   if (!raw.startsWith('55')) raw = '55' + raw;
   const toE164       = '+' + raw;
+  const msg = `Ei, ${client.name}! Studio Kadosh 💖 Agendado: ${firstService} em `
+    + `${dayjs(start).tz('America/Sao_Paulo').format('DD/MM/YYYY [às] HH:mm')}.`;
 
-  const msg = `Ei, ${client.name}! Aqui é do Studio Kadosh 💖 Seu agendamento de ${firstService} está marcado para `
-            + `${dayjs(start).tz('America/Sao_Paulo').format('DD/MM/YYYY [às] HH:mm')} – mal podemos esperar te ver por aqui! 😉`;
-
-  // envia via Textbelt
   try {
     const resp = await axios.post('https://textbelt.com/text', {
-      phone:   toE164,
+      phone: toE164,
       message: msg,
-      key:     process.env.TEXTBELT_API_KEY
+      key: process.env.TEXTBELT_API_KEY
     });
     if (!resp.data.success) console.error('Textbelt erro:', resp.data.error);
     else console.log('SMS enviado para', toE164);
   } catch (e) {
-    console.error('Falha ao chamar Textbelt:', e.message);
+    console.error('Erro Textbelt:', e.message);
   }
 
   res.redirect(`/client/${clientId}`);

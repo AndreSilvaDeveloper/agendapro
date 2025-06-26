@@ -7,17 +7,22 @@
 </head>
 <body class="bg-gray-100 p-6">
   <div class="max-w-3xl mx-auto bg-white p-6 rounded shadow">
-    <!-- Header -->
-    <div class="flex justify-between items-center mb-4">
-      <h1 class="text-2xl font-bold">Cliente: <%= client.name %></h1>
+    <!-- Header com Voltar -->
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center space-x-2">
+        <a href="/" class="text-gray-600 hover:text-gray-800">
+          ⬅ Voltar
+        </a>
+        <h1 class="text-2xl font-bold">Cliente: <%= client.name %></h1>
+      </div>
       <div class="flex gap-4">
         <form action="/client/<%= client._id %>/edit" method="POST" onsubmit="return editClient(this, '<%= client.name %>', '<%= client.phone %>')">
-          <button class="text-blue-600 hover:underline text-sm">✏️ Editar Cliente</button>
+          <button class="text-blue-600 hover:underline text-sm">✏️ Editar</button>
         </form>
         <form action="/client/<%= client._id %>/delete" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este cliente?')">
-          <button class="text-red-600 hover:underline text-sm">🗑️ Excluir Cliente</button>
+          <button class="text-red-600 hover:underline text-sm">🗑️ Excluir</button>
         </form>
-        <a href="/client/<%= client._id %>/historico" class="inline-flex items-center px-3 py-1.5 bg-yellow-100 text-yellow-800 text-sm font-medium rounded hover:bg-yellow-200">
+        <a href="/client/<%= client._id %>/historico" class="inline-flex items-center bg-yellow-100 text-yellow-800 px-3 py-1.5 rounded text-sm hover:bg-yellow-200">
           📜 Histórico
         </a>
       </div>
