@@ -8,30 +8,42 @@
 </head>
 <body class="bg-gray-100 p-4 sm:p-6">
   <div class="max-w-lg mx-auto bg-white p-6 rounded-lg shadow-lg">
-    <!-- Ações rápidas -->
-    <div class="flex justify-end mb-4 space-x-2">
-      <a href="/agendamentos-por-dia"
-         class="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
-        📅 Agendamentos
-      </a>
-      <a href="/financeiro"
-         class="inline-flex items-center gap-2 bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 transition">
-        📊 Financeiro
-      </a>
-      <button id="menuBtn" class="sm:hidden bg-gray-200 p-2 rounded">
+    <!-- Cabeçalho com hambúrguer -->
+    <div class="flex justify-between items-center mb-4">
+      <h1 class="text-xl font-bold">📋 Clientes</h1>
+      <button id="menuBtn" class="sm:hidden bg-gray-200 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
         ☰
       </button>
+      <!-- Links para desktop -->
+      <div class="hidden sm:flex space-x-2">
+        <a href="/agendamentos-por-dia" class="inline-flex items-center gap-1 bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 transition">
+          📅 Agendamentos
+        </a>
+        <a href="/financeiro" class="inline-flex items-center gap-1 bg-yellow-500 text-white px-3 py-2 rounded hover:bg-yellow-600 transition">
+          📊 Financeiro
+        </a>
+      </div>
     </div>
 
-    <!-- Mensagem de erro de duplicata -->
+    <!-- Menu oculto em mobile -->
+    <div id="mobileMenu" class="hidden flex-col space-y-2 mb-6">
+      <a href="/agendamentos-por-dia" class="block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
+        📅 Agendamentos por dia
+      </a>
+      <a href="/financeiro" class="block bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 transition">
+        📊 Financeiro
+      </a>
+    </div>
+
+    <!-- Erro de duplicata -->
     <% if (typeof error !== 'undefined' && error) { %>
       <div class="mb-4 p-3 bg-red-100 text-red-700 rounded">
         <%= error %>
       </div>
     <% } %>
 
-    <!-- Cadastrar Cliente -->
-    <h1 class="text-2xl font-bold mb-4">Cadastrar Cliente</h1>
+    <!-- Formulário de cadastro -->
+    <h2 class="text-lg font-semibold mb-3">Cadastrar Cliente</h2>
     <form action="/client" method="POST" class="space-y-3 mb-6">
       <input type="text" name="name" placeholder="Nome" required
              class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
@@ -43,8 +55,8 @@
       </button>
     </form>
 
-    <!-- Buscar Cliente -->
-    <h2 class="text-xl font-semibold mb-2">Buscar Cliente</h2>
+    <!-- Busca de clientes -->
+    <h2 class="text-lg font-semibold mb-3">Buscar Cliente</h2>
     <form action="/search" method="GET" class="flex flex-col sm:flex-row sm:space-x-2 mb-6">
       <input type="text" name="q" placeholder="Nome ou telefone" required
              class="flex-1 p-3 mb-2 sm:mb-0 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
@@ -54,23 +66,20 @@
       </button>
     </form>
 
-    <!-- Lista de Clientes -->
-    <h2 class="text-xl font-semibold mb-2">Clientes</h2>
+    <!-- Lista de clientes -->
+    <h2 class="text-lg font-semibold mb-3">Clientes</h2>
     <% if (clients.length === 0) { %>
       <p class="text-gray-500">Nenhum cliente cadastrado.</p>
     <% } else { %>
       <ul class="space-y-2">
         <% clients.forEach(c => { %>
           <li class="flex justify-between items-center p-3 bg-gray-50 rounded hover:bg-gray-100 transition">
-            <a href="/client/<%= c._id %>"
-               class="text-blue-600 hover:underline">
+            <a href="/client/<%= c._id %>" class="text-blue-600 hover:underline">
               <%= c.name %> – <%= c.phone %>
             </a>
             <form action="/client/<%= c._id %>/delete" method="POST"
-                  onsubmit="return confirm('Excluir este cliente?')" >
-              <button class="text-red-600 hover:underline text-sm transition">
-                🗑️
-              </button>
+                  onsubmit="return confirm('Excluir este cliente?')">
+              <button class="text-red-600 hover:underline text-sm transition">🗑️</button>
             </form>
           </li>
         <% }) %>
@@ -79,9 +88,11 @@
   </div>
 
   <script>
-    // Menu hambúrguer (apenas exemplo; você pode expandir conforme necessidade)
-    document.getElementById('menuBtn').addEventListener('click', () => {
-      alert('Aqui você pode abrir um menu lateral no mobile!');
+    // Toggle do menu mobile
+    const btn = document.getElementById('menuBtn');
+    const menu = document.getElementById('mobileMenu');
+    btn.addEventListener('click', () => {
+      menu.classList.toggle('hidden');
     });
   </script>
 </body>
