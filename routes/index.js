@@ -53,14 +53,14 @@ router.get('/search', authMiddleware, async (req, res) => {
 // --- Criar Cliente (com validação de duplicata) ---
 router.post('/client', authMiddleware, async (req, res) => {
   const { name, phone } = req.body;
-  const trimmedName  = name.trim();
+  const trimmedName     = name.trim();
   const normalizedPhone = phone.replace(/\D/g, '');
 
   // Verifica se já existe cliente com mesmo nome ou telefone
   const existing = await Client.findOne({
     $or: [
       { name: trimmedName },
-      { phone: new RegExp(normalizedPhone + '$') } // termina com esse número (ignora formatação)
+      { phone: { $regex: normalizedPhone + '$' } } // termina com esse número (ignora formatação)
     ]
   });
 
@@ -70,7 +70,7 @@ router.post('/client', authMiddleware, async (req, res) => {
       ? 'Já existe um cliente cadastrado com esse nome.'
       : 'Já existe um cliente cadastrado com esse telefone.';
 
-    // Renderiza a página de listagem com o erro
+    // Renderiza a home com todos os clientes e a mensagem de erro
     const clients = await Client.find();
     return res.render('home', { clients, error: errorMsg });
   }
