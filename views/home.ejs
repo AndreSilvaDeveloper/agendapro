@@ -1,55 +1,79 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
+  <meta charset="UTF-8">
   <title>Clientes</title>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
- <div class="flex justify-end mb-4">
-  <a href="/agendamentos-por-dia" class="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 shadow">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
-    </svg>
-    Ver agendamentos por dia
-  </a>
-  <a href="/financeiro" class="inline-flex items-center gap-2 bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
-    📊 Financeiro
-  </a>
-  
-
-</div>
-
-
 </head>
 <body class="bg-gray-100 p-6">
   <div class="max-w-2xl mx-auto bg-white p-6 rounded shadow">
+    <!-- Ações rápidas -->
+    <div class="flex justify-end mb-4 space-x-2">
+      <a href="/agendamentos-por-dia"
+         class="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 shadow">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+             viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z"/>
+        </svg>
+        Agendamentos por dia
+      </a>
+      <a href="/financeiro"
+         class="inline-flex items-center gap-2 bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+        📊 Financeiro
+      </a>
+    </div>
+
     <h1 class="text-2xl font-bold mb-4">Cadastrar Cliente</h1>
 
+    <!-- Exibe erro de duplicata, se houver -->
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="mb-4 p-3 bg-red-100 text-red-700 rounded">
+        <%= error %>
+      </div>
+    <% } %>
+
+    <!-- Formulário de cadastro -->
     <form action="/client" method="POST" class="space-y-3 mb-6">
-      <input type="text" name="name" placeholder="Nome" required class="w-full p-2 border rounded">
-      <input type="text" name="phone" placeholder="Telefone" required class="w-full p-2 border rounded">
-      <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Cadastrar</button>
+      <input type="text" name="name" placeholder="Nome" required
+             class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <input type="text" name="phone" placeholder="Telefone" required
+             class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <button type="submit"
+              class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
+        Cadastrar
+      </button>
     </form>
 
-    <!-- 🔍 Formulário de busca -->
+    <!-- Busca de clientes -->
     <h2 class="text-xl font-semibold mb-2">Buscar Cliente</h2>
     <form action="/search" method="GET" class="flex space-x-2 mb-6">
-      <input type="text" name="q" placeholder="Nome ou telefone" class="flex-1 p-2 border rounded" required>
-      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Buscar</button>
+      <input type="text" name="q" placeholder="Nome ou telefone" required
+             class="flex-1 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <button type="submit"
+              class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
+        Buscar
+      </button>
     </form>
 
+    <!-- Lista de clientes -->
     <h2 class="text-xl font-semibold mb-2">Clientes</h2>
- <ul class="space-y-2">
-  <% clients.forEach(c => { %>
-    <li class="p-3 bg-gray-50 rounded border hover:bg-gray-100 flex justify-between items-center">
-      <a href="/client/<%= c._id %>" class="text-blue-600 hover:underline">
-        <%= c.name %> - <%= c.phone %>
-      </a>
-      <form action="/client/<%= c._id %>/delete" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este cliente?')">
-        <button class="ml-4 text-red-600 hover:underline text-sm">Excluir</button>
-      </form>
-    </li>
-  <% }) %>
-</ul>
-
+    <ul class="space-y-2">
+      <% clients.forEach(c => { %>
+        <li class="p-3 bg-gray-50 rounded border hover:bg-gray-100 flex justify-between items-center">
+          <a href="/client/<%= c._id %>"
+             class="text-blue-600 hover:underline">
+            <%= c.name %> – <%= c.phone %>
+          </a>
+          <form action="/client/<%= c._id %>/delete" method="POST"
+                onsubmit="return confirm('Tem certeza que deseja excluir este cliente?')" >
+            <button class="text-red-600 hover:underline text-sm transition">
+              Excluir
+            </button>
+          </form>
+        </li>
+      <% }) %>
+    </ul>
   </div>
 </body>
 </html>

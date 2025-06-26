@@ -19,6 +19,7 @@
     "express": "^5.1.0",
     "express-session": "^1.18.1",
     "mongoose": "^8.16.0",
+    "node-fetch": "^2.7.0",
     "serverless-http": "^3.2.0",
     "twilio": "^5.7.1"
   }
