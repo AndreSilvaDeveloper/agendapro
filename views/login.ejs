@@ -1,20 +1,65 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-  <title>Login</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>Login – Studio Kadosh</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link
+    href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+    rel="stylesheet"
+  >
 </head>
-<body class="bg-gray-100 flex items-center justify-center h-screen">
-  <form action="/login" method="POST" class="bg-white p-6 rounded shadow max-w-sm w-full">
-    <h1 class="text-xl font-bold mb-4 text-center">Login do Sistema</h1>
-    
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+  <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-sm">
+    <!-- Logo -->
+    <div class="flex justify-center mb-6">
+      <img
+        src="/images/kadosh.jpg"
+        alt="Studio Kadosh"
+        class="h-24 object-contain"
+      >
+    </div>
+
+    <h1 class="text-2xl font-semibold text-center mb-4">Faça seu login</h1>
+
     <% if (error) { %>
-      <p class="text-red-600 text-sm mb-3"><%= error %></p>
+      <div class="mb-4 text-red-700 bg-red-100 p-2 rounded">
+        <%= error %>
+      </div>
     <% } %>
 
-    <input type="text" name="username" placeholder="Usuário" required class="w-full mb-3 p-2 border rounded">
-    <input type="password" name="password" placeholder="Senha" required class="w-full mb-4 p-2 border rounded">
-    <button type="submit" class="bg-blue-600 w-full text-white py-2 rounded hover:bg-blue-700">Entrar</button>
-  </form>
+    <form action="/login" method="POST" class="space-y-4">
+      <div>
+        <label for="username" class="block text-gray-700">Usuário</label>
+        <input
+          id="username"
+          name="username"
+          type="text"
+          required
+          class="w-full mt-1 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+        >
+      </div>
+
+      <div>
+        <label for="password" class="block text-gray-700">Senha</label>
+        <input
+          id="password"
+          name="password"
+          type="password"
+          required
+          class="w-full mt-1 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+        >
+      </div>
+
+      <button
+        type="submit"
+        class="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700 transition"
+      >
+        Entrar
+      </button>
+    </form>
+  </div>
+
 </body>
 </html>

@@ -1,12 +1,18 @@
+<!-- views/partials/header.ejs -->
 <nav class="bg-white shadow-md fixed w-full z-10 top-0">
   <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="flex justify-between h-16">
+    <div class="flex justify-between items-center h-16">
       <!-- Logo / Título -->
-      <div class="flex-shrink-0 flex items-center">
-        <a href="/" class="text-xl font-bold text-purple-700">STUDIO KADOSH</a>
-      </div>
+      <a href="/" class="text-xl font-bold text-purple-700 hover:text-purple-900">
+        STUDIO KADOSH
+      </a>
+
       <!-- Botões desktop -->
-      <div class="hidden sm:flex sm:items-center sm:space-x-4">
+      <div class="hidden sm:flex space-x-2">
+        <a href="/dashboard"
+           class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 text-sm">
+          Dashboard
+        </a>
         <a href="/agendamentos-por-dia"
            class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm">
           Agenda por Dia
@@ -15,10 +21,20 @@
            class="px-4 py-2 rounded-lg bg-yellow-500 text-white hover:bg-yellow-600 text-sm">
           Financeiro
         </a>
+        <a href="/client"
+           class="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 text-sm">
+          Clientes
+        </a>
+        <a href="/logout"
+           class="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 text-sm">
+          Sair
+        </a>
       </div>
+
       <!-- Botão hamburguer mobile -->
-      <div class="flex items-center sm:hidden">
-        <button id="nav-toggle" class="p-2 rounded-md focus:outline-none focus:ring">
+      <div class="sm:hidden">
+        <button id="nav-toggle" aria-label="Abrir menu"
+                class="p-2 rounded-md text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                   d="M4 6h16M4 12h16M4 18h16" />
@@ -27,23 +43,35 @@
       </div>
     </div>
   </div>
+
   <!-- Menu mobile -->
-  <div id="nav-menu" class="sm:hidden hidden bg-white">
+  <div id="nav-menu" class="sm:hidden hidden bg-white border-t border-gray-200">
+    <a href="/dashboard"
+       class="block px-4 py-3 text-center hover:bg-gray-100">
+      Dashboard
+    </a>
     <a href="/agendamentos-por-dia"
-       class="block px-4 py-3 border-b text-center hover:bg-gray-100">
+       class="block px-4 py-3 text-center hover:bg-gray-100">
       Agenda por Dia
     </a>
     <a href="/financeiro"
        class="block px-4 py-3 text-center hover:bg-gray-100">
       Financeiro
     </a>
+    <a href="/client"
+       class="block px-4 py-3 text-center hover:bg-gray-100">
+      Clientes
+    </a>
+    <a href="/logout"
+       class="block px-4 py-3 text-center text-red-600 hover:bg-red-50">
+      Sair
+    </a>
   </div>
 
   <script>
-    // Toggle do menu hamburguer
-    document.getElementById('nav-toggle').addEventListener('click', () => {
-      const menu = document.getElementById('nav-menu');
-      menu.classList.toggle('hidden');
-    });
+    document.getElementById('nav-toggle')
+      .addEventListener('click', () => {
+        document.getElementById('nav-menu').classList.toggle('hidden');
+      });
   </script>
 </nav>

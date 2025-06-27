@@ -1,45 +1,62 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
+  <meta charset="UTF-8">
   <title>Agendamentos do Dia</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link
+    href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+    rel="stylesheet"
+  >
 </head>
 <body class="bg-gray-100 p-6">
   <div class="max-w-3xl mx-auto bg-white p-6 rounded shadow">
-    <h1 class="text-2xl font-bold mb-4">Agendamentos por Dia</h1>
 
-    <form method="GET" action="/agendamentos-por-dia" class="mb-6">
-      <input type="date" name="date" value="<%= date || '' %>" class="p-2 border rounded">
-      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded ml-2 hover:bg-blue-700">Buscar</button>
+    <h1 class="text-2xl font-bold mb-4">Agendamentos de <%= date %></h1>
+
+    <form method="GET" action="/agendamentos-por-dia" class="mb-6 flex gap-2">
+      <input type="date" name="date" value="<%= date %>"
+             class="p-2 border rounded flex-grow sm:flex-none">
+      <button type="submit"
+              class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+        Buscar
+      </button>
+      
+    <a href="/dashboard" class="inline-block mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+      ⬅ Voltar
+    </a>
     </form>
 
-    <% if (results.length === 0 && date) { %>
+    <% if (results.length === 0) { %>
       <p class="text-gray-500">
         Nenhum agendamento encontrado para <strong><%= date %></strong>.
       </p>
+    <% } else { %>
+      <ul class="space-y-4">
+        <% results.forEach(r => { %>
+          <li class="p-4 bg-gray-50 rounded border flex justify-between items-start">
+            <div>
+              <span class="block font-semibold">
+                <%= r.clientName %> – <%= r.timeFormatted %>
+              </span>
+              <p class="text-sm text-gray-700 mt-1">
+                Serviços: <%= r.servicesNames %>
+              </p>
+            </div>
+
+            <form action="/appointment/<%= r._id %>/cancel" method="POST"
+                  onsubmit="return confirm('Deseja realmente cancelar este agendamento?')">
+              <button
+                class="text-red-600 hover:text-red-800 text-sm font-medium"
+                title="Cancelar agendamento">
+                ❌ Cancelar
+              </button>
+            </form>
+          </li>
+        <% }) %>
+      </ul>
     <% } %>
 
-    <% results.forEach(r => { %>
-      <div class="mb-4 p-4 bg-gray-50 rounded border">
-        <strong class="block text-lg mb-1">
-          <%= r.clientId.name %> – <%= r.timeFormatted %>
-        </strong>
-        <% if (r.services.length) { %>
-          <p class="font-semibold">Serviços:</p>
-          <ul class="list-disc pl-6">
-            <% r.services.forEach(s => { %>
-              <li><%= s.name %> – R$ <%= s.price %></li>
-            <% }) %>
-          </ul>
-        <% } else { %>
-          <p class="text-sm text-gray-500">Sem serviços agendados.</p>
-        <% } %>
-      </div>
-    <% }) %>
-
-    <a href="/" class="inline-block mt-6 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 shadow-md">
-      ⬅ Voltar
-    </a>
   </div>
 </body>
 </html>

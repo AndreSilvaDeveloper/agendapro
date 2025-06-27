@@ -4,6 +4,7 @@ const router      = express.Router();
 const axios       = require('axios');
 const Client      = require('../models/Client');
 const Appointment = require('../models/Appointment');
+const Expense     = require('../models/Expense')
 const dayjs       = require('dayjs');
 const utc         = require('dayjs/plugin/utc');
 const timezone    = require('dayjs/plugin/timezone');
@@ -40,39 +41,54 @@ router.get('/', authMiddleware, (req, res) => {
   res.redirect('/dashboard');
 });
 
+
+
 // --- Dashboard unificado ---
 router.get('/dashboard', authMiddleware, async (req, res) => {
   // referência SP
-  const nowSP      = () => dayjs().tz('America/Sao_Paulo');
-  const hojeStart  = nowSP().startOf('day');
-  const hojeEnd    = nowSP().endOf('day');
-  const amanhaStart= hojeStart.add(1, 'day');
-  const amanhaEnd  = hojeEnd.add(1, 'day');
+  const nowSP       = () => dayjs().tz('America/Sao_Paulo');
+  const hojeStart   = nowSP().startOf('day');
+  const hojeEnd     = nowSP().endOf('day');
+  const amanhaStart = hojeStart.add(1, 'day');
+  const amanhaEnd   = hojeEnd.add(1, 'day');
 
-  // próximos de hoje
-  const proximosHoje = await Appointment.find({
+  // Busca bruta para hoje
+  const rawHoje = await Appointment.find({
     date: { $gte: hojeStart.toDate(), $lte: hojeEnd.toDate() }
   })
     .populate('clientId')
     .sort({ date: 1 })
+    .lean()
     .then(list => list.map(a => ({
-      name: a.clientId.name,
-      time: dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm')
+      name:    a.clientId.name,
+      time:    dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm'),
+      service: a.services[0]?.name || 'serviço'
     })));
 
-  // próximos de amanhã
-  const proximosAmanha = await Appointment.find({
+  // Deduplica por chave "name|time"
+  const proximosHoje = [...new Map(
+    rawHoje.map(item => [item.name + '|' + item.time, item])
+  ).values()];
+
+  // Mesma lógica para amanhã
+  const rawAmanha = await Appointment.find({
     date: { $gte: amanhaStart.toDate(), $lte: amanhaEnd.toDate() }
   })
     .populate('clientId')
     .sort({ date: 1 })
+    .lean()
     .then(list => list.map(a => ({
-      name: a.clientId.name,
-      time: dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm')
+      name:    a.clientId.name,
+      time:    dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm'),
+      service: a.services[0]?.name || 'serviço'
     })));
 
-  // todos os agendamentos para calcular receita
-  const all = await Appointment.find().populate('clientId');
+  const proximosAmanha = [...new Map(
+    rawAmanha.map(item => [item.name + '|' + item.time, item])
+  ).values()];
+
+  // Todos os agendamentos para calcular receita
+  const all = await Appointment.find().populate('clientId').lean();
   let receitaHoje   = 0;
   let receitaSemana = 0;
   let receitaMes    = 0;
@@ -88,6 +104,7 @@ router.get('/dashboard', authMiddleware, async (req, res) => {
     });
   });
 
+  // Renderiza o dashboard, agora com .service em cada item
   res.render('dashboard', {
     proximosHoje,
     proximosAmanha,
@@ -96,6 +113,7 @@ router.get('/dashboard', authMiddleware, async (req, res) => {
     receitaMes
   });
 });
+
 
 // --- Home e Busca de Clientes ---
 router.get('/clients', authMiddleware, async (req, res) => {
@@ -366,26 +384,40 @@ router.post('/appointment/:id/remove-payment/product/:pIdx/:ppIdx', authMiddlewa
 });
 
 // --- Agenda por Dia (ordenado) ---
+// --- Agenda por Dia (ordenado) ---
 router.get('/agendamentos-por-dia', authMiddleware, async (req, res) => {
   const { date } = req.query;
-  if (!date) return res.render('agenda-dia', { date: null, results: [] });
+  
+  // se não enviou data, mostra apenas o form vazio
+  if (!date) {
+    return res.render('agenda-dia', { date: null, results: [] });
+  }
 
+  // calcula início e fim do dia no fuso SP
   const start = dayjs.tz(`${date}T00:00:00`, 'America/Sao_Paulo').toDate();
   const end   = dayjs.tz(`${date}T23:59:59`, 'America/Sao_Paulo').toDate();
 
+  // busca todos os appointments no dia e popula o client
   const ags = await Appointment.find({
     date: { $gte: start, $lte: end }
-  }).sort({ date: 1 }).populate('clientId');
+  })
+    .sort({ date: 1 })
+    .populate('clientId');
 
+  // monta o array que vai pra view, incluindo _id e nomes de serviço
   const results = ags
     .filter(a => a.services.length > 0)
     .map(a => ({
-      clientId:     a.clientId,
-      services:     a.services,
-      timeFormatted: dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm')
+      _id:            a._id,
+      clientName:     a.clientId.name,
+      timeFormatted:  dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm'),
+      servicesNames:  a.services.map(s => s.name).join(', ')
     }));
+
+  // renderiza
   res.render('agenda-dia', { date, results });
 });
+
 
 // --- Editar Cliente, Serviço, Produto ---
 router.post('/client/:id/edit', authMiddleware, async (req, res) => {
@@ -479,5 +511,65 @@ router.get('/financeiro', authMiddleware, async (req, res) => {
     overallTotal
   });
 });
+
+
+// --- Despesas (saídas) ---
+router.get('/expenses', authMiddleware, async (req, res) => {
+  // lista todas despesas ordenadas por data desc
+  const expenses = await Expense.find({ /* ... */ }).sort({ date: -1 });
+  const totalDespesa = expenses.reduce((sum, e) => sum + e.amount, 0);
+  
+  res.render('expenses', {
+    expenses,
+    totalDespesa,
+    dayjs,
+  });
+});
+
+
+router.post('/expenses', authMiddleware, async (req, res) => {
+  const { date, category, description, amount } = req.body
+  // cria e salva
+  await Expense.create({
+    date: new Date(date),
+    category,
+    description: description.trim(),
+    amount: parseFloat(amount)
+  })
+  res.redirect('/expenses')
+})
+
+// rota para excluir
+router.post('/expenses/:id/delete', authMiddleware, async (req, res) => {
+  await Expense.findByIdAndDelete(req.params.id)
+  res.redirect('/expenses')
+})
+
+// --- Balanço Geral (Receita vs Despesa) ---
+router.get('/balanco', authMiddleware, async (req, res) => {
+  // busca todas as receitas (pagamentos de serviços e produtos)
+  const appts = await Appointment.find().populate('clientId');
+  let totalReceita = 0;
+  appts.forEach(a => {
+    [...a.services, ...a.products].forEach(item => {
+      (item.payments || []).forEach(p => totalReceita += p.amount);
+    });
+  });
+
+  // busca todas as despesas
+  const expenses = await Expense.find();  // assuma que você já criou o model Expense
+  let totalDespesa = 0;
+  expenses.forEach(e => totalDespesa += e.amount);
+
+  const liquido = totalReceita - totalDespesa;
+
+  res.render('balanco', {
+    totalReceita,
+    totalDespesa,
+    liquido
+  });
+});
+
+
 
 module.exports = router;

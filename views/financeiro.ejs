@@ -7,44 +7,105 @@
     <% } else if (weekLabel) { %><%= weekLabel %>
     <% } else { %>Geral<% } %>
   </title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-100 p-6">
-  <div class="max-w-4xl mx-auto bg-white p-6 rounded shadow">
-    <h1 class="text-2xl font-bold mb-4">
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+  <!-- HEADER / NAV -->
+  <header class="bg-white shadow-md">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="/dashboard" class="text-xl font-bold text-purple-700">Studio Kadosh</a>
+
+      <!-- Menu desktop -->
+      <nav class="hidden md:flex space-x-4">
+        <a href="/dashboard"            class="text-gray-700 hover:text-gray-900">Dashboard</a>
+        <a href="/agendamentos-por-dia" class="text-gray-700 hover:text-gray-900">Agendamentos</a>
+        <a href="/clients"              class="text-gray-700 hover:text-gray-900">Clientes</a>
+        <a href="/financeiro"           class="text-gray-700 hover:text-gray-900">Financeiro</a>
+        <a href="/logout"               class="text-red-600   hover:text-red-800">Sair</a>
+      </nav>
+
+      <!-- Botão mobile -->
+      <button id="menu-button" aria-label="Abrir menu"
+              class="md:hidden p-2 rounded hover:bg-gray-200 focus:outline-none">
+        <span id="bar1" class="block w-6 h-0.5 bg-gray-800 mb-1 transition-transform"></span>
+        <span id="bar2" class="block w-6 h-0.5 bg-gray-800 mb-1 transition-opacity"></span>
+        <span id="bar3" class="block w-6 h-0.5 bg-gray-800 transition-transform"></span>
+      </button>
+    </div>
+    <!-- Menu mobile -->
+    <nav id="menu" class="hidden flex-col space-y-2 mb-4 px-4">
+   <a href="/dashboard" class="block bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition">
+        🏠 Dashboard
+      </a>
+      <a href="/agendamentos-por-dia" class="block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
+        📅 Agendamentos por dia
+      </a>
+      <a href="/clients" class="block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
+        👩🏾 Clientes
+      </a>
+      <a href="/balanco" class="block bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 transition">
+        ⚖️ Balanço Geral
+      </a>
+      <a href="/expenses" class="block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
+        📅 Lancamento de Despesas
+      </a>
+      <a href="/logout" class="block bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition">
+        ⬅️ Sair
+      </a>
+    </nav>
+
+    <script>
+      const btn = document.getElementById('menu-button');
+      const menu = document.getElementById('menu');
+      const b1 = document.getElementById('bar1');
+      const b2 = document.getElementById('bar2');
+      const b3 = document.getElementById('bar3');
+      btn.addEventListener('click', () => {
+        menu.classList.toggle('hidden');
+        b1.classList.toggle('rotate-45');
+        b3.classList.toggle('-rotate-45');
+        b2.classList.toggle('opacity-0');
+      });
+    </script>
+  </header>
+
+  <main class="flex-grow max-w-4xl mx-auto p-6 space-y-6">
+
+    <h1 class="text-2xl font-bold">
       Financeiro –
       <% if (monthLabel) { %><%= monthLabel %>
       <% } else if (weekLabel) { %><%= weekLabel %>
       <% } else { %>Geral<% } %>
     </h1>
 
-    <form method="GET" action="/financeiro" class="flex flex-wrap items-center gap-4 mb-6">
+    <!-- Filtros -->
+    <form method="GET" action="/financeiro" class="flex flex-wrap gap-4 mb-6">
       <div>
-        <label class="font-semibold">Mês:</label>
+        <label class="font-semibold block">Mês:</label>
         <input type="month" name="month" value="<%= monthValue %>"
-               class="p-2 border rounded">
+               class="p-2 border rounded"/>
       </div>
       <div>
-        <label class="font-semibold">Semana:</label>
+        <label class="font-semibold block">Semana:</label>
         <input type="week" name="week" value="<%= weekValue %>"
-               class="p-2 border rounded">
+               class="p-2 border rounded"/>
       </div>
       <button type="submit"
-              class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+              class="self-end bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
         Filtrar
       </button>
     </form>
 
     <!-- Total Geral -->
-    <div class="mb-6 p-4 bg-gray-50 rounded">
-      <h2 class="text-lg font-semibold text-gray-800">Total Geral Recebido</h2>
-      <p class="mt-1 text-2xl font-bold text-gray-900">
-        R$ <%= overallTotal.toFixed(2) %>
-      </p>
+    <div class="p-4 bg-gray-50 rounded shadow">
+      <h2 class="text-lg font-semibold">Total Geral Recebido</h2>
+      <p class="mt-2 text-2xl font-bold">R$ <%= overallTotal.toFixed(2) %></p>
     </div>
 
-    <!-- Cards por forma -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+    <!-- Cards por forma de pagamento -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <% ['Pix','Dinheiro','Cartão'].forEach(method => {
            const total = totals[method] || 0;
            const bg    = method==='Pix' ? 'bg-green-100'
@@ -54,24 +115,25 @@
                       : method==='Dinheiro' ? 'text-yellow-800'
                       : 'text-blue-800';
       %>
-        <div class="p-4 rounded <%= bg %>">
-          <h3 class="font-semibold <%= tc %>">Recebido via <%= method %></h3>
-          <p class="mt-1 text-xl font-bold">R$ <%= total.toFixed(2) %></p>
+        <div class="p-4 rounded <%= bg %> shadow">
+          <h3 class="font-medium <%= tc %>">Recebido via <%= method %></h3>
+          <p class="mt-1 text-xl font-bold <%= tc %>">R$ <%= total.toFixed(2) %></p>
         </div>
       <% }) %>
     </div>
 
-    <!-- Detalhes -->
+    <!-- Detalhes por forma -->
     <% ['Pix','Dinheiro','Cartão'].forEach(method => {
          const list = details[method] || [];
     %>
-      <section class="mb-8">
+      <section class="mt-6">
         <h4 class="text-lg font-medium mb-2">Detalhes – <%= method %></h4>
         <% if (list.length) { %>
           <ul class="space-y-2">
             <% list.forEach(d => { %>
-              <li class="p-4 bg-gray-50 rounded border">
-                <strong><%= d.date %> – <%= d.client %> – <%= d.item %>: R$ <%= d.amount %></strong>
+              <li class="p-4 bg-white rounded shadow border">
+                <strong><%= d.date %> – <%= d.client %> – <%= d.item %>:</strong>
+                R$ <%= d.amount %>
                 <% if (d.description) { %>
                   <p class="text-sm italic text-gray-700 mt-1"><%= d.description %></p>
                 <% } %>
@@ -84,9 +146,7 @@
       </section>
     <% }) %>
 
-    <a href="/" class="inline-block mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
-      ⬅ Voltar
-    </a>
-  </div>
+  </main>
+
 </body>
 </html>
