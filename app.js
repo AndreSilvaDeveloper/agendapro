@@ -8,9 +8,15 @@ express.static('public')
 
 const app = express();
 
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 10000, // Tempo máximo para tentar conectar (10s)
+  socketTimeoutMS: 45000           // Tempo limite para operações (45s)
+})
   .then(() => console.log("🟢 Conectado ao MongoDB"))
   .catch(err => console.error("🔴 Erro ao conectar MongoDB:", err));
+
 
 app.use(session({
   secret: 'salao-kadosh-segredo',
