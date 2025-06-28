@@ -17,23 +17,23 @@ dayjs.extend(isoWeek);
 // Middleware de autenticação
 function authMiddleware(req, res, next) {
   if (req.session && req.session.loggedIn) return next();
-  res.redirect('/login');
+  res.redirect('/kogin');
 }
 
-// --- Login / Logout ---
-router.get('/login', (req, res) => {
-  res.render('login', { error: null });
+// --- kogin / Logout ---
+router.get('/kogin', (req, res) => {
+  res.render('kogin', { error: null });
 });
-router.post('/login', (req, res) => {
+router.post('/kogin', (req, res) => {
   const { username, password } = req.body;
   if (username === 'samara' && password === '160793') {
     req.session.loggedIn = true;
     return res.redirect('/dashboard');
   }
-  res.render('login', { error: 'Usuário ou senha inválidos' });
+  res.render('kogin', { error: 'Usuário ou senha inválidos' });
 });
 router.get('/logout', (req, res) => {
-  req.session.destroy(() => res.redirect('/login'));
+  req.session.destroy(() => res.redirect('/kogin'));
 });
 
 // Redireciona root para dashboard
@@ -45,57 +45,51 @@ router.get('/', authMiddleware, (req, res) => {
 
 // --- Dashboard unificado ---
 router.get('/dashboard', authMiddleware, async (req, res) => {
-  // referência SP
   const nowSP       = () => dayjs().tz('America/Sao_Paulo');
   const hojeStart   = nowSP().startOf('day');
   const hojeEnd     = nowSP().endOf('day');
   const amanhaStart = hojeStart.add(1, 'day');
   const amanhaEnd   = hojeEnd.add(1, 'day');
 
-  // Busca bruta para hoje
+  // Próximos Hoje (só com serviços)
   const rawHoje = await Appointment.find({
-    date: { $gte: hojeStart.toDate(), $lte: hojeEnd.toDate() }
+    date:        { $gte: hojeStart.toDate(), $lte: hojeEnd.toDate() },
+    'services.0': { $exists: true }
   })
     .populate('clientId')
     .sort({ date: 1 })
-    .lean()
     .then(list => list.map(a => ({
       name:    a.clientId.name,
       time:    dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm'),
-      service: a.services[0]?.name || 'serviço'
+      service: a.services[0].name
     })));
 
-  // Deduplica por chave "name|time"
-  const proximosHoje = [...new Map(
-    rawHoje.map(item => [item.name + '|' + item.time, item])
-  ).values()];
-
-  // Mesma lógica para amanhã
+  // Próximos Amanhã (idem)
   const rawAmanha = await Appointment.find({
-    date: { $gte: amanhaStart.toDate(), $lte: amanhaEnd.toDate() }
+    date:        { $gte: amanhaStart.toDate(), $lte: amanhaEnd.toDate() },
+    'services.0': { $exists: true }
   })
     .populate('clientId')
     .sort({ date: 1 })
-    .lean()
     .then(list => list.map(a => ({
       name:    a.clientId.name,
       time:    dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm'),
-      service: a.services[0]?.name || 'serviço'
+      service: a.services[0].name
     })));
 
-  const proximosAmanha = [...new Map(
-    rawAmanha.map(item => [item.name + '|' + item.time, item])
-  ).values()];
+  // Remove duplicados por cliente+horário
+  const proximosHoje = [...new Map(rawHoje.map(i => [i.name + '|' + i.time, i])).values()];
+  const proximosAmanha = [...new Map(rawAmanha.map(i => [i.name + '|' + i.time, i])).values()];
 
-  // Todos os agendamentos para calcular receita
-  const all = await Appointment.find().populate('clientId').lean();
+  // Calcula receita **somente** de serviços
+  const all = await Appointment.find({ 'services.0': { $exists: true } });
   let receitaHoje   = 0;
   let receitaSemana = 0;
   let receitaMes    = 0;
 
   all.forEach(a => {
-    [...a.services, ...a.products].forEach(item => {
-      (item.payments || []).forEach(p => {
+    a.services.forEach(service => {
+      (service.payments || []).forEach(p => {
         const paid = dayjs(p.paidAt).tz('America/Sao_Paulo');
         if (paid.isSame(hojeStart, 'day'))   receitaHoje   += p.amount;
         if (paid.isSame(hojeStart, 'week'))  receitaSemana += p.amount;
@@ -104,7 +98,6 @@ router.get('/dashboard', authMiddleware, async (req, res) => {
     });
   });
 
-  // Renderiza o dashboard, agora com .service em cada item
   res.render('dashboard', {
     proximosHoje,
     proximosAmanha,
@@ -113,6 +106,7 @@ router.get('/dashboard', authMiddleware, async (req, res) => {
     receitaMes
   });
 });
+
 
 
 // --- Home e Busca de Clientes ---
