@@ -1,10 +1,9 @@
 require('dotenv').config();
 const express     = require('express');
 const router      = express.Router();
-const axios       = require('axios');
 const Client      = require('../models/Client');
 const Appointment = require('../models/Appointment');
-const Expense     = require('../models/Expense')
+const Expense     = require('../models/Expense');
 const dayjs       = require('dayjs');
 const utc         = require('dayjs/plugin/utc');
 const timezone    = require('dayjs/plugin/timezone');
@@ -14,13 +13,12 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.extend(isoWeek);
 
-// Middleware de autenticação
 function authMiddleware(req, res, next) {
   if (req.session && req.session.loggedIn) return next();
   res.redirect('/kogin');
 }
 
-// --- kogin / Logout ---
+
 router.get('/kogin', (req, res) => {
   res.render('kogin', { error: null });
 });
@@ -36,7 +34,8 @@ router.get('/logout', (req, res) => {
   req.session.destroy(() => res.redirect('/kogin'));
 });
 
-// Redireciona root para dashboard
+
+
 router.get('/', authMiddleware, (req, res) => {
   res.redirect('/dashboard');
 });
@@ -45,55 +44,64 @@ router.get('/', authMiddleware, (req, res) => {
 
 // --- Dashboard unificado ---
 router.get('/dashboard', authMiddleware, async (req, res) => {
-  const nowSP       = () => dayjs().tz('America/Sao_Paulo');
-  const hojeStart   = nowSP().startOf('day');
-  const hojeEnd     = nowSP().endOf('day');
-  const amanhaStart = hojeStart.add(1, 'day');
-  const amanhaEnd   = hojeEnd.add(1, 'day');
+  const agoraSP      = () => dayjs().tz('America/Sao_Paulo');
+  const hojeStart    = agoraSP().startOf('day');
+  const hojeEnd      = agoraSP().endOf('day');
+  const amanhaStart  = hojeStart.add(1, 'day');
+  const amanhaEnd    = hojeEnd.add(1, 'day');
 
-  // Próximos Hoje (só com serviços)
+  // Próximos hoje
   const rawHoje = await Appointment.find({
-    date:        { $gte: hojeStart.toDate(), $lte: hojeEnd.toDate() },
-    'services.0': { $exists: true }
+    date: { $gte: hojeStart.toDate(), $lte: hojeEnd.toDate() }
   })
     .populate('clientId')
-    .sort({ date: 1 })
-    .then(list => list.map(a => ({
-      name:    a.clientId.name,
-      time:    dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm'),
-      service: a.services[0].name
-    })));
+    .sort({ date: 1 });
 
-  // Próximos Amanhã (idem)
+  const proximosHoje = [...new Map(
+    rawHoje.map(a => {
+      const time   = dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm');
+      return [
+        `${a.clientId.name}|${time}`,
+        { name: a.clientId.name, time, service: a.services[0]?.name || '—' }
+      ];
+    })
+  ).values()];
+
+  // Próximos amanhã
   const rawAmanha = await Appointment.find({
-    date:        { $gte: amanhaStart.toDate(), $lte: amanhaEnd.toDate() },
-    'services.0': { $exists: true }
+    date: { $gte: amanhaStart.toDate(), $lte: amanhaEnd.toDate() }
   })
     .populate('clientId')
-    .sort({ date: 1 })
-    .then(list => list.map(a => ({
-      name:    a.clientId.name,
-      time:    dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm'),
-      service: a.services[0].name
-    })));
+    .sort({ date: 1 });
 
-  // Remove duplicados por cliente+horário
-  const proximosHoje = [...new Map(rawHoje.map(i => [i.name + '|' + i.time, i])).values()];
-  const proximosAmanha = [...new Map(rawAmanha.map(i => [i.name + '|' + i.time, i])).values()];
+  const proximosAmanha = [...new Map(
+    rawAmanha.map(a => {
+      const time   = dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm');
+      return [
+        `${a.clientId.name}|${time}`,
+        { name: a.clientId.name, time, service: a.services[0]?.name || '—' }
+      ];
+    })
+  ).values()];
 
-  // Calcula receita **somente** de serviços
-  const all = await Appointment.find({ 'services.0': { $exists: true } });
+  // Calcular receitas (serviços + produtos)
+  const todos = await Appointment.find().populate('clientId');
   let receitaHoje   = 0;
   let receitaSemana = 0;
   let receitaMes    = 0;
 
-  all.forEach(a => {
-    a.services.forEach(service => {
-      (service.payments || []).forEach(p => {
-        const paid = dayjs(p.paidAt).tz('America/Sao_Paulo');
-        if (paid.isSame(hojeStart, 'day'))   receitaHoje   += p.amount;
-        if (paid.isSame(hojeStart, 'week'))  receitaSemana += p.amount;
-        if (paid.isSame(hojeStart, 'month')) receitaMes    += p.amount;
+  todos.forEach(a => {
+    const itens = [
+      ...(Array.isArray(a.services) ? a.services : []),
+      ...(Array.isArray(a.products) ? a.products : [])
+    ];
+
+    itens.forEach(item => {
+      (Array.isArray(item.payments) ? item.payments : []).forEach(p => {
+        const pago = dayjs(p.paidAt).tz('America/Sao_Paulo');
+        if (pago.isSame(hojeStart, 'day'))   receitaHoje   += p.amount;
+        if (pago.isSame(hojeStart, 'week'))  receitaSemana += p.amount;
+        if (pago.isSame(hojeStart, 'month')) receitaMes    += p.amount;
       });
     });
   });
@@ -106,6 +114,7 @@ router.get('/dashboard', authMiddleware, async (req, res) => {
     receitaMes
   });
 });
+
 
 
 
@@ -148,7 +157,9 @@ router.post('/client', authMiddleware, async (req, res) => {
   res.redirect('/clients');
 });
 
-// --- Criar Agendamento + SMS ---
+
+
+
 router.post('/appointment', authMiddleware, async (req, res) => {
   const { clientId, date, time, duration, services, products, force } = req.body;
   const parsedServices = services ? JSON.parse(services) : [];
@@ -187,34 +198,19 @@ if (confirm("⚠️ Conflito de horário. Agendar mesmo assim?")) {
 
   parsedServices.forEach(s => s.payments = []);
   parsedProducts.forEach(p => p.payments = []);
-  const appt = await Appointment.create({
-    clientId, date: start, duration: dur,
-    services: parsedServices, products: parsedProducts
+  await Appointment.create({
+    clientId,
+    date: start,
+    duration: dur,
+    services: parsedServices,
+    products: parsedProducts
   });
 
-  // SMS via Textbelt
-  const client       = await Client.findById(clientId);
-  const firstService = parsedServices[0]?.name || 'serviço';
-  let raw            = client.phone.replace(/\D/g, '');
-  if (!raw.startsWith('55')) raw = '55' + raw;
-  const toE164       = '+' + raw;
-  const msg = `Ei, ${client.name}! Studio Kadosh 💖 Agendado: ${firstService} em `
-    + `${dayjs(start).tz('America/Sao_Paulo').format('DD/MM/YYYY [às] HH:mm')}.`;
-
-  try {
-    const resp = await axios.post('https://textbelt.com/text', {
-      phone: toE164,
-      message: msg,
-      key: process.env.TEXTBELT_API_KEY
-    });
-    if (!resp.data.success) console.error('Textbelt erro:', resp.data.error);
-    else console.log('SMS enviado para', toE164);
-  } catch (e) {
-    console.error('Erro Textbelt:', e.message);
-  }
-
+  // não há mais envio de SMS
   res.redirect(`/client/${clientId}`);
 });
+
+
 
 // --- Página do Cliente (Futuros) ---
 router.get('/client/:id', authMiddleware, async (req, res) => {
@@ -310,34 +306,18 @@ router.post('/appointment/:id/remove-product/:idx', authMiddleware, async (req, 
 // --- Cancelar Agendamento + SMS ---
 router.post('/appointment/:id/cancel', authMiddleware, async (req, res) => {
   try {
-    const appt = await Appointment.findById(req.params.id).populate('clientId');
+    const appt = await Appointment.findById(req.params.id);
     if (!appt) return res.status(404).send('Agendamento não encontrado.');
-
-    const firstService = appt.services[0]?.name || 'serviço';
-    let raw            = appt.clientId.phone.replace(/\D/g, '');
-    if (!raw.startsWith('55')) raw = '55' + raw;
-    const toE164       = '+' + raw;
-
-    const cancelMsg = `Oi, ${appt.clientId.name}! Aqui é do Studio Kadosh 💔 Seu agendamento de `
-                    + `${firstService} para `
-                    + `${dayjs(appt.date).tz('America/Sao_Paulo').format('DD/MM/YYYY [às] HH:mm')} `
-                    + `foi cancelado. Qualquer coisa, estamos por aqui! 😊`;
-
-    const resp = await axios.post('https://textbelt.com/text', {
-      phone:   toE164,
-      message: cancelMsg,
-      key:     process.env.TEXTBELT_API_KEY
-    });
-    if (!resp.data.success) console.error('Textbelt cancel erro:', resp.data.error);
-    else console.log('SMS cancel enviado para', toE164);
-
     await Appointment.deleteOne({ _id: appt._id });
-    res.redirect(`/client/${appt.clientId._id}`);
+    res.redirect(`/client/${appt.clientId}`);
   } catch (err) {
     console.error('Erro no cancelamento:', err);
     res.status(500).send('Erro ao cancelar agendamento.');
   }
 });
+
+
+
 
 // --- Pagamentos com Método ---
 router.post('/appointment/:id/pay-service/:idx', authMiddleware, async (req, res) => {
@@ -436,75 +416,125 @@ router.post('/appointment/:id/edit-product/:idx', authMiddleware, async (req, re
   res.redirect(`/client/${a.clientId}`);
 });
 
-// --- Financeiro por Mês ou Semana ISO ---
+// --- Financeiro por Dia, Mês ou Semana ISO ---
 router.get('/financeiro', authMiddleware, async (req, res) => {
-  const { month, week } = req.query;
+  const { day, month, week } = req.query;
   const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
-  let filter     = {};
-  let monthLabel = '', monthValue = '';
-  let weekLabel  = '',  weekValue  = '';
+  let filter       = {};
+  let dayLabel     = '', dayValue     = '';
+  let monthLabel   = '', monthValue   = '';
+  let weekLabel    = '', weekValue    = '';
 
-  if (month) {
+  if (day) {
+    // FILTRO POR DIA
+    dayValue = day;
+    const start = dayjs.tz(`${day}T00:00:00`, 'America/Sao_Paulo');
+    const end   = start.endOf('day');
+    dayLabel = `Dia ${start.format('DD/MM/YYYY')}`;
+    filter.date = { $gte: start.toDate(), $lte: end.toDate() };
+
+  } else if (month) {
+    // FILTRO POR MÊS
     const [year, mon] = month.split('-');
     monthValue = month;
     monthLabel = `${monthNames[Number(mon)-1]} de ${year}`;
-    const start = dayjs.tz(`${month}-01T00:00:00`, 'America/Sao_Paulo').toDate();
-    const end   = dayjs(start).endOf('month').toDate();
-    filter.date = { $gte: start, $lte: end };
+    const start = dayjs.tz(`${month}-01T00:00:00`, 'America/Sao_Paulo');
+    filter.date = { $gte: start.toDate(), $lte: start.endOf('month').toDate() };
 
   } else if (week) {
-    // semana no formato ISO YYYY-Www
+    // FILTRO POR SEMANA ISO
+    const [yearW, wk] = week.split('-W').map(Number);
     weekValue = week;
-    const [year, wk] = week.split('-W').map(Number);
-    const startOfWeek = dayjs().year(year).isoWeek(wk)
-      .tz('America/Sao_Paulo').startOf('isoWeek');
+    const startOfWeek = dayjs().year(yearW).isoWeek(wk).tz('America/Sao_Paulo').startOf('isoWeek');
     const endOfWeek   = startOfWeek.clone().endOf('isoWeek');
     weekLabel = `Semana de ${startOfWeek.format('DD/MM/YYYY')} a ${endOfWeek.format('DD/MM/YYYY')}`;
-    filter.date = {
-      $gte: startOfWeek.toDate(),
-      $lte: endOfWeek.toDate()
-    };
+    filter.date = { $gte: startOfWeek.toDate(), $lte: endOfWeek.toDate() };
   }
 
-  // busca agendamentos
+  // Consulta
   const ags = await Appointment.find(filter).populate('clientId');
 
+  // Totais por método
   const totals  = {};
   const details = {};
+
+  // Totais separados
+  let totalServicos = 0;
+  let totalProdutos = 0;
+
   ags.forEach(a => {
-    const date = dayjs(a.date).tz('America/Sao_Paulo').format('DD/MM/YYYY');
-    [...a.services, ...a.products].forEach(item => {
-      (item.payments||[]).forEach(p => {
+    // Serviços
+    (a.services || []).forEach(item => {
+      (item.payments || []).forEach(p => {
+        const amt = p.amount || 0;
+        totalServicos += amt;
+
+        // Agrupa por método
+        const m = (p.method || '').toLowerCase();
         let key;
-        const m = (p.method||'').toLowerCase();
-        if (m.includes('pix'))        key = 'Pix';
-        else if (m.includes('dinheiro')) key = 'Dinheiro';
-        else if (m.includes('cartão')||m.includes('cartao')) key = 'Cartão';
+        if (m.includes('pix'))                key = 'Pix';
+        else if (m.includes('dinheiro'))      key = 'Dinheiro';
+        else if (m.includes('cartão') || m.includes('cartao')) key = 'Cartão';
         else return;
 
-        totals[key]  = (totals[key]||0) + p.amount;
+        totals[key]  = (totals[key]  || 0) + amt;
         details[key] = details[key] || [];
         details[key].push({
-          date,
-          client: a.clientId.name,
-          item:   item.name,
-          amount: p.amount.toFixed(2),
-          description: p.description||''
+          date:        dayjs(p.paidAt).tz('America/Sao_Paulo').format('DD/MM/YYYY'),
+          client:      a.clientId.name,
+          item:        item.name,
+          amount:      amt.toFixed(2),
+          description: p.description || ''
+        });
+      });
+    });
+
+    // Produtos
+    (a.products || []).forEach(item => {
+      (item.payments || []).forEach(p => {
+        const amt = p.amount || 0;
+        totalProdutos += amt;
+
+        const m = (p.method || '').toLowerCase();
+        let key;
+        if (m.includes('pix'))                key = 'Pix';
+        else if (m.includes('dinheiro'))      key = 'Dinheiro';
+        else if (m.includes('cartão') || m.includes('cartao')) key = 'Cartão';
+        else return;
+
+        totals[key]  = (totals[key]  || 0) + amt;
+        details[key] = details[key] || [];
+        details[key].push({
+          date:        dayjs(p.paidAt).tz('America/Sao_Paulo').format('DD/MM/YYYY'),
+          client:      a.clientId.name,
+          item:        item.name,
+          amount:      amt.toFixed(2),
+          description: p.description || ''
         });
       });
     });
   });
 
-  const overallTotal = Object.values(totals).reduce((sum,v) => sum + v, 0);
+  // Soma geral de todos os métodos
+  const overallTotal = Object.values(totals).reduce((sum, v) => sum + v, 0);
 
+  // Renderiza a view, agora incluindo dayLabel e dayValue
   res.render('financeiro', {
-    monthLabel, monthValue,
-    weekLabel,  weekValue,
-    totals,     details,
-    overallTotal
+    dayLabel,
+    dayValue,
+    monthLabel,
+    monthValue,
+    weekLabel,
+    weekValue,
+    overallTotal,
+    totalServicos,
+    totalProdutos,
+    totals,
+    details
   });
 });
+
 
 
 // --- Despesas (saídas) ---

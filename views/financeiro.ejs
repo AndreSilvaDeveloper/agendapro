@@ -3,12 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <title>Financeiro – 
-    <% if (monthLabel) { %><%= monthLabel %>
+    <% if (dayLabel) { %><%= dayLabel %>
     <% } else if (weekLabel) { %><%= weekLabel %>
+    <% } else if (monthLabel) { %><%= monthLabel %>
     <% } else { %>Geral<% } %>
   </title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link
+    href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+    rel="stylesheet"
+  >
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col">
 
@@ -16,17 +20,13 @@
   <header class="bg-white shadow-md">
     <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
       <a href="/dashboard" class="text-xl font-bold text-purple-700">Studio Kadosh</a>
-
-      <!-- Menu desktop -->
       <nav class="hidden md:flex space-x-4">
         <a href="/dashboard"            class="text-gray-700 hover:text-gray-900">Dashboard</a>
         <a href="/agendamentos-por-dia" class="text-gray-700 hover:text-gray-900">Agendamentos</a>
         <a href="/clients"              class="text-gray-700 hover:text-gray-900">Clientes</a>
         <a href="/financeiro"           class="text-gray-700 hover:text-gray-900">Financeiro</a>
-        <a href="/logout"               class="text-red-600   hover:text-red-800">Sair</a>
+        <a href="/logout"               class="text-red-600 hover:text-red-800">Sair</a>
       </nav>
-
-      <!-- Botão mobile -->
       <button id="menu-button" aria-label="Abrir menu"
               class="md:hidden p-2 rounded hover:bg-gray-200 focus:outline-none">
         <span id="bar1" class="block w-6 h-0.5 bg-gray-800 mb-1 transition-transform"></span>
@@ -34,28 +34,15 @@
         <span id="bar3" class="block w-6 h-0.5 bg-gray-800 transition-transform"></span>
       </button>
     </div>
-    <!-- Menu mobile -->
     <nav id="menu" class="hidden flex-col space-y-4 mb-4 px-4">
-   <a href="/dashboard" class="block bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition">
-        🏠 Dashboard
-      </a>
-      <a href="/agendamentos-por-dia" class="block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
-        📅 Agendamentos por dia
-      </a>
-      <a href="/clients" class="block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
-        👩🏾 Clientes
-      </a>
-      <a href="/balanco" class="block bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 transition">
-        ⚖️ Balanço Geral
-      </a>
-      <a href="/expenses" class="block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
-        📅 Lancamento de Despesas
-      </a>
-      <a href="/logout" class="block bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition">
-        ⬅️ Sair
-      </a>
+      <a href="/dashboard"            class="block bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition">🏠 Dashboard</a>
+      <a href="/agendamentos-por-dia" class="block bg-blue-600   text-white px-4 py-2 rounded hover:bg-blue-700   transition">📅 Agendamentos</a>
+      <a href="/clients"              class="block bg-green-600  text-white px-4 py-2 rounded hover:bg-green-700  transition">👩🏾 Clientes</a>
+      <a href="/balanco"              class="block bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 transition">⚖️ Balanço Geral</a>
+      <a href="/expenses"             class="block bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition">💵 Despesas</a>
+      <a href="/financeiro"           class="block bg-teal-600   text-white px-4 py-2 rounded hover:bg-teal-700   transition">💰 Financeiro</a>
+      <a href="/logout"               class="block bg-red-600    text-white px-4 py-2 rounded hover:bg-red-700    transition">⬅️ Sair</a>
     </nav>
-
     <script>
       const btn = document.getElementById('menu-button');
       const menu = document.getElementById('menu');
@@ -75,13 +62,19 @@
 
     <h1 class="text-2xl font-bold">
       Financeiro –
-      <% if (monthLabel) { %><%= monthLabel %>
+      <% if (dayLabel) { %><%= dayLabel %>
       <% } else if (weekLabel) { %><%= weekLabel %>
+      <% } else if (monthLabel) { %><%= monthLabel %>
       <% } else { %>Geral<% } %>
     </h1>
 
     <!-- Filtros -->
     <form method="GET" action="/financeiro" class="flex flex-wrap gap-4 mb-6">
+      <div>
+        <label class="font-semibold block">Dia:</label>
+        <input type="date" name="day" value="<%= dayValue %>"
+               class="p-2 border rounded"/>
+      </div>
       <div>
         <label class="font-semibold block">Mês:</label>
         <input type="month" name="month" value="<%= monthValue %>"
@@ -104,16 +97,34 @@
       <p class="mt-2 text-2xl font-bold">R$ <%= overallTotal.toFixed(2) %></p>
     </div>
 
+    <!-- Total Serviços x Produtos -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+      <div class="bg-blue-50 p-4 rounded shadow flex items-center">
+        <span class="text-3xl mr-3">🛠️</span>
+        <div>
+          <p class="font-medium text-gray-700">Total Serviços</p>
+          <p class="text-xl font-bold text-blue-800">R$ <%= totalServicos.toFixed(2) %></p>
+        </div>
+      </div>
+      <div class="bg-green-50 p-4 rounded shadow flex items-center">
+        <span class="text-3xl mr-3">📦</span>
+        <div>
+          <p class="font-medium text-gray-700">Total Produtos</p>
+          <p class="text-xl font-bold text-green-800">R$ <%= totalProdutos.toFixed(2) %></p>
+        </div>
+      </div>
+    </div>
+
     <!-- Cards por forma de pagamento -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <% ['Pix','Dinheiro','Cartão'].forEach(method => {
            const total = totals[method] || 0;
-           const bg    = method==='Pix' ? 'bg-green-100'
-                      : method==='Dinheiro' ? 'bg-yellow-100'
-                      : 'bg-blue-100';
-           const tc    = method==='Pix' ? 'text-green-800'
-                      : method==='Dinheiro' ? 'text-yellow-800'
-                      : 'text-blue-800';
+           const bg    = method==='Pix'       ? 'bg-green-100'
+                     : method==='Dinheiro'  ? 'bg-yellow-100'
+                     :                        'bg-blue-100';
+           const tc    = method==='Pix'       ? 'text-green-800'
+                     : method==='Dinheiro'  ? 'text-yellow-800'
+                     :                        'text-blue-800';
       %>
         <div class="p-4 rounded <%= bg %> shadow">
           <h3 class="font-medium <%= tc %>">Recebido via <%= method %></h3>
@@ -122,7 +133,7 @@
       <% }) %>
     </div>
 
-    <!-- Detalhes por forma -->
+    <!-- Detalhes por forma de pagamento -->
     <% ['Pix','Dinheiro','Cartão'].forEach(method => {
          const list = details[method] || [];
     %>
@@ -147,6 +158,5 @@
     <% }) %>
 
   </main>
-
 </body>
 </html>

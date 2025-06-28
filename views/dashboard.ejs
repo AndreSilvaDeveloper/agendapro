@@ -15,57 +15,39 @@
   <header class="bg-white shadow-md">
     <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
       <h1 class="text-2xl font-bold text-purple-700">Studio Kadosh</h1>
-      <!-- desktop -->
       <nav class="hidden md:flex space-x-6 items-center">
         <a href="/agendamentos-por-dia" class="text-gray-600 hover:text-gray-900">Agendamentos</a>
-        <a href="/clients" class="text-gray-600 hover:text-gray-900">Clientes</a>
-        <a href="/financeiro" class="text-gray-600 hover:text-gray-900">Financeiro</a>
-        <a href="/logout" class="text-red-600 hover:text-red-800">Sair</a>
+        <a href="/clients"              class="text-gray-600 hover:text-gray-900">Clientes</a>
+        <a href="/financeiro"           class="text-gray-600 hover:text-gray-900">Financeiro</a>
+        <a href="/logout"               class="text-red-600 hover:text-red-800">Sair</a>
       </nav>
-      <!-- mobile hamburger -->
-      <button id="menu-button"
-              class="md:hidden p-2 rounded hover:bg-gray-200 focus:outline-none">
+      <button id="menu-button" class="md:hidden p-2 rounded hover:bg-gray-200 focus:outline-none">
         <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
                 d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
     </div>
-    <!-- mobile menu -->
-    <div id="mobile-menu" class="hidden flex-col space-y-4 mb-6">
-      <a href="/agendamentos-por-dia" class="block bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 transition">
-        📅 Agendamentos por dia
-      </a>
-      <a href="/clients" class="block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
-        👩🏾 Clientes
-      </a>
-      <a href="/expenses" class="block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
-        💵 Lancamentos de Despesas
-      </a>
-      <a href="/balanco" class="block bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 transition">
-        ⚖️ Balanço Geral
-      </a>
-      <a href="/financeiro" class="block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
-        💵 Financeiro
-      </a>
-      <a href="/logout" class="block bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition">
-        ⬅️ Sair
-      </a>
+    <div id="mobile-menu" class="hidden flex-col space-y-4 mb-6 px-4">
+      <a href="/agendamentos-por-dia" class="block bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">📅 Agendamentos</a>
+      <a href="/clients"              class="block bg-blue-600   text-white px-4 py-2 rounded hover:bg-blue-700">👩🏾 Clientes</a>
+      <a href="/financeiro"           class="block bg-green-600  text-white px-4 py-2 rounded hover:bg-green-700">💵 Financeiro</a>
+      <a href="/logout"               class="block bg-red-600    text-white px-4 py-2 rounded hover:bg-red-700">⬅️ Sair</a>
     </div>
+    <script>
+      document.getElementById('menu-button').addEventListener('click', () => {
+        document.getElementById('mobile-menu').classList.toggle('hidden');
+      });
+    </script>
   </header>
-
-  <script>
-    document.getElementById('menu-button').addEventListener('click', () => {
-      document.getElementById('mobile-menu').classList.toggle('hidden');
-    });
-  </script>
 
   <main class="flex-grow max-w-4xl mx-auto p-4 space-y-6">
 
-    <!-- Receita -->
+    <!-- Receita Total (Serviços + Produtos) -->
     <section class="bg-white p-6 rounded-lg shadow-sm">
-      <h2 class="text-2xl font-semibold mb-4">Receita (Serviços)</h2>
+      <h2 class="text-2xl font-semibold mb-4">Receita Total</h2>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <!-- Hoje -->
         <div class="bg-green-50 p-4 rounded-lg flex flex-col items-center">
           <span class="text-3xl text-green-600">💰</span>
           <h3 class="mt-2 font-medium text-gray-700">Hoje</h3>
@@ -73,6 +55,7 @@
             R$ <%= receitaHoje.toFixed(2) %>
           </p>
         </div>
+        <!-- Semana -->
         <div class="bg-yellow-50 p-4 rounded-lg flex flex-col items-center">
           <span class="text-3xl text-yellow-600">🗓️</span>
           <h3 class="mt-2 font-medium text-gray-700">Semana</h3>
@@ -80,6 +63,7 @@
             R$ <%= receitaSemana.toFixed(2) %>
           </p>
         </div>
+        <!-- Mês -->
         <div class="bg-blue-50 p-4 rounded-lg flex flex-col items-center">
           <span class="text-3xl text-blue-600">📅</span>
           <h3 class="mt-2 font-medium text-gray-700">Mês</h3>
@@ -90,10 +74,9 @@
       </div>
     </section>
 
-    <!-- Próximos Agendamentos -->
+    <!-- Próximos Agendamentos (Hoje / Amanhã) -->
     <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-      <!-- Hoje -->
+      <!-- HOJE -->
       <div class="bg-white p-6 rounded-lg shadow-sm">
         <h2 class="text-xl font-semibold mb-4">Próximos Hoje</h2>
         <% if (!proximosHoje.length) { %>
@@ -101,11 +84,9 @@
         <% } else { %>
           <ul class="space-y-4">
             <% proximosHoje.forEach(item => { %>
-              <li class="flex justify-between items-center border-l-4 border-purple-500 pl-4">
+              <li class="flex flex-col md:flex-row justify-between items-start md:items-center border-l-4 border-purple-500 pl-4">
                 <div>
-                  <p class="font-medium text-gray-800">
-                    <%= item.name %> – <%= item.time %>
-                  </p>
+                  <p class="font-medium text-gray-800"><%= item.name %> – <%= item.time %></p>
                   <p class="text-sm text-gray-600">Serviço: <%= item.service %></p>
                 </div>
               </li>
@@ -113,8 +94,7 @@
           </ul>
         <% } %>
       </div>
-
-      <!-- Amanhã -->
+      <!-- AMANHÃ -->
       <div class="bg-white p-6 rounded-lg shadow-sm">
         <h2 class="text-xl font-semibold mb-4">Próximos Amanhã</h2>
         <% if (!proximosAmanha.length) { %>
@@ -122,11 +102,9 @@
         <% } else { %>
           <ul class="space-y-4">
             <% proximosAmanha.forEach(item => { %>
-              <li class="flex justify-between items-center border-l-4 border-indigo-500 pl-4">
+              <li class="flex flex-col md:flex-row justify-between items-start md:items-center border-l-4 border-indigo-500 pl-4">
                 <div>
-                  <p class="font-medium text-gray-800">
-                    <%= item.name %> – <%= item.time %>
-                  </p>
+                  <p class="font-medium text-gray-800"><%= item.name %> – <%= item.time %></p>
                   <p class="text-sm text-gray-600">Serviço: <%= item.service %></p>
                 </div>
               </li>
@@ -134,7 +112,6 @@
           </ul>
         <% } %>
       </div>
-
     </section>
 
   </main>
