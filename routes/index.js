@@ -15,23 +15,23 @@ dayjs.extend(isoWeek);
 
 function authMiddleware(req, res, next) {
   if (req.session && req.session.loggedIn) return next();
-  res.redirect('/kogin');
+  res.redirect('/login');
 }
 
 
-router.get('/kogin', (req, res) => {
-  res.render('kogin', { error: null });
+router.get('/login', (req, res) => {
+  res.render('login', { error: null });
 });
-router.post('/kogin', (req, res) => {
+router.post('/login', (req, res) => {
   const { username, password } = req.body;
   if (username === 'samara' && password === '160793') {
     req.session.loggedIn = true;
     return res.redirect('/dashboard');
   }
-  res.render('kogin', { error: 'Usuário ou senha inválidos' });
+  res.render('login', { error: 'Usuário ou senha inválidos' });
 });
 router.get('/logout', (req, res) => {
-  req.session.destroy(() => res.redirect('/kogin'));
+  req.session.destroy(() => res.redirect('/login'));
 });
 
 
