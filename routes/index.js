@@ -42,78 +42,79 @@ router.get('/', authMiddleware, (req, res) => {
 
 
 
-// --- Dashboard unificado ---
 router.get('/dashboard', authMiddleware, async (req, res) => {
-  const agoraSP      = () => dayjs().tz('America/Sao_Paulo');
-  const hojeStart    = agoraSP().startOf('day');
-  const hojeEnd      = agoraSP().endOf('day');
-  const amanhaStart  = hojeStart.add(1, 'day');
-  const amanhaEnd    = hojeEnd.add(1, 'day');
+  try {
+    const agoraSP      = () => dayjs().tz('America/Sao_Paulo');
+    const hojeStart    = agoraSP().startOf('day');
+    const hojeEnd      = agoraSP().endOf('day');
+    const amanhaStart  = hojeStart.add(1, 'day');
+    const amanhaEnd    = hojeEnd.add(1, 'day');
 
-  // Próximos hoje
-  const rawHoje = await Appointment.find({
-    date: { $gte: hojeStart.toDate(), $lte: hojeEnd.toDate() }
-  })
-    .populate('clientId')
-    .sort({ date: 1 });
+    // Próximos hoje
+    const rawHoje = await Appointment.find({
+      date: { $gte: hojeStart.toDate(), $lte: hojeEnd.toDate() }
+    }).populate('clientId').sort({ date: 1 });
 
-  const proximosHoje = [...new Map(
-    rawHoje.map(a => {
-      const time   = dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm');
-      return [
-        `${a.clientId.name}|${time}`,
-        { name: a.clientId.name, time, service: a.services[0]?.name || '—' }
+    const proximosHoje = [...new Map(
+      rawHoje.map(a => {
+        const time = dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm');
+        return [
+          `${a.clientId?.name || 'Desconhecido'}|${time}`,
+          { name: a.clientId?.name || 'Sem Nome', time, service: a.services[0]?.name || '—' }
+        ];
+      })
+    ).values()];
+
+    // Próximos amanhã
+    const rawAmanha = await Appointment.find({
+      date: { $gte: amanhaStart.toDate(), $lte: amanhaEnd.toDate() }
+    }).populate('clientId').sort({ date: 1 });
+
+    const proximosAmanha = [...new Map(
+      rawAmanha.map(a => {
+        const time = dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm');
+        return [
+          `${a.clientId?.name || 'Desconhecido'}|${time}`,
+          { name: a.clientId?.name || 'Sem Nome', time, service: a.services[0]?.name || '—' }
+        ];
+      })
+    ).values()];
+
+    const todos = await Appointment.find().populate('clientId');
+
+    let receitaHoje = 0;
+    let receitaSemana = 0;
+    let receitaMes = 0;
+
+    todos.forEach(a => {
+      const itens = [
+        ...(Array.isArray(a.services) ? a.services : []),
+        ...(Array.isArray(a.products) ? a.products : [])
       ];
-    })
-  ).values()];
 
-  // Próximos amanhã
-  const rawAmanha = await Appointment.find({
-    date: { $gte: amanhaStart.toDate(), $lte: amanhaEnd.toDate() }
-  })
-    .populate('clientId')
-    .sort({ date: 1 });
-
-  const proximosAmanha = [...new Map(
-    rawAmanha.map(a => {
-      const time   = dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm');
-      return [
-        `${a.clientId.name}|${time}`,
-        { name: a.clientId.name, time, service: a.services[0]?.name || '—' }
-      ];
-    })
-  ).values()];
-
-  // Calcular receitas (serviços + produtos)
-  const todos = await Appointment.find().populate('clientId');
-  let receitaHoje   = 0;
-  let receitaSemana = 0;
-  let receitaMes    = 0;
-
-  todos.forEach(a => {
-    const itens = [
-      ...(Array.isArray(a.services) ? a.services : []),
-      ...(Array.isArray(a.products) ? a.products : [])
-    ];
-
-    itens.forEach(item => {
-      (Array.isArray(item.payments) ? item.payments : []).forEach(p => {
-        const pago = dayjs(p.paidAt).tz('America/Sao_Paulo');
-        if (pago.isSame(hojeStart, 'day'))   receitaHoje   += p.amount;
-        if (pago.isSame(hojeStart, 'week'))  receitaSemana += p.amount;
-        if (pago.isSame(hojeStart, 'month')) receitaMes    += p.amount;
+      itens.forEach(item => {
+        (Array.isArray(item.payments) ? item.payments : []).forEach(p => {
+          const pago = dayjs(p.paidAt).tz('America/Sao_Paulo');
+          if (pago.isSame(hojeStart, 'day')) receitaHoje += p.amount;
+          if (pago.isSame(hojeStart, 'week')) receitaSemana += p.amount;
+          if (pago.isSame(hojeStart, 'month')) receitaMes += p.amount;
+        });
       });
     });
-  });
 
-  res.render('dashboard', {
-    proximosHoje,
-    proximosAmanha,
-    receitaHoje,
-    receitaSemana,
-    receitaMes
-  });
+    res.render('dashboard', {
+      proximosHoje,
+      proximosAmanha,
+      receitaHoje,
+      receitaSemana,
+      receitaMes
+    });
+  } catch (err) {
+    console.error('Erro ao carregar dashboard:', err);
+    res.status(500).send('Erro interno no dashboard.');
+  }
 });
+
 
 
 
