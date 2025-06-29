@@ -6,6 +6,48 @@
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-100 p-6">
+
+  <header class="bg-white shadow-md relative">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+      <h1 class="text-2xl font-bold text-purple-700">Studio Kadosh</h1>
+      
+      <!-- Menu Desktop -->
+      <nav class="hidden md:flex space-x-6 items-center">
+        <a href="/agendamentos-por-dia" class="text-gray-600 hover:text-gray-900">Agendamentos</a>
+        <a href="/clients"              class="text-gray-600 hover:text-gray-900">Clientes</a>
+        <a href="/financeiro"           class="text-gray-600 hover:text-gray-900">Financeiro</a>
+        <a href="/balanco"              class="text-gray-600 hover:text-gray-900">Balanço Geral</a>
+        <a href="/expenses"             class="text-gray-600 hover:text-gray-900">Despesas</a>
+        <a href="/logout"               class="text-red-600 hover:text-red-800">Sair</a>
+      </nav>
+  
+      <!-- Botão Menu Mobile -->
+      <button id="menu-button" class="p-2 rounded hover:bg-gray-200 focus:outline-none">
+        <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+    </div>
+  
+    <!-- Menu Mobile -->
+    <div id="mobile-menu" class="hidden absolute top-full left-0 w-full bg-white shadow-md z-10 px-4 pb-4 flex-col space-y-2 md:hidden">
+      <a href="/agendamentos-por-dia" class="block bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">📅 Agendamentos</a>
+      <a href="/clients"              class="block bg-blue-600   text-white px-4 py-2 rounded hover:bg-blue-700">👥 Clientes</a>
+      <a href="/financeiro"           class="block bg-green-600  text-white px-4 py-2 rounded hover:bg-green-700">💵 Financeiro</a>
+      <a href="/balanco"              class="block bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">⚖️ Balanço Geral</a>
+      <a href="/expenses"             class="block bg-pink-600   text-white px-4 py-2 rounded hover:bg-pink-700">💸 Despesas</a>
+      <a href="/logout"               class="block bg-red-600    text-white px-4 py-2 rounded hover:bg-red-700">⬅️ Sair</a>
+    </div>
+  
+    <script>
+      document.getElementById('menu-button').addEventListener('click', () => {
+        document.getElementById('mobile-menu').classList.toggle('hidden');
+      });
+    </script>
+  </header>
+
+
   <div class="max-w-3xl mx-auto bg-white p-6 rounded shadow">
 
     <!-- Header com Voltar -->
