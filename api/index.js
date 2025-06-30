@@ -1,24 +1,30 @@
-const express = require('express');
+// api/index.js
+const express    = require('express');
 const serverless = require('serverless-http');
-const session = require('express-session');
+const session    = require('express-session');
 const bodyParser = require('body-parser');
-const mongoose = require('mongoose');
-const path = require('path');
+const path       = require('path');
+const connectDB  = require('../db');           // 👈 nosso módulo de conexão
+const routes     = require('../routes/index');
 
 require('dotenv').config();
 
-const routes = require('../routes/index');
-
 const app = express();
 
-// MongoDB
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("🟢 MongoDB conectado"))
-  .catch(err => console.error("🔴 Erro MongoDB:", err));
+// ——— Middleware para garantir a conexão antes de tudo ———
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error('🔴 Falha ao conectar ao MongoDB:', err);
+    res.status(500).send('Erro interno de banco de dados');
+  }
+});
 
-// Session (em memória – use Redis se crescer)
+// Session (em memória — pode trocar para connect-mongo, Redis etc)
 app.use(session({
-  secret: 'salao-kadosh-segredo',
+  secret: process.env.SESSION_SECRET || 'salao-kadosh-segredo',
   resave: false,
   saveUninitialized: true
 }));
@@ -29,6 +35,11 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '../views'));
 app.use('/', routes);
 
-// Exporta como função para Vercel
+// ——— Exporta o handler serverless ———
 module.exports = app;
-module.exports.handler = serverless(app);
+const handler = serverless(app);
+module.exports.handler = async (event, context) => {
+  // Garante que o DB está pronto mesmo em cold-start
+  await connectDB();
+  return handler(event, context);
+};
