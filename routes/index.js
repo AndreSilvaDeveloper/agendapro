@@ -8,10 +8,14 @@ const dayjs       = require('dayjs');
 const utc         = require('dayjs/plugin/utc');
 const timezone    = require('dayjs/plugin/timezone');
 const isoWeek     = require('dayjs/plugin/isoWeek');
+const isBetween   = require('dayjs/plugin/isBetween');
+
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.extend(isoWeek);
+dayjs.extend(isBetween);
+
 
 function authMiddleware(req, res, next) {
   if (req.session && req.session.loggedIn) return next();
@@ -340,15 +344,22 @@ router.post('/client/:id/product/:pi/delete', authMiddleware, async (req, res) =
 
 // Pagar Produto
 router.post('/client/:id/product/:pi/pay', authMiddleware, async (req, res) => {
-  const { amount, method, description } = req.body;
+  const { amount, method, description, paidAt } = req.body;
   const client = await Client.findById(req.params.id);
   const prod   = client.products[req.params.pi];
+  const val    = parseFloat(amount);
+
+  const when = paidAt
+    ? dayjs.tz(paidAt, dayjs.ISO_8601, 'America/Sao_Paulo').toDate()
+    : new Date();
+
   prod.payments.push({
-    amount: parseFloat(amount),
-    paidAt: new Date(),
+    amount: val,
+    paidAt: when,
     method,
     description: description || ''
   });
+
   await client.save();
   res.redirect(`/client/${req.params.id}`);
 });
@@ -393,22 +404,32 @@ router.post('/appointment/:id/cancel', authMiddleware, async (req, res) => {
 
 // --- Pagamentos com Método ---
 router.post('/appointment/:id/pay-service/:idx', authMiddleware, async (req, res) => {
-  const { amount, description, method } = req.body;
+  const { amount, method, description, paidAt } = req.body;
   const a    = await Appointment.findById(req.params.id);
   const item = a.services[req.params.idx];
   const val  = parseFloat(amount);
 
-  if (isNaN(val) || val <= 0) return res.send("Valor inválido.");
-  if (!['Pix','Dinheiro','Cartão'].includes(method)) return res.send("Método inválido.");
+  if (isNaN(val) || val <= 0) 
+    return res.send("Valor inválido.");
+  if (!['Pix','Dinheiro','Cartão'].includes(method)) 
+    return res.send("Método inválido.");
 
-  item.payments.push({ amount: val, paidAt: new Date(), description: description || '', method });
+  // parse da data enviada (ou fallback para agora)
+  const when = paidAt
+    ? dayjs.tz(paidAt, dayjs.ISO_8601, 'America/Sao_Paulo').toDate()
+    : new Date();
 
-  a.markModified('services'); // <- força o mongoose a detectar a alteração
+  item.payments.push({
+    amount: val,
+    paidAt: when,
+    description: description || '',
+    method
+  });
+
+  a.markModified('services');
   await a.save();
-
   res.redirect(`/client/${a.clientId}`);
 });
-
 
 
 
@@ -490,113 +511,83 @@ router.post('/appointment/:id/edit-datetime', authMiddleware, async (req, res) =
 
 
 // --- FINANCEIRO corrigido ---
+// --- Financeiro ---
 router.get('/financeiro', authMiddleware, async (req, res) => {
   const { day, month, week } = req.query;
-  const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
-  let filter = {};
-  let dayLabel = '', dayValue = '';
-  let monthLabel = '', monthValue = '';
-  let weekLabel = '', weekValue = '';
+  // inicializa valores para o template não quebrar
   let dateStart, dateEnd;
+  let label        = 'Geral';
+  let dayValue     = '';
+  let monthValue   = '';
+  let weekValue    = '';
 
   if (day) {
     dayValue = day;
     dateStart = dayjs.tz(`${day}T00:00:00`, 'America/Sao_Paulo');
-    dateEnd   = dateStart.endOf('day'); // <-- ESSA LINHA FALTAVA
-    dayLabel  = `Dia ${dateStart.format('DD/MM/YYYY')}`;
-    filter.date = { $gte: dateStart.toDate(), $lte: dateEnd.toDate() };
-    
-  } else if (month) {
-    const [year, mon] = month.split('-');
+    dateEnd   = dateStart.endOf('day');
+    label     = `Dia ${dateStart.format('DD/MM/YYYY')}`;
+  }
+  else if (month) {
     monthValue = month;
-    monthLabel = `${monthNames[Number(mon)-1]} de ${year}`;
+    const [y, m] = month.split('-');
     dateStart = dayjs.tz(`${month}-01T00:00:00`, 'America/Sao_Paulo');
-    dateEnd = dateStart.endOf('month');
-    filter.date = { $gte: dateStart.toDate(), $lte: dateEnd.toDate() };
-
-  } else if (week) {
-    const [yearW, wk] = week.split('-W').map(Number);
+    dateEnd   = dateStart.endOf('month');
+    label     = `${dateStart.format('MMMM [de] YYYY')}`;
+  }
+  else if (week) {
     weekValue = week;
-    dateStart = dayjs().year(yearW).isoWeek(wk).tz('America/Sao_Paulo').startOf('isoWeek');
+    const [y, w] = week.split('-W').map(Number);
+    dateStart = dayjs().year(y).isoWeek(w).tz('America/Sao_Paulo').startOf('isoWeek');
     dateEnd   = dateStart.clone().endOf('isoWeek');
-    weekLabel = `Semana de ${dateStart.format('DD/MM/YYYY')} a ${dateEnd.format('DD/MM/YYYY')}`;
-    filter.date = { $gte: dateStart.toDate(), $lte: dateEnd.toDate() };
+    label     = `Semana de ${dateStart.format('DD/MM')} a ${dateEnd.format('DD/MM/YYYY')}`;
   }
 
-  const ags = await Appointment.find(filter).populate('clientId');
+  // busca todos os agendamentos e clientes
+  const appointments = await Appointment.find().populate('clientId');
+  const clients      = await Client.find();
 
-  const totals = {}, details = {};
+  let totals       = {}, overallTotal = 0;
   let totalServicos = 0, totalProdutos = 0;
+  let details      = {};
 
-  ags.forEach(a => {
-    (a.services || []).forEach(item => {
-      (item.payments || []).forEach(p => {
-        const amt = p.amount || 0;
-        totalServicos += amt;
-        const m = (p.method || '').toLowerCase();
-        let key;
-        if (m.includes('pix')) key = 'Pix';
-        else if (m.includes('dinheiro')) key = 'Dinheiro';
-        else if (m.includes('cartão') || m.includes('cartao')) key = 'Cartão';
-        else return;
-        totals[key] = (totals[key] || 0) + amt;
-        details[key] = details[key] || [];
-        details[key].push({
-          date: dayjs(p.paidAt).tz('America/Sao_Paulo').format('DD/MM/YYYY'),
-          client: a.clientId.name,
-          item: item.name,
-          amount: amt.toFixed(2),
-          description: p.description || ''
-        });
-      });
-    });
-
-    (a.products || []).forEach(item => {
-      (item.payments || []).forEach(p => {
-        const amt = p.amount || 0;
-        totalProdutos += amt;
-        const m = (p.method || '').toLowerCase();
-        let key;
-        if (m.includes('pix')) key = 'Pix';
-        else if (m.includes('dinheiro')) key = 'Dinheiro';
-        else if (m.includes('cartão') || m.includes('cartao')) key = 'Cartão';
-        else return;
-        totals[key] = (totals[key] || 0) + amt;
-        details[key] = details[key] || [];
-        details[key].push({
-          date: dayjs(p.paidAt).tz('America/Sao_Paulo').format('DD/MM/YYYY'),
-          client: a.clientId.name,
-          item: item.name,
-          amount: amt.toFixed(2),
-          description: p.description || ''
-        });
-      });
-    });
-  });
-
-  // Corrigido: incluir produtos fora do agendamento
-  const clients = await Client.find();
-  clients.forEach(c => {
-    (c.products || []).forEach(prod => {
-      (prod.payments || []).forEach(p => {
-        const paidDate = dayjs(p.paidAt).tz('America/Sao_Paulo');
-        if (!dateStart || (paidDate.isAfter(dateStart) && paidDate.isBefore(dateEnd))) {
-          const amt = p.amount || 0;
-          totalProdutos += amt;
-          const m = (p.method || '').toLowerCase();
-          let key;
-          if (m.includes('pix')) key = 'Pix';
-          else if (m.includes('dinheiro')) key = 'Dinheiro';
-          else if (m.includes('cartão') || m.includes('cartao')) key = 'Cartão';
-          else return;
-          totals[key] = (totals[key] || 0) + amt;
+  // acumula pagamentos de serviços
+  appointments.forEach(a => {
+    a.services.forEach(svc => {
+      svc.payments.forEach(p => {
+        const paid = dayjs(p.paidAt).tz('America/Sao_Paulo');
+        if (!dateStart || paid.isBetween(dateStart, dateEnd, null, '[]')) {
+          totalServicos += p.amount;
+          const key = ['Pix','Dinheiro','Cartão']
+            .find(k => p.method.toLowerCase().includes(k.toLowerCase()));
+          totals[key] = (totals[key]||0) + p.amount;
           details[key] = details[key] || [];
           details[key].push({
-            date: paidDate.format('DD/MM/YYYY'),
-            client: c.name,
+            date: paid.format('DD/MM/YYYY'),
+            client: a.clientId.name,
+            item: svc.name,
+            amount: p.amount.toFixed(2),
+            description: p.description || ''
+          });
+        }
+      });
+    });
+
+    // acumula pagamentos de produtos
+    a.products.forEach(prod => {
+      prod.payments.forEach(p => {
+        const paid = dayjs(p.paidAt).tz('America/Sao_Paulo');
+        if (!dateStart || paid.isBetween(dateStart, dateEnd, null, '[]')) {
+          totalProdutos += p.amount;
+          const key = ['Pix','Dinheiro','Cartão']
+            .find(k => p.method.toLowerCase().includes(k.toLowerCase()));
+          totals[key] = (totals[key]||0) + p.amount;
+          details[key] = details[key] || [];
+          details[key].push({
+            date: paid.format('DD/MM/YYYY'),
+            client: a.clientId.name,
             item: prod.name,
-            amount: amt.toFixed(2),
+            amount: p.amount.toFixed(2),
             description: p.description || ''
           });
         }
@@ -604,19 +595,45 @@ router.get('/financeiro', authMiddleware, async (req, res) => {
     });
   });
 
-  const overallTotal = Object.values(totals).reduce((sum, v) => sum + v, 0);
+  // também produtos cadastrados diretamente no cliente
+  clients.forEach(c => {
+    (c.products||[]).forEach(prod => {
+      prod.payments.forEach(p => {
+        const paid = dayjs(p.paidAt).tz('America/Sao_Paulo');
+        if (!dateStart || paid.isBetween(dateStart, dateEnd, null, '[]')) {
+          totalProdutos += p.amount;
+          const key = ['Pix','Dinheiro','Cartão']
+            .find(k => p.method.toLowerCase().includes(k.toLowerCase()));
+          totals[key] = (totals[key]||0) + p.amount;
+          details[key] = details[key] || [];
+          details[key].push({
+            date: paid.format('DD/MM/YYYY'),
+            client: c.name,
+            item: prod.name,
+            amount: p.amount.toFixed(2),
+            description: p.description || ''
+          });
+        }
+      });
+    });
+  });
 
+  overallTotal = totalServicos + totalProdutos;
+
+  // renderiza passando **exatamente** o que o EJS espera
   res.render('financeiro', {
-    dayLabel, dayValue,
-    monthLabel, monthValue,
-    weekLabel, weekValue,
-    overallTotal,
+    label,
+    dayValue,
+    monthValue,
+    weekValue,
+    totals,
+    details,
     totalServicos,
     totalProdutos,
-    totals,
-    details
+    overallTotal
   });
 });
+
 
 
 
@@ -689,4 +706,3 @@ router.get('/balanco', authMiddleware, async (req, res) => {
 module.exports = router;
 
 
-module.exports = router;

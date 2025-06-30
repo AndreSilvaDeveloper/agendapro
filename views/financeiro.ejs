@@ -2,12 +2,8 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Financeiro – 
-    <% if (dayLabel) { %><%= dayLabel %>
-    <% } else if (weekLabel) { %><%= weekLabel %>
-    <% } else if (monthLabel) { %><%= monthLabel %>
-    <% } else { %>Geral<% } %>
-  </title>
+<title>Financeiro – <%= label %></title>
+
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link
     href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
@@ -59,13 +55,10 @@
 
   <main class="flex-grow max-w-4xl mx-auto p-6 space-y-6">
 
-    <h1 class="text-2xl font-bold">
-      Financeiro –
-      <% if (dayLabel) { %><%= dayLabel %>
-      <% } else if (weekLabel) { %><%= weekLabel %>
-      <% } else if (monthLabel) { %><%= monthLabel %>
-      <% } else { %>Geral<% } %>
-    </h1>
+   <h1 class="text-2xl font-bold">
+  Financeiro – <%= label %>
+</h1>
+
 
     <!-- Filtros -->
     <form method="GET" action="/financeiro" class="flex flex-wrap gap-4 mb-6">

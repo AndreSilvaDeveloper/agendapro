@@ -396,27 +396,74 @@
       document.getElementById('productsInput').value = JSON.stringify(pr);
       return true;
     }
+
+
     function pagarValor(form) {
-      const v = prompt('Informe o valor pago:');
-      const num = parseFloat(v);
-      if (!v || isNaN(num) || num <= 0) { alert('Valor inválido.'); return false; }
-      let m = prompt('Forma de pagamento (Pix / Dinheiro / Cartão):');
-      if (!m) return false;
-      m = m.trim().toLowerCase();
-      let key;
-      if (m === 'pix') key = 'Pix';
-      else if (m === 'dinheiro') key = 'Dinheiro';
-      else if (m === 'cartão'| m==='cartao') key = 'Cartão';
-      else { alert('Forma inválida. Use Pix, Dinheiro ou Cartão.'); return false; }
-      const desc = prompt('Descrição (opcional):');
-      form.querySelectorAll('input[name="amount"],input[name="method"],input[name="description"]')
-          .forEach(i=>i.remove());
-      const ia=document.createElement('input'); ia.type='hidden'; ia.name='amount'; ia.value=num; form.appendChild(ia);
-      const im=document.createElement('input'); im.type='hidden'; im.name='method'; im.value=key; form.appendChild(im);
-      if(desc){ const id=document.createElement('input');id.type='hidden';id.name='description';id.value=desc;form.appendChild(id);}
-      return true;
-    }
-    function editItem(form, oldName, oldPrice) {
+  // valor
+  const v = prompt('Informe o valor pago:');
+  const num = parseFloat(v);
+  if (!v || isNaN(num) || num <= 0) { alert('Valor inválido.'); return false; }
+
+  // método
+  let m = prompt('Forma de pagamento (Pix / Dinheiro / Cartão):');
+  if (!m) return false;
+  m = m.trim().toLowerCase();
+  let key;
+  if (m === 'pix') key = 'Pix';
+  else if (m === 'dinheiro') key = 'Dinheiro';
+  else if (m === 'cartão' || m === 'cartao') key = 'Cartão';
+  else { alert('Forma inválida. Use Pix, Dinheiro ou Cartão.'); return false; }
+
+  // descrição
+  const desc = prompt('Descrição (opcional):');
+
+  // nova: data do pagamento (DD/MM/YYYY)
+  const today = new Date();
+  const pad = n => n.toString().padStart(2,'0');
+  const defaultDate = `${pad(today.getDate())}/${pad(today.getMonth()+1)}/${today.getFullYear()}`;
+  const dateStr = prompt('Data do pagamento (DD/MM/YYYY):', defaultDate);
+  if (!dateStr) return false;
+  if (!/^(\d{2})\/(\d{2})\/(\d{4})$/.test(dateStr)) {
+    alert('Data inválida. Use DD/MM/YYYY.');
+    return false;
+  }
+  // converte pra ISO para o backend interpretar
+  const [, dd, mm, yyyy] = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  const isoDate = `${yyyy}-${mm}-${dd}T00:00:00Z`;
+
+  // remove inputs antigos, se houver
+  form
+    .querySelectorAll('input[name="amount"], input[name="method"], input[name="description"], input[name="paidAt"]')
+    .forEach(i => i.remove());
+
+  // amount
+  const ia = document.createElement('input');
+  ia.type = 'hidden'; ia.name = 'amount';     ia.value = num;
+  form.appendChild(ia);
+
+  // method
+  const im = document.createElement('input');
+  im.type = 'hidden'; im.name = 'method';     im.value = key;
+  form.appendChild(im);
+
+  // description
+  if (desc) {
+    const id = document.createElement('input');
+    id.type = 'hidden'; id.name = 'description'; id.value = desc;
+    form.appendChild(id);
+  }
+
+  // paidAt (ISO)
+  const ip = document.createElement('input');
+  ip.type = 'hidden'; ip.name = 'paidAt';      ip.value = isoDate;
+  form.appendChild(ip);
+
+  return true;
+}
+
+
+
+function editItem(form, oldName, oldPrice) {
       const n = prompt('Novo nome:', oldName); if(n===null) return false;
       const p = prompt('Novo preço:', oldPrice); if(p===null) return false;
       const i1=document.createElement('input');i1.type='hidden';i1.name='name';i1.value=n;form.appendChild(i1);
@@ -430,15 +477,43 @@
       const i2=document.createElement('input');i2.type='hidden';i2.name='phone';i2.value=ph;form.appendChild(i2);
       return true;
     }
-    function editDateTime(form, oldDate, oldTime) {
-      const d = prompt('Nova data (YYYY-MM-DD):', oldDate);
-      if (d === null) return false;
-      const t = prompt('Novo horário (HH:MM):', oldTime);
-      if (t === null) return false;
-      const i1 = document.createElement('input'); i1.type='hidden'; i1.name='date'; i1.value=d; form.appendChild(i1);
-      const i2 = document.createElement('input'); i2.type='hidden'; i2.name='time'; i2.value=t; form.appendChild(i2);
-      return true;
-    }
+function editDateTime(form, oldDate, oldTime) {
+  // oldDate vem como "YYYY-MM-DD"
+  const [year, month, day] = oldDate.split('-');
+  const formattedOld = `${day}/${month}/${year}`;                  // pra exibir no prompt
+
+  const userDate = prompt('Nova data (DD/MM/YYYY):', formattedOld);
+  if (userDate === null) return false;
+
+  // validação simples de máscara
+  const dateMatch = userDate.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!dateMatch) {
+    alert('Data inválida. Use DD/MM/YYYY.');
+    return false;
+  }
+  const [, d, m, y] = dateMatch;
+  const isoDate = `${y}-${m}-${d}`;                                // converte pra ISO
+
+  const userTime = prompt('Novo horário (HH:MM):', oldTime);
+  if (userTime === null) return false;
+  if (!/^\d{2}:\d{2}$/.test(userTime)) {
+    alert('Horário inválido. Use HH:MM.');
+    return false;
+  }
+
+  // campos hidden só com ISO + HH:MM
+  const i1 = document.createElement('input');
+  i1.type = 'hidden'; i1.name = 'date'; i1.value = isoDate;
+  form.appendChild(i1);
+
+  const i2 = document.createElement('input');
+  i2.type = 'hidden'; i2.name = 'time'; i2.value = userTime;
+  form.appendChild(i2);
+
+  return true;
+}
+
+
   </script>
 </body>
 </html>
