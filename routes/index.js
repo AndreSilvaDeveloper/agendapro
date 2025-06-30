@@ -445,97 +445,78 @@ router.post('/appointment/:id/remove-payment/service/:sIdx/:pIdx', authMiddlewar
 
 router.get('/agendamentos-por-dia', authMiddleware, async (req, res) => {
   const { date } = req.query;
-  const days           = [];
-  const resultsByDay   = {};
-  const availableByDay = {};
 
+  // 1) Monta a lista de dias
+  const days = [];
   if (date) {
-    // Modo “um dia”
-    const start  = dayjs.tz(`${date}T00:00:00`, 'America/Sao_Paulo').toDate();
-    const end    = dayjs.tz(`${date}T23:59:59`, 'America/Sao_Paulo').toDate();
-    const ags    = await Appointment.find({ date: { $gte: start, $lte: end } })
-                                    .sort('date')
-                                    .populate('clientId');
-
-    days.push(dayjs(date).tz('America/Sao_Paulo'));
-    resultsByDay[date]   = [];
-    availableByDay[date] = [];
-
-    // inicializa slots 07–19h
-    for (let h = 7; h < 20; h++) {
-      availableByDay[date].push(`${String(h).padStart(2,'0')}:00`);
-    }
-
-    // preenche agendados e remove todos os slots da duração
-    ags.forEach(a => {
-      const startDT   = dayjs(a.date).tz('America/Sao_Paulo');
-      const timeInicio= startDT.format('HH:mm');
-      const durHoras  = Math.ceil((a.duration || 0) / 60);
-
-      // registra nos agendados
-      resultsByDay[date].push({
-        _id:           a._id,
-        clientName:    a.clientId.name,
-        timeFormatted: timeInicio,
-        servicesNames: a.services.map(s => s.name).join(', ')
-      });
-
-      // remove N slots (início + duração)
-      for (let i = 0; i < durHoras; i++) {
-        const slot = startDT.add(i, 'hour').format('HH:mm');
-        availableByDay[date] = availableByDay[date].filter(s => s !== slot);
-      }
-    });
-
+    // um único dia
+    days.push(dayjs.tz(date, 'YYYY-MM-DD', 'America/Sao_Paulo'));
   } else {
-    // Modo “semana Terça–Sábado”
+    // terça a sábado da semana atual
     const today   = dayjs().tz('America/Sao_Paulo');
     const monday  = today.startOf('isoWeek');
     const tuesday = monday.add(1, 'day');
-    [0,1,2,3,4].forEach(i => days.push(tuesday.add(i, 'day')));
-
-    const weekStart = days[0].startOf('day').toDate();
-    const weekEnd   = days[4].endOf('day').toDate();
-    const agsWeek   = await Appointment.find({
-      date: { $gte: weekStart, $lte: weekEnd }
-    })
-    .sort('date')
-    .populate('clientId');
-
-    // inicializa cada dia
-    days.forEach(d => {
-      const key = d.format('YYYY-MM-DD');
-      resultsByDay[key]   = [];
-      availableByDay[key] = [];
-      for (let h = 7; h < 20; h++) {
-        availableByDay[key].push(`${String(h).padStart(2,'0')}:00`);
-      }
-    });
-
-    // preenche e remove slots conforme duração
-    agsWeek.forEach(a => {
-      const dKey     = dayjs(a.date).tz('America/Sao_Paulo');
-      const key      = dKey.format('YYYY-MM-DD');
-      const timeIni  = dKey.format('HH:mm');
-      const durHoras = Math.ceil((a.duration || 0) / 60);
-
-      // agendados
-      resultsByDay[key].push({
-        _id:           a._id,
-        clientName:    a.clientId.name,
-        timeFormatted: timeIni,
-        servicesNames: a.services.map(s => s.name).join(', ')
-      });
-
-      // remove os slots do período ocupado
-      for (let i = 0; i < durHoras; i++) {
-        const slot = dKey.add(i, 'hour').format('HH:mm');
-        availableByDay[key] = availableByDay[key].filter(s => s !== slot);
-      }
-    });
+    for (let i = 0; i < 5; i++) {
+      days.push(tuesday.add(i, 'day'));
+    }
   }
 
-  // renderiza
+  // 2) Inicializa resultsByDay e availableByDay para cada dia
+  const resultsByDay   = {};
+  const availableByDay = {};
+  days.forEach(d => {
+    const key = d.format('YYYY-MM-DD');
+    resultsByDay[key]   = [];
+    availableByDay[key] = [];
+    // slots de 07:00 até 19:00
+    for (let h = 7; h < 20; h++) {
+      availableByDay[key].push(`${String(h).padStart(2,'0')}:00`);
+    }
+  });
+
+  // 3) Busca agendamentos no(s) intervalo(s)
+  let appts;
+  if (date) {
+    const start = days[0].startOf('day').toDate();
+    const end   = days[0].endOf('day').toDate();
+    appts = await Appointment
+      .find({ date: { $gte: start, $lte: end } })
+      .sort('date')
+      .populate('clientId');
+  } else {
+    const weekStart = days[0].startOf('day').toDate();
+    const weekEnd   = days[4].endOf('day').toDate();
+    appts = await Appointment
+      .find({ date: { $gte: weekStart, $lte: weekEnd } })
+      .sort('date')
+      .populate('clientId');
+  }
+
+  // 4) Popula resultsByDay e remove apenas o slot de início de cada agendamento
+  appts.forEach(a => {
+    const d      = dayjs(a.date).tz('America/Sao_Paulo');
+    const key    = d.format('YYYY-MM-DD');
+    const time   = d.format('HH:mm');
+    const durHrs = Math.ceil((a.duration || 0) / 60);
+
+    if (!(key in resultsByDay)) return;
+
+    // Agendados
+    resultsByDay[key].push({
+      _id:           a._id,
+      clientName:    a.clientId.name,
+      timeFormatted: time,
+      servicesNames: a.services.map(s => s.name).join(', ')
+    });
+
+    // Remove **N** slots (início + duração)
+    for (let i = 0; i < durHrs; i++) {
+      const slot = d.add(i, 'hour').format('HH:mm');
+      availableByDay[key] = availableByDay[key].filter(s => s !== slot);
+    }
+  });
+
+  // 5) Renderiza, sempre passando days, resultsByDay e availableByDay
   res.render('agenda-dia', {
     date,
     days,
