@@ -443,39 +443,107 @@ router.post('/appointment/:id/remove-payment/service/:sIdx/:pIdx', authMiddlewar
 
 
 
-// --- Agenda por Dia (ordenado) ---
 router.get('/agendamentos-por-dia', authMiddleware, async (req, res) => {
   const { date } = req.query;
-  
-  // se não enviou data, mostra apenas o form vazio
-  if (!date) {
-    return res.render('agenda-dia', { date: null, results: [] });
-  }
+  const days           = [];
+  const resultsByDay   = {};
+  const availableByDay = {};
 
-  // calcula início e fim do dia no fuso SP
-  const start = dayjs.tz(`${date}T00:00:00`, 'America/Sao_Paulo').toDate();
-  const end   = dayjs.tz(`${date}T23:59:59`, 'America/Sao_Paulo').toDate();
+  if (date) {
+    // Modo “um dia”
+    const start  = dayjs.tz(`${date}T00:00:00`, 'America/Sao_Paulo').toDate();
+    const end    = dayjs.tz(`${date}T23:59:59`, 'America/Sao_Paulo').toDate();
+    const ags    = await Appointment.find({ date: { $gte: start, $lte: end } })
+                                    .sort('date')
+                                    .populate('clientId');
 
-  // busca todos os appointments no dia e popula o client
-  const ags = await Appointment.find({
-    date: { $gte: start, $lte: end }
-  })
-    .sort({ date: 1 })
+    days.push(dayjs(date).tz('America/Sao_Paulo'));
+    resultsByDay[date]   = [];
+    availableByDay[date] = [];
+
+    // inicializa slots 07–19h
+    for (let h = 7; h < 20; h++) {
+      availableByDay[date].push(`${String(h).padStart(2,'0')}:00`);
+    }
+
+    // preenche agendados e remove todos os slots da duração
+    ags.forEach(a => {
+      const startDT   = dayjs(a.date).tz('America/Sao_Paulo');
+      const timeInicio= startDT.format('HH:mm');
+      const durHoras  = Math.ceil((a.duration || 0) / 60);
+
+      // registra nos agendados
+      resultsByDay[date].push({
+        _id:           a._id,
+        clientName:    a.clientId.name,
+        timeFormatted: timeInicio,
+        servicesNames: a.services.map(s => s.name).join(', ')
+      });
+
+      // remove N slots (início + duração)
+      for (let i = 0; i < durHoras; i++) {
+        const slot = startDT.add(i, 'hour').format('HH:mm');
+        availableByDay[date] = availableByDay[date].filter(s => s !== slot);
+      }
+    });
+
+  } else {
+    // Modo “semana Terça–Sábado”
+    const today   = dayjs().tz('America/Sao_Paulo');
+    const monday  = today.startOf('isoWeek');
+    const tuesday = monday.add(1, 'day');
+    [0,1,2,3,4].forEach(i => days.push(tuesday.add(i, 'day')));
+
+    const weekStart = days[0].startOf('day').toDate();
+    const weekEnd   = days[4].endOf('day').toDate();
+    const agsWeek   = await Appointment.find({
+      date: { $gte: weekStart, $lte: weekEnd }
+    })
+    .sort('date')
     .populate('clientId');
 
-  // monta o array que vai pra view, incluindo _id e nomes de serviço
-  const results = ags
-    .filter(a => a.services.length > 0)
-    .map(a => ({
-      _id:            a._id,
-      clientName:     a.clientId.name,
-      timeFormatted:  dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm'),
-      servicesNames:  a.services.map(s => s.name).join(', ')
-    }));
+    // inicializa cada dia
+    days.forEach(d => {
+      const key = d.format('YYYY-MM-DD');
+      resultsByDay[key]   = [];
+      availableByDay[key] = [];
+      for (let h = 7; h < 20; h++) {
+        availableByDay[key].push(`${String(h).padStart(2,'0')}:00`);
+      }
+    });
+
+    // preenche e remove slots conforme duração
+    agsWeek.forEach(a => {
+      const dKey     = dayjs(a.date).tz('America/Sao_Paulo');
+      const key      = dKey.format('YYYY-MM-DD');
+      const timeIni  = dKey.format('HH:mm');
+      const durHoras = Math.ceil((a.duration || 0) / 60);
+
+      // agendados
+      resultsByDay[key].push({
+        _id:           a._id,
+        clientName:    a.clientId.name,
+        timeFormatted: timeIni,
+        servicesNames: a.services.map(s => s.name).join(', ')
+      });
+
+      // remove os slots do período ocupado
+      for (let i = 0; i < durHoras; i++) {
+        const slot = dKey.add(i, 'hour').format('HH:mm');
+        availableByDay[key] = availableByDay[key].filter(s => s !== slot);
+      }
+    });
+  }
 
   // renderiza
-  res.render('agenda-dia', { date, results });
+  res.render('agenda-dia', {
+    date,
+    days,
+    resultsByDay,
+    availableByDay
+  });
 });
+
 
 
 // --- Editar Cliente, Serviço, Produto ---
