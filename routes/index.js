@@ -721,34 +721,91 @@ router.post('/expenses/:id/delete', authMiddleware, async (req, res) => {
 
 
 
-// --- BALANÇO corrigido ---
 router.get('/balanco', authMiddleware, async (req, res) => {
-  const appts = await Appointment.find().populate('clientId');
+  // buscar Agendamentos, Clientes e Despesas
+  const appointments = await Appointment.find().populate('clientId');
+  const clients      = await Client.find();
+  const expenses     = await Expense.find();
+
+  // total receita
   let totalReceita = 0;
-  appts.forEach(a => {
+  appointments.forEach(a => {
     [...a.services, ...a.products].forEach(item => {
-      (item.payments || []).forEach(p => totalReceita += p.amount);
+      (item.payments||[]).forEach(p => totalReceita += p.amount);
+    });
+  });
+  clients.forEach(c => {
+    (c.products||[]).forEach(prod => {
+      (prod.payments||[]).forEach(p => totalReceita += p.amount);
     });
   });
 
-  // Correção: produtos fora de agendamento
-  const clients = await Client.find();
-  clients.forEach(c => {
-    (c.products || []).forEach(prod => {
-      (prod.payments || []).forEach(p => {
-        totalReceita += p.amount;
+  // total despesa
+  const totalDespesa = expenses.reduce((sum,e) => sum + e.amount, 0);
+
+  // saldo líquido
+  const liquido = totalReceita - totalDespesa;
+
+  // vendas por produto (monetário)
+  const prodMap = {};
+  appointments.forEach(a => {
+    [...a.services, ...a.products].forEach(item => {
+      (item.payments||[]).forEach(p => {
+        prodMap[item.name] = (prodMap[item.name]||0) + p.amount;
       });
     });
   });
+  clients.forEach(c => {
+    (c.products||[]).forEach(prod => {
+      (prod.payments||[]).forEach(p => {
+        prodMap[prod.name] = (prodMap[prod.name]||0) + p.amount;
+      });
+    });
+  });
+  const productTotals = Object.entries(prodMap)
+    .map(([name,total]) => ({ name, total }));
 
-  const expenses = await Expense.find();
-  const totalDespesa = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const liquido = totalReceita - totalDespesa;
+  // faturamento mensal
+  const monthlyMap = {};
+  appointments.forEach(a => {
+    [...a.services, ...a.products].forEach(item => {
+      (item.payments||[]).forEach(p => {
+        const m = dayjs(p.paidAt).tz('America/Sao_Paulo').format('YYYY-MM');
+        monthlyMap[m] = (monthlyMap[m]||0) + p.amount;
+      });
+    });
+  });
+  clients.forEach(c => {
+    (c.products||[]).forEach(prod => {
+      (prod.payments||[]).forEach(p => {
+        const m = dayjs(p.paidAt).tz('America/Sao_Paulo').format('YYYY-MM');
+        monthlyMap[m] = (monthlyMap[m]||0) + p.amount;
+      });
+    });
+  });
+  const monthlyTotals = Object.entries(monthlyMap)
+    .sort(([a],[b]) => a.localeCompare(b))
+    .map(([m,total])=> {
+      const [year,month]=m.split('-');
+      return { month:`${month}/${year}`, total };
+    });
 
+  // **novo**: contar quantos serviços e produtos foram agendados
+  let serviceCount = 0, productCount = 0;
+  appointments.forEach(a => {
+    serviceCount += a.services.length;
+    productCount += a.products.length;
+  });
+
+  // renderizar
   res.render('balanco', {
     totalReceita,
     totalDespesa,
-    liquido
+    liquido,
+    productTotals,
+    monthlyTotals,
+    serviceCount,
+    productCount
   });
 });
 
