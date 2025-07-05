@@ -221,49 +221,64 @@ if (confirm("⚠️ Conflito de horário. Agendar mesmo assim?")) {
 
 // --- Página do Cliente (Futuros + Produtos) ---
 router.get('/client/:id', authMiddleware, async (req, res) => {
-  const client = await Client.findById(req.params.id);
-  const allAppts = await Appointment.find({ clientId: client._id });
-  const midnight = dayjs().tz('America/Sao_Paulo').startOf('day').toDate();
+  const client     = await Client.findById(req.params.id);
+  const allAppts   = await Appointment.find({ clientId: client._id });
+  const midnight   = dayjs().tz('America/Sao_Paulo').startOf('day').toDate();
 
-  // Upcoming appointments
-  const upcoming = allAppts
-    .filter(a => a.date >= midnight)
+  // monta display: futuros ou pendentes
+  const display = allAppts
     .map(a => ({
       ...a.toObject(),
-      formatted: dayjs(a.date).tz('America/Sao_Paulo').format('DD/MM/YYYY [às] HH:mm')
-    }));
+      formatted: dayjs(a.date).tz('America/Sao_Paulo')
+                      .format('DD/MM/YYYY [às] HH:mm')
+    }))
+    .filter(a => {
+      if (a.date >= midnight) return true;
 
-  // Totals for appointments (services)
+      const svcPending = a.services.some(s => {
+        const paid = (s.payments||[]).reduce((sum,p) => sum + p.amount, 0);
+        return paid < s.price;
+      });
+      if (svcPending) return true;
+
+      const prodPending = (a.products||[]).some(p => {
+        const paid = (p.payments||[]).reduce((sum,q) => sum + q.amount, 0);
+        return paid < p.price;
+      });
+      return prodPending;
+    });
+
+  // Totais para services
   let totalService     = 0;
   let totalPaidService = 0;
-
-  upcoming.forEach(a => {
+  display.forEach(a => {
     a.services.forEach(s => {
-      totalService += s.price;
-      totalPaidService += (s.payments || []).reduce((sum,p) => sum + (p.amount||0), 0);
+      totalService     += s.price;
+      totalPaidService += (s.payments || [])
+                           .reduce((sum,p) => sum + (p.amount||0), 0);
     });
   });
 
-  // Totals for products attached directly to client
-  let totalProduct       = 0;
-  let totalPaidProduct   = 0;
-
+  // Totais para produtos do client
+  let totalProduct     = 0;
+  let totalPaidProduct = 0;
   client.products.forEach(p => {
-    totalProduct += p.price;
-    totalPaidProduct += (p.payments || []).reduce((sum, pay) => sum + (pay.amount||0), 0);
+    totalProduct     += p.price;
+    totalPaidProduct += (p.payments || [])
+                           .reduce((sum,pay) => sum + (pay.amount||0), 0);
   });
 
-  // Render view passing both sets of totals
   res.render('client', {
     client,
-    appointments: upcoming,
+    appointments: display,
     totalService,
     totalPaidService,
     totalProduct,
-    totalPaidProduct
+    totalPaidProduct,
+    isHistory: false,
+    paidProducts: []    // declare vazio para não quebrar a view
   });
 });
-
 
 
 // --- Histórico (Passados) ---
@@ -272,6 +287,7 @@ router.get('/client/:id/historico', authMiddleware, async (req, res) => {
   const all      = await Appointment.find({ clientId: client._id });
   const midnight = dayjs().tz('America/Sao_Paulo').startOf('day').toDate();
 
+  // ← Declaração de past deve vir antes de você usá-la!
   const past = all
     .filter(a => a.date < midnight)
     .map(a => ({
@@ -279,27 +295,50 @@ router.get('/client/:id/historico', authMiddleware, async (req, res) => {
       formatted: dayjs(a.date).tz('America/Sao_Paulo').format('DD/MM/YYYY [às] HH:mm')
     }));
 
-  let totalService = 0, totalProduct = 0, totalPaid = 0;
+  // Agora você pode usar past nos acumuladores:
+  let totalService     = 0;
+  let totalPaidService = 0;
+  let totalProduct     = 0;
+  let totalPaidProduct = 0;
+
   past.forEach(a => {
     a.services.forEach(s => {
-      totalService += s.price;
-      totalPaid    += (s.payments||[]).reduce((sum,p) => sum + (p.amount||0), 0);
+      totalService     += s.price;
+      totalPaidService += (s.payments || []).reduce((sum, p) => sum + (p.amount||0), 0);
     });
     a.products.forEach(p => {
-      totalProduct += p.price;
-      totalPaid    += (p.payments||[]).reduce((sum,p) => sum + (p.amount||0), 0);
+      totalProduct     += p.price;
+      totalPaidProduct += (p.payments || []).reduce((sum, q) => sum + (q.amount||0), 0);
     });
   });
 
+  // E monte também os produtos pagos, se quiser:
+  const paidProducts = client.products
+    .filter(prod => (prod.payments||[]).length > 0)
+    .map(prod => ({
+      name: prod.name,
+      price: prod.price,
+      payments: prod.payments.map(p => ({
+        ...p,
+        formattedDate: dayjs(p.paidAt).tz('America/Sao_Paulo').format('DD/MM/YYYY')
+      }))
+    }));
+
+  // Finalmente renderize passando past, totals e paidProducts
   res.render('client', {
     client,
     appointments: past,
+    isHistory: true,
     totalService,
+    totalPaidService,
     totalProduct,
-    total: totalService + totalProduct,
-    totalPaid
+    totalPaidProduct,
+    paidProducts
   });
 });
+
+
+
 
 // --- Excluir Cliente + Agendamentos ---
 router.post('/client/:id/delete', authMiddleware, async (req, res) => {
