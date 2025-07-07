@@ -58,11 +58,13 @@ router.get('/dashboard', authMiddleware, async (req, res) => {
   }).populate('clientId').sort('date');
 
   const proximosHoje = [...new Map(
-    rawHoje.filter(a => a.clientId && ((a.services || []).length || (a.products || []).length))
+    rawHoje
+      .filter(a => a.clientId && ((a.services || []).length || (a.products || []).length))
       .map(a => {
         const time = dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm');
-        return [`${a.clientId.name}|${time}`, {
+        return [`${a.clientId._id}|${time}`, {
           name: a.clientId.name,
+          clientId: a.clientId._id.toString(), // 👈 necessário para gerar o link
           time,
           service: a.services[0]?.name || '—'
         }];
@@ -74,11 +76,13 @@ router.get('/dashboard', authMiddleware, async (req, res) => {
   }).populate('clientId').sort('date');
 
   const proximosAmanha = [...new Map(
-    rawAmanha.filter(a => a.clientId && ((a.services || []).length || (a.products || []).length))
+    rawAmanha
+      .filter(a => a.clientId && ((a.services || []).length || (a.products || []).length))
       .map(a => {
         const time = dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm');
-        return [`${a.clientId.name}|${time}`, {
+        return [`${a.clientId._id}|${time}`, {
           name: a.clientId.name,
+          clientId: a.clientId._id.toString(), // 👈 necessário para gerar o link
           time,
           service: a.services[0]?.name || '—'
         }];
@@ -90,25 +94,24 @@ router.get('/dashboard', authMiddleware, async (req, res) => {
 
   const todos = await Appointment.find().populate('clientId');
   todos.forEach(a => {
-    [...(a.services||[]), ...(a.products||[])].forEach(item => {
-      (item.payments||[]).forEach(p => {
+    [...(a.services || []), ...(a.products || [])].forEach(item => {
+      (item.payments || []).forEach(p => {
         const pago = dayjs(p.paidAt).tz('America/Sao_Paulo');
-        if (pago.isSame(ref, 'day'))   receitaHoje   += p.amount;
-        if (pago.isSame(ref, 'week'))  receitaSemana += p.amount;
-        if (pago.isSame(ref, 'month')) receitaMes    += p.amount;
+        if (pago.isSame(ref, 'day')) receitaHoje += p.amount;
+        if (pago.isSame(ref, 'week')) receitaSemana += p.amount;
+        if (pago.isSame(ref, 'month')) receitaMes += p.amount;
       });
     });
   });
 
-  // Soma produtos diretos do cliente
   const clients = await Client.find();
   clients.forEach(c => {
     (c.products || []).forEach(prod => {
       (prod.payments || []).forEach(p => {
         const pago = dayjs(p.paidAt).tz('America/Sao_Paulo');
-        if (pago.isSame(ref, 'day'))   receitaHoje   += p.amount;
-        if (pago.isSame(ref, 'week'))  receitaSemana += p.amount;
-        if (pago.isSame(ref, 'month')) receitaMes    += p.amount;
+        if (pago.isSame(ref, 'day')) receitaHoje += p.amount;
+        if (pago.isSame(ref, 'week')) receitaSemana += p.amount;
+        if (pago.isSame(ref, 'month')) receitaMes += p.amount;
       });
     });
   });
@@ -121,6 +124,7 @@ router.get('/dashboard', authMiddleware, async (req, res) => {
     receitaMes
   });
 });
+
 
 
 
