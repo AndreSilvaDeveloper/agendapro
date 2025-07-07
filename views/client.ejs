@@ -183,18 +183,25 @@
       <% if (p.payments && p.payments.length) { %>
         <ul class="mt-   ml-6 space-y-1">
           <% p.payments.forEach((pay, j) => { %>
-            <li class="flex justify-between items-center text-sm">
-              <span>
-                <%= new Date(pay.paidAt).toLocaleDateString('pt-BR') %> –
-                R$ <%= pay.amount.toFixed(2) %>
-                (<%= pay.method %><% if (pay.description) { %>, <%= pay.description %><% } %>)
-              </span>
-              <form action="/client/<%= client._id %>/product/<%= i %>/remove-payment/<%= j %>"
-                    method="POST"
-                    onsubmit="return confirm('Excluir este pagamento?')">
-                <button class="text-red-600 hover:underline">🗑️ Excluir Pagamento</button>
-              </form>
-            </li>
+            <li class="text-sm">
+  <div class="mb-2">
+    <%= new Date(pay.paidAt).toLocaleDateString('pt-BR') %> –
+    R$ <%= pay.amount.toFixed(2) %>
+    (<%= pay.method %><% if (pay.description) { %>, <%= pay.description %><% } %>)
+  </div>
+  <form 
+    action="/client/<%= client._id %>/product/<%= i %>/remove-payment/<%= j %>" 
+    method="POST" 
+    onsubmit="return confirm('Excluir este pagamento?')"
+    class="inline-block"
+  >
+    <button 
+      class="text-red-600 hover:underline text-sm whitespace-nowrap px-2 py-1 rounded"
+    >
+      🗑️ Excluir Pagamento
+    </button>
+  </form>
+ </li>
           <% }) %>
         </ul>
       <% } %>
@@ -309,15 +316,26 @@
           <% if (service.payments && service.payments.length) { %>
             <ul class="mt-1 pl-6 space-y-0">
               <% service.payments.forEach(function(payment, payIdx) { %>
-                <li class="flex items-baseline text-sm gap-2">
-                  <span class="whitespace-nowrap">
-                    <%= new Date(payment.paidAt).toLocaleDateString('pt-BR') %> –
-                    R$ <%= payment.amount.toFixed(2) %> (<%= payment.method %><% if (payment.description) { %>, <%= payment.description %><% } %>)
-                  </span>
-                  <form action="/appointment/<%= a._id %>/remove-payment/service/<%= svcIdx %>/<%= payIdx %>"
-                        method="POST" class="inline" onsubmit="return confirm('Excluir este pagamento?')">
-                    <button class="text-red-600 hover:underline text-sm p-0">🗑️ Excluir Pagamento</button>
-                  </form>
+                <li class="text-sm">
+  <div class="mb-2">
+    <%= new Date(payment.paidAt).toLocaleDateString('pt-BR') %> –
+    R$ <%= payment.amount.toFixed(2) %> (<%= payment.method %><% if (payment.description) { %>, <%= payment.description %><% } %>)
+  </div>
+  <form 
+    action="/appointment/<%= a._id %>/remove-payment/service/<%= svcIdx %>/<%= payIdx %>" 
+    method="POST" 
+    onsubmit="return confirm('Excluir este pagamento?')"
+    class="inline-block"
+  >
+    <button 
+      class="text-red-600 hover:underline text-sm whitespace-nowrap px-2 py-1 rounded"
+    >
+      🗑️ Excluir Pagamento
+    </button>
+  </form>
+
+
+
                 </li>
               <% }); %>
             </ul>
