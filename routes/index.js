@@ -546,11 +546,12 @@ router.get('/agendamentos-por-dia', authMiddleware, async (req, res) => {
 
     // Agendados
     resultsByDay[key].push({
-      _id:           a._id,
-      clientName:    a.clientId.name,
-      timeFormatted: time,
-      servicesNames: a.services.map(s => s.name).join(', ')
-    });
+  _id:           a._id,
+  clientId:      a.clientId._id.toString(), // 👈 adicionado
+  clientName:    a.clientId.name,
+  timeFormatted: time,
+  servicesNames: a.services.map(s => s.name).join(', ')
+});
 
     // Remove **N** slots (início + duração)
     for (let i = 0; i < durHrs; i++) {

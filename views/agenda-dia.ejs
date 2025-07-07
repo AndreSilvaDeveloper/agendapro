@@ -81,7 +81,12 @@
     <li class="p-2 border rounded hover:bg-gray-50 transition">
       <div class="flex justify-between items-center">
         <span class="text-gray-800 font-semibold"><%= r.timeFormatted %></span>
-        <span class="text-gray-600 font-medium"><%= r.clientName %></span>
+        <span class="text-gray-600 font-medium">
+  <a href="/client/<%= r.clientId %>" class="text-purple-700 hover:underline">
+    <%= r.clientName %>
+  </a>
+</span>
+
       </div>
       <div class="mt-1 text-sm text-gray-700">
         Serviço: <%= r.servicesNames || '—' %>
