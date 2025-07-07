@@ -224,9 +224,13 @@
 
     <% if (isHistory) { %>
   <div class="mb-4">
-    <a href="/client/<%= client._id %>" class="inline-block mt-6 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
-      🚪 Voltar
-    </a>
+    <a
+  href="javascript:history.back()"
+  class="inline-block mt-6 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+>
+  🚪 Voltar
+</a>
+
   </div>
 <% } %>
 
@@ -373,9 +377,13 @@
       </h2>
     </div>
 
-    <a href="/clients" class="inline-block mt-6 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
-      🚪 Voltar
-    </a>
+   <a
+  href="javascript:history.back()"
+  class="inline-block mt-6 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+>
+  🚪 Voltar
+</a>
+
   </div>
 
     <% } %>
