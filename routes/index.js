@@ -230,7 +230,7 @@ router.get('/client/:id', authMiddleware, async (req, res) => {
   const midnight   = dayjs().tz('America/Sao_Paulo').startOf('day').toDate();
 
   // monta display: futuros ou pendentes
-  const display = allAppts
+  let display = allAppts
     .map(a => ({
       ...a.toObject(),
       formatted: dayjs(a.date).tz('America/Sao_Paulo')
@@ -251,6 +251,9 @@ router.get('/client/:id', authMiddleware, async (req, res) => {
       });
       return prodPending;
     });
+
+  // **Ordena cronologicamente pelo campo `date`**
+  display.sort((a, b) => new Date(a.date) - new Date(b.date));
 
   // Totais para services
   let totalService     = 0;
