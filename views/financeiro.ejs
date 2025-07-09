@@ -82,7 +82,7 @@
     <!-- HEADER -->
     <header class="glass-effect sticky top-0 z-50 border-b border-purple-100">
         <div class="max-w-7xl mx-auto px-4 py-4">
-            <div class="flex items-center justify-between">
+            <div class="flex flex-wrap items-center justify-between">
                 <div class="flex items-center space-x-4">
                     <h1 class="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                         Studio Kadosh
@@ -346,7 +346,7 @@
                 <div class="space-y-4">
                     <% list.forEach((d, index) => { %>
                     <div class="payment-card bg-gradient-to-r from-gray-50 to-green-50 p-6 rounded-xl border border-gray-200">
-                        <div class="flex items-center justify-between">
+                        <div class="flex flex-wrap items-center justify-between">
                             <div class="flex-1">
                                 <div class="flex items-center space-x-4 mb-3">
                                     <div class="w-12 h-12 <%= method.gradient %> rounded-full flex items-center justify-center">
@@ -391,7 +391,7 @@
 
                 <!-- Resumo da Forma de Pagamento -->
                 <div class="mt-6 pt-6 border-t border-gray-200">
-                    <div class="flex items-center justify-between">
+                    <div class="flex flex-wrap items-center justify-between">
                         <div class="text-sm text-gray-600">
                             <i class="fas fa-info-circle mr-2"></i>
                             <%= list.length %> transaç<%= list.length !== 1 ? 'ões' : 'ão' %> via <%= method.name %>
