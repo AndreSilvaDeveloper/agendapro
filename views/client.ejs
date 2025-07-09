@@ -555,7 +555,7 @@
                                                             <span>💰 Pagar</span>
                                                         </button>
                                                     </form>
-                                                    <% if (!isHistory) { %>
+                                                    
                                                     <form action="/appointment/<%= a._id %>/edit-service/<%= svcIdx %>" method="POST" onsubmit="return editItem(this, '<%= service.name %>', '<%= service.price %>')" class="inline">
                                                         <button class="flex items-center space-x-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
                                                             <i class="fas fa-edit"></i>
@@ -568,7 +568,7 @@
                                                             <span>🗑️ Excluir</span>
                                                         </button>
                                                     </form>
-                                                    <% } %>
+                                                    
                                                 </div>
                                             </div>
 
