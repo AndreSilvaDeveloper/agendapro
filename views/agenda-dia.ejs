@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         .gradient-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -454,6 +455,46 @@
                                 </div>
                                 <% } %>
                             </div>
+                            <!-- MODAL DE AGENDAMENTO -->
+<div id="modalAgendamento" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+  <div class="bg-white rounded-lg p-6 w-full max-w-md">
+    <h2 class="text-lg font-bold mb-4">Agendar Horário</h2>
+    <form action="/appointment" method="POST">
+      <input type="hidden" id="modalDate" name="date">
+      <input type="hidden" id="modalTime" name="time">
+
+      <!-- CLIENTE (com autocompletar JS) -->
+      <div class="mb-4">
+        <label for="clientSearch" class="block text-sm font-medium text-gray-700">Cliente:</label>
+        <input type="text" id="clientSearch" class="w-full p-2 border rounded" placeholder="Digite o nome do cliente..." autocomplete="off">
+        <input type="hidden" name="clientId" id="clientId">
+        <ul id="clientSuggestions" class="border border-gray-300 rounded mt-1 bg-white max-h-40 overflow-y-auto hidden"></ul>
+      </div>
+
+      <!-- SERVIÇO -->
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700">Serviço:</label>
+        <input type="text" id="serviceName" class="w-full p-2 border rounded mb-2" placeholder="Nome do serviço" required>
+        <input type="number" id="servicePrice" class="w-full p-2 border rounded mb-2" placeholder="Preço (R$)" required step="0.01">
+        <input type="number" id="serviceDuration" class="w-full p-2 border rounded" placeholder="Duração (min)" required>
+        <input type="hidden" name="services" id="servicesInput">
+        <input type="hidden" name="duration" id="durationInput">
+      </div>
+
+      <div class="flex justify-end gap-4 mt-6">
+        <button type="button" onclick="fecharModal()" class="text-gray-500">Cancelar</button>
+        <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Agendar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="toast-success" class="fixed top-5 right-5 z-50 hidden bg-green-100 border border-green-400 text-green-800 px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3">
+  <i class="fas fa-check-circle text-green-600"></i>
+  <span id="toast-message" class="font-semibold"></span>
+</div>
+
+
                         </div>
                     </div>
                 </section>
@@ -489,58 +530,149 @@
         </div>
     </footer>
 
+
+    <div id="clients-data" data-clients='<%- JSON.stringify(clients) %>'></div>
+
+<script>
+  const raw = document.getElementById('clients-data').dataset.clients;
+  const clients = JSON.parse(raw);
+</script>
+
+
     <script>
-        // Mobile menu toggle
-        const menuButton = document.getElementById('menu-button');
-        const mobileMenu = document.getElementById('mobile-menu');
-        
-        if (menuButton && mobileMenu) {
-            menuButton.addEventListener('click', () => {
-                mobileMenu.classList.toggle('hidden');
-            });
+  // Mobile menu toggle
+  const menuButton = document.getElementById('menu-button');
+  const mobileMenu = document.getElementById('mobile-menu');
+
+  if (menuButton && mobileMenu) {
+    menuButton.addEventListener('click', () => {
+      mobileMenu.classList.toggle('hidden');
+    });
+  }
+
+  // Inicialização das animações
+  document.addEventListener('DOMContentLoaded', function () {
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver(function (entries) {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
         }
+      });
+    }, observerOptions);
 
-        // Inicialização das animações
-        document.addEventListener('DOMContentLoaded', function() {
-            const observerOptions = {
-                threshold: 0.1,
-                rootMargin: '0px 0px -50px 0px'
-            };
 
-            const observer = new IntersectionObserver(function(entries) {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.style.opacity = '1';
-                        entry.target.style.transform = 'translateY(0)';
-                    }
-                });
-            }, observerOptions);
+    document.querySelectorAll('.animate-fade-in').forEach(el => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(20px)';
+      el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+      observer.observe(el);
+    });
 
-            document.querySelectorAll('.animate-fade-in').forEach(el => {
-                el.style.opacity = '0';
-                el.style.transform = 'translateY(20px)';
-                el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-                observer.observe(el);
-            });
+    // Define a data de hoje como padrão se não houver valor
+    const dateInput = document.getElementById('date');
+    if (dateInput && !dateInput.value) {
+      const today = new Date();
+      const formattedDate = today.toISOString().split('T')[0];
+      dateInput.value = formattedDate;
+    }
+  });
 
-            // Auto-focus na data se não houver dados
-            const dateInput = document.getElementById('date');
-            if (dateInput && !dateInput.value) {
-                // Define a data de hoje como padrão
-                const today = new Date();
-                const formattedDate = today.toISOString().split('T')[0];
-                dateInput.value = formattedDate;
-            }
+  // Lista de clientes vinda do backend (via EJS) 
+
+// Autocompletar cliente
+  const clientSearch = document.getElementById('clientSearch');
+  const suggestions = document.getElementById('clientSuggestions');
+  const clientIdInput = document.getElementById('clientId');
+
+  clientSearch.addEventListener('input', () => {
+    const value = clientSearch.value.toLowerCase();
+    suggestions.innerHTML = '';
+    const matches = clients.filter(c => c.name.toLowerCase().includes(value));
+
+    if (matches.length > 0) {
+      suggestions.classList.remove('hidden');
+      matches.forEach(c => {
+        const li = document.createElement('li');
+        li.textContent = c.name;
+        li.className = 'p-2 cursor-pointer hover:bg-gray-100';
+        li.addEventListener('click', () => {
+          clientSearch.value = c.name;
+          clientIdInput.value = c._id;
+          suggestions.classList.add('hidden');
         });
+        suggestions.appendChild(li);
+      });
+    } else {
+      suggestions.classList.add('hidden');
+    }
+  });
 
-        // Função para destacar horários disponíveis ao passar o mouse
-        document.querySelectorAll('.time-slot').forEach(slot => {
-            slot.addEventListener('click', function() {
-                // Aqui você pode adicionar funcionalidade para agendar diretamente
-                const time = this.textContent.trim();
-                alert(`Funcionalidade de agendamento rápido para ${time} será implementada em breve!`);
-            });
-        });
-    </script>
+  // Esconde sugestão ao clicar fora
+  document.addEventListener('click', (e) => {
+    if (!suggestions.contains(e.target) && e.target !== clientSearch) {
+      suggestions.classList.add('hidden');
+    }
+  });
+
+  // Clicar em horário → abre o modal e preenche campos de data/hora
+  document.querySelectorAll('.time-slot').forEach(el => {
+    el.addEventListener('click', () => {
+      const time = el.textContent.trim();
+      const section = el.closest('section');
+      const dateText = section.querySelector('h2').textContent.trim(); // Ex: 10/07/2025
+
+      const [day, month, year] = dateText.split('/');
+      const isoDate = `${year}-${month}-${day}`;
+
+      document.getElementById('modalDate').value = isoDate;
+      document.getElementById('modalTime').value = time;
+      document.getElementById('modalAgendamento').classList.remove('hidden');
+    });
+  });
+
+  // Fecha o modal
+  function fecharModal() {
+    document.getElementById('modalAgendamento').classList.add('hidden');
+  }
+
+  // Antes do submit, monta objeto services e preenche duração
+  document.querySelector('#modalAgendamento form').addEventListener('submit', function (e) {
+    const service = {
+      name: document.getElementById('serviceName').value,
+      price: parseFloat(document.getElementById('servicePrice').value),
+      payments: []
+    };
+    const duration = parseInt(document.getElementById('serviceDuration').value);
+
+    document.getElementById('servicesInput').value = JSON.stringify([service]);
+    document.getElementById('durationInput').value = duration;
+  });
+</script>
+
+<script>
+  // Verifica parâmetro "success" na URL
+  const urlParams = new URLSearchParams(window.location.search);
+const successTime = urlParams.get('success');
+
+if (successTime) {
+  Swal.fire({
+    icon: 'success',
+    title: 'Agendamento Confirmado!',
+    text: `O agendamento foi efetuado com sucesso para o horário ${successTime}.`,
+    confirmButtonText: 'Fechar',
+    confirmButtonColor: '#10b981',
+    background: '#f0fdf4'
+  });
+}
+
+</script>
+
+
 </body>
 </html>

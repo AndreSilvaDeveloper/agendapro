@@ -217,8 +217,9 @@ if (confirm("⚠️ Conflito de horário. Agendar mesmo assim?")) {
     products: parsedProducts
   });
 
-  // não há mais envio de SMS
-  res.redirect(`/client/${clientId}`);
+  const hourFormatted = dayjs(start).tz('America/Sao_Paulo').format('HH:mm');
+res.redirect(`/agendamentos-por-dia?success=${hourFormatted}`);
+
 });
 
 
@@ -490,15 +491,18 @@ router.post('/appointment/:id/remove-payment/service/:sIdx/:pIdx', authMiddlewar
 
 
 router.get('/agendamentos-por-dia', authMiddleware, async (req, res) => {
-  const { date } = req.query;
+  const { date, success } = req.query;
 
-  // 1) Monta a lista de dias
+  const services = [
+    { name: 'Corte', price: 30 },
+    { name: 'Escova', price: 40 },
+    { name: 'Progressiva', price: 120 }
+  ];
+
   const days = [];
   if (date) {
-    // um único dia
     days.push(dayjs.tz(date, 'YYYY-MM-DD', 'America/Sao_Paulo'));
   } else {
-    // terça a sábado da semana atual
     const today   = dayjs().tz('America/Sao_Paulo');
     const monday  = today.startOf('isoWeek');
     const tuesday = monday.add(1, 'day');
@@ -507,20 +511,17 @@ router.get('/agendamentos-por-dia', authMiddleware, async (req, res) => {
     }
   }
 
-  // 2) Inicializa resultsByDay e availableByDay para cada dia
   const resultsByDay   = {};
   const availableByDay = {};
   days.forEach(d => {
     const key = d.format('YYYY-MM-DD');
     resultsByDay[key]   = [];
     availableByDay[key] = [];
-    // slots de 07:00 até 19:00
     for (let h = 7; h < 20; h++) {
-      availableByDay[key].push(`${String(h).padStart(2,'0')}:00`);
+      availableByDay[key] = gerarHorariosDisponiveis();
     }
   });
 
-  // 3) Busca agendamentos no(s) intervalo(s)
   let appts;
   if (date) {
     const start = days[0].startOf('day').toDate();
@@ -538,7 +539,6 @@ router.get('/agendamentos-por-dia', authMiddleware, async (req, res) => {
       .populate('clientId');
   }
 
-  // 4) Popula resultsByDay e remove apenas o slot de início de cada agendamento
   appts.forEach(a => {
     const d      = dayjs(a.date).tz('America/Sao_Paulo');
     const key    = d.format('YYYY-MM-DD');
@@ -547,28 +547,34 @@ router.get('/agendamentos-por-dia', authMiddleware, async (req, res) => {
 
     if (!(key in resultsByDay)) return;
 
-    // Agendados
     resultsByDay[key].push({
-  _id:           a._id,
-  clientId:      a.clientId._id.toString(), // 👈 adicionado
-  clientName:    a.clientId.name,
-  timeFormatted: time,
-  servicesNames: a.services.map(s => s.name).join(', ')
-});
+      _id:           a._id,
+      clientId:      a.clientId._id.toString(),
+      clientName:    a.clientId.name,
+      timeFormatted: time,
+      servicesNames: a.services.map(s => s.name).join(', ')
+    });
 
-    // Remove **N** slots (início + duração)
-    for (let i = 0; i < durHrs; i++) {
-      const slot = d.add(i, 'hour').format('HH:mm');
-      availableByDay[key] = availableByDay[key].filter(s => s !== slot);
-    }
+    // calcula quantos blocos de 30 minutos o serviço ocupa
+const blocos = Math.ceil((a.duration || 0) / 30);
+
+for (let i = 0; i < blocos; i++) {
+  const slot = d.add(i * 30, 'minute').format('HH:mm');
+  availableByDay[key] = availableByDay[key].filter(s => s !== slot);
+}
+
   });
 
-  // 5) Renderiza, sempre passando days, resultsByDay e availableByDay
+  const clients = await Client.find();
+
   res.render('agenda-dia', {
     date,
     days,
     resultsByDay,
-    availableByDay
+    availableByDay,
+    clients,
+    services,
+    success // 👈 repassado para o EJS
   });
 });
 
@@ -603,7 +609,29 @@ router.post('/appointment/:id/edit-datetime', authMiddleware, async (req, res) =
   await a.save();
 
   res.redirect(`/client/${a.clientId}`);
+
 });
+
+
+
+// Função para gerar horários disponíveis em intervalos de 30 minutos
+function gerarHorariosDisponiveis(inicio = '07:00', fim = '20:00') {
+  const slots = [];
+  const [hInicio, mInicio] = inicio.split(':').map(Number);
+  const [hFim, mFim]       = fim.split(':').map(Number);
+
+  const start = dayjs().hour(hInicio).minute(mInicio).second(0);
+  const end   = dayjs().hour(hFim).minute(mFim).second(0);
+
+  let atual = start.clone();
+  while (atual.isBefore(end)) {
+    slots.push(atual.format('HH:mm'));
+    atual = atual.add(30, 'minute');
+  }
+
+  return slots;
+}
+
 
 
 // --- FINANCEIRO corrigido ---
