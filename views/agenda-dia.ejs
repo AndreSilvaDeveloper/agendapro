@@ -173,7 +173,8 @@
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8 relative">
+
         <!-- Filtro de Data -->
         <section class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
             <div class="gradient-blue p-6">
@@ -455,39 +456,8 @@
                                 </div>
                                 <% } %>
                             </div>
-                            <!-- MODAL DE AGENDAMENTO -->
-<div id="modalAgendamento" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-  <div class="bg-white rounded-lg p-6 w-full max-w-md">
-    <h2 class="text-lg font-bold mb-4">Agendar Horário</h2>
-    <form action="/appointment" method="POST">
-      <input type="hidden" id="modalDate" name="date">
-      <input type="hidden" id="modalTime" name="time">
+                        
 
-      <!-- CLIENTE (com autocompletar JS) -->
-      <div class="mb-4">
-        <label for="clientSearch" class="block text-sm font-medium text-gray-700">Cliente:</label>
-        <input type="text" id="clientSearch" class="w-full p-2 border rounded" placeholder="Digite o nome do cliente..." autocomplete="off">
-        <input type="hidden" name="clientId" id="clientId">
-        <ul id="clientSuggestions" class="border border-gray-300 rounded mt-1 bg-white max-h-40 overflow-y-auto hidden"></ul>
-      </div>
-
-      <!-- SERVIÇO -->
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700">Serviço:</label>
-        <input type="text" id="serviceName" class="w-full p-2 border rounded mb-2" placeholder="Nome do serviço" required>
-        <input type="number" id="servicePrice" class="w-full p-2 border rounded mb-2" placeholder="Preço (R$)" required step="0.01">
-        <input type="number" id="serviceDuration" class="w-full p-2 border rounded" placeholder="Duração (min)" required>
-        <input type="hidden" name="services" id="servicesInput">
-        <input type="hidden" name="duration" id="durationInput">
-      </div>
-
-      <div class="flex justify-end gap-4 mt-6">
-        <button type="button" onclick="fecharModal()" class="text-gray-500">Cancelar</button>
-        <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Agendar</button>
-      </div>
-    </form>
-  </div>
-</div>
 
 <div id="toast-success" class="fixed top-5 right-5 z-50 hidden bg-green-100 border border-green-400 text-green-800 px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3">
   <i class="fas fa-check-circle text-green-600"></i>
@@ -515,6 +485,38 @@
             </section>
             <% } %>
         </div>
+
+        <!-- MODAL DE AGENDAMENTO (posicionado dinamicamente) -->
+<div id="modalAgendamento" class="absolute bg-white rounded-lg p-6 w-full max-w-md hidden z-50 shadow-xl border border-gray-300">
+  <h2 class="text-lg font-bold mb-4">Agendar Horário</h2>
+  <form action="/appointment" method="POST">
+    <input type="hidden" id="modalDate" name="date">
+    <input type="hidden" id="modalTime" name="time">
+
+    <!-- CLIENTE -->
+    <div class="mb-4">
+      <label for="clientSearch" class="block text-sm font-medium text-gray-700">Cliente:</label>
+      <input type="text" id="clientSearch" class="w-full p-2 border rounded" placeholder="Digite o nome do cliente..." autocomplete="off">
+      <input type="hidden" name="clientId" id="clientId">
+      <ul id="clientSuggestions" class="border border-gray-300 rounded mt-1 bg-white max-h-40 overflow-y-auto hidden"></ul>
+    </div>
+
+    <!-- SERVIÇO -->
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700">Serviço:</label>
+      <input type="text" id="serviceName" class="w-full p-2 border rounded mb-2" placeholder="Nome do serviço" required>
+      <input type="number" id="servicePrice" class="w-full p-2 border rounded mb-2" placeholder="Preço (R$)" required step="0.01">
+      <input type="number" id="serviceDuration" class="w-full p-2 border rounded" placeholder="Duração (min)" required>
+      <input type="hidden" name="services" id="servicesInput">
+      <input type="hidden" name="duration" id="durationInput">
+    </div>
+
+    <div class="flex justify-end gap-4 mt-6">
+      <button type="button" onclick="fecharModal()" class="text-gray-500">Cancelar</button>
+      <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Agendar</button>
+    </div>
+  </form>
+</div>
     </main>
 
     <!-- Footer -->
@@ -622,24 +624,42 @@
 
   // Clicar em horário → abre o modal e preenche campos de data/hora
   document.querySelectorAll('.time-slot').forEach(el => {
-    el.addEventListener('click', () => {
-      const time = el.textContent.trim();
-      const section = el.closest('section');
-      const dateText = section.querySelector('h2').textContent.trim(); // Ex: 10/07/2025
+  el.addEventListener('click', (event) => {
+    const time = el.textContent.trim();
+    const section = el.closest('section');
+    const dateText = section.querySelector('h2').textContent.trim(); // Ex: 10/07/2025
+    const [day, month, year] = dateText.split('/');
+    const isoDate = `${year}-${month}-${day}`;
 
-      const [day, month, year] = dateText.split('/');
-      const isoDate = `${year}-${month}-${day}`;
+    const modal = document.getElementById('modalAgendamento');
 
-      document.getElementById('modalDate').value = isoDate;
-      document.getElementById('modalTime').value = time;
-      document.getElementById('modalAgendamento').classList.remove('hidden');
-    });
+    // Preenche campos
+    document.getElementById('modalDate').value = isoDate;
+    document.getElementById('modalTime').value = time;
+
+    // Calcula posição do clique
+    const rect = el.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+
+    const top = rect.top + scrollTop + el.offsetHeight + 8;
+    const left = rect.left + scrollLeft;
+
+    modal.style.top = `${top}px`;
+    modal.style.left = `${left}px`;
+    modal.classList.remove('hidden');
   });
+});
+
 
   // Fecha o modal
   function fecharModal() {
-    document.getElementById('modalAgendamento').classList.add('hidden');
-  }
+  const modal = document.getElementById('modalAgendamento');
+  modal.classList.add('hidden');
+  modal.style.top = '';
+  modal.style.left = '';
+}
+
 
   // Antes do submit, monta objeto services e preenche duração
   document.querySelector('#modalAgendamento form').addEventListener('submit', function (e) {
