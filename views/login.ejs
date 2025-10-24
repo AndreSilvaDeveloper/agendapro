@@ -7,53 +7,99 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        :root {
+            --color-gold-light: #FFD700;
+            --color-gold-dark: #B8860B;
+            --color-gold-accent: #DAA520;
         }
-        .gradient-purple {
-            background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+
+        .text-gold {
+            color: var(--color-gold-dark);
         }
-        .gradient-pink {
-            background: linear-gradient(135deg, #ec4899 0%, #be185d 100%);
+        .bg-gold {
+            background-color: var(--color-gold-accent);
         }
-        .gradient-blue {
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        .bg-gold-light {
+            background-color: #FFFBEB;
         }
-        .glass-effect {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+        .border-gold {
+            border-color: var(--color-gold-light);
         }
-        .floating-animation {
-            animation: floating 6s ease-in-out infinite;
+        .hover\:text-gold:hover {
+            color: var(--color-gold-dark);
         }
-        @keyframes floating {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
+        .hover\:bg-gold-light:hover {
+            background-color: #FFF8DC;
         }
-        .pulse-animation {
-            animation: pulse 2s infinite;
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in;
         }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
+
+        /* --- ESTILOS PARA BRILHO --- */
+        .text-gradient-gold {
+            background: linear-gradient(
+                90deg,
+                #B8860B, #FFD700, #DAA520, #FFD700, #B8860B
+            );
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+            background-size: 200% auto;
+            animation: text-shine 4s linear infinite;
+        }
+
+        @keyframes text-shine {
+            from { background-position: 200% center; }
+            to { background-position: 0% center; }
+        }
+
+        .bg-shine-gold {
+            position: relative;
+            overflow: hidden;
+        }
+        .bg-shine-gold::after {
+            content: '';
+            position: absolute;
+            top: -10%;
+            left: -75%;
+            width: 50%;
+            height: 120%;
+            background: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.4) 50%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            transform: skewX(-25deg);
+            animation: bg-shine 5s infinite linear;
+        }
+
+        @keyframes bg-shine {
+            0% { left: -75%; }
+            100% { left: 125%; }
+        }
+        /* --- FIM ESTILOS BRILHO --- */
+
         .form-input {
             transition: all 0.3s ease;
         }
         .form-input:focus {
-            transform: translateY(-2px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+             /* Removido o translateY e shadow */
         }
         .login-button {
             transition: all 0.3s ease;
         }
         .login-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            /* Removido translateY e shadow, usando opacity padrão do tema */
         }
         .login-button:active {
-            transform: translateY(0);
+            transform: scale(0.98); /* Pequeno efeito de clique */
         }
         .error-shake {
             animation: shake 0.5s ease-in-out;
@@ -63,72 +109,44 @@
             25% { transform: translateX(-5px); }
             75% { transform: translateX(5px); }
         }
-        .background-pattern {
-            background-image: 
-                radial-gradient(circle at 25% 25%, rgba(168, 85, 247, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 75% 75%, rgba(236, 72, 153, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
-        }
-        .logo-glow {
-            filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.3));
-        }
         .input-icon {
             transition: all 0.3s ease;
         }
         .input-group:focus-within .input-icon {
-            color: #a855f7;
+            color: var(--color-gold-dark); /* Alterado para dourado */
             transform: scale(1.1);
         }
     </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 background-pattern flex items-center justify-center p-4">
-    <!-- Elementos decorativos de fundo -->
-    <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="absolute top-1/4 left-1/4 w-64 h-64 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 floating-animation"></div>
-        <div class="absolute top-3/4 right-1/4 w-64 h-64 bg-pink-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 floating-animation" style="animation-delay: -2s;"></div>
-        <div class="absolute bottom-1/4 left-1/2 w-64 h-64 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 floating-animation" style="animation-delay: -4s;"></div>
-    </div>
-
-    <!-- Container principal -->
+<body class="min-h-screen bg-gray-50 flex items-center justify-center p-4"> 
+    
     <div class="relative z-10 w-full max-w-md">
-        <!-- Card de login -->
-        <div class="glass-effect rounded-3xl shadow-2xl overflow-hidden">
-            <!-- Header com logo -->
-            <div class="gradient-purple p-8 text-center relative">
+        
+        <div class="bg-white rounded-3xl shadow-2xl overflow-hidden animate-fade-in"> 
+            
+            <div class="bg-gold p-8 text-center relative bg-shine-gold"> 
                 <div class="absolute inset-0 bg-black bg-opacity-10"></div>
                 <div class="relative z-10">
-                    <!-- Logo -->
                     <div class="flex justify-center mb-6">
-                        <div class="w-24 h-24 bg-white rounded-full flex items-center justify-center logo-glow">
-                            <img src="/images/kadosh.jpg" 
-                                 alt="Studio Kadosh" 
-                                 class="h-20 w-20 object-cover rounded-full border-4 border-white shadow-lg"
-                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                            <div class="hidden w-20 h-20 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full items-center justify-center">
-                                <i class="fas fa-crown text-3xl text-white"></i>
-                            </div>
-                        </div>
+                         <img src="/images/kadosh.jpg"
+                             alt="Studio Kadosh"
+                             class="h-24 w-auto object-contain filter drop-shadow-lg"
+                             onerror="this.style.display='none';">
                     </div>
-                    
-                    <!-- Título -->
                     <h1 class="text-3xl font-bold text-white mb-2">
-                        Studio Kadosh
+                        Acesso ao Sistema
                     </h1>
-                    <p class="text-purple-100 text-lg">
-                        Faça seu login para continuar
-                    </p>
+                    <p class="text-yellow-100 text-lg"> Studio Kadosh </p>
                 </div>
             </div>
 
-            <!-- Formulário -->
             <div class="p-8">
-                <!-- Mensagem de erro -->
+                
                 <% if (error) { %>
                 <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl error-shake">
                     <div class="flex items-center">
                         <div class="flex-shrink-0">
-                            <i class="fas fa-exclamation-triangle text-red-400"></i>
-                        </div>
+                            <i class="fas fa-exclamation-triangle text-red-500"></i> </div>
                         <div class="ml-3">
                             <p class="text-sm text-red-800 font-medium">
                                 <%= error %>
@@ -137,58 +155,65 @@
                     </div>
                 </div>
                 <% } %>
+                
+                <% if (success) { %>
+                <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-check-circle text-green-500"></i> </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-green-800 font-medium">
+                                <%= success %>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <% } %>
 
-                <!-- Formulário de login -->
                 <form action="/login" method="POST" class="space-y-6" id="loginForm">
-                    <!-- Campo Usuário -->
+                    
                     <div class="input-group">
-                        <label for="username" class="block text-sm font-semibold text-gray-700 mb-2">
-                            <i class="fas fa-user mr-2 text-purple-600"></i>
-                            Usuário
+                        <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-envelope mr-2 text-gold"></i> E-mail
                         </label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <i class="fas fa-user input-icon text-gray-400"></i>
+                                <i class="fas fa-envelope input-icon text-gray-400"></i>
                             </div>
-                            <input id="username" 
-                                   name="username" 
-                                   type="text" 
+                            <input id="email"
+                                   name="email"
+                                   type="email"
                                    required
-                                   autocomplete="username"
-                                   placeholder="Digite seu usuário"
-                                   class="form-input w-full pl-10 pr-4 py-3 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all bg-white">
+                                   autocomplete="email"
+                                   placeholder="Digite seu e-mail"
+                                   class="form-input w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all bg-white"> 
                         </div>
                     </div>
 
-                    <!-- Campo Senha -->
                     <div class="input-group">
                         <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">
-                            <i class="fas fa-lock mr-2 text-purple-600"></i>
-                            Senha
+                            <i class="fas fa-lock mr-2 text-gold"></i> Senha
                         </label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <i class="fas fa-lock input-icon text-gray-400"></i>
                             </div>
-                            <input id="password" 
-                                   name="password" 
-                                   type="password" 
+                            <input id="password"
+                                   name="password"
+                                   type="password"
                                    required
                                    autocomplete="current-password"
                                    placeholder="Digite sua senha"
-                                   class="form-input w-full pl-10 pr-12 py-3 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all bg-white">
-                            <button type="button" 
+                                   class="form-input w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all bg-white"> <button type="button"
                                     id="togglePassword"
                                     class="absolute inset-y-0 right-0 pr-3 flex items-center">
-                                <i class="fas fa-eye text-gray-400 hover:text-purple-600 transition-colors" id="eyeIcon"></i>
-                            </button>
+                                <i class="fas fa-eye text-gray-400 hover:text-gold-dark transition-colors" id="eyeIcon"></i> </button>
                         </div>
                     </div>
 
-                    <!-- Botão de login -->
                     <div class="pt-4">
-                        <button type="submit" 
-                                class="login-button w-full gradient-purple text-white py-4 px-6 rounded-xl font-bold text-lg hover:opacity-90 transition-all flex items-center justify-center"
+                        <button type="submit"
+                                class="login-button w-full bg-gold text-white py-4 px-6 rounded-xl font-bold text-lg hover:opacity-90 transition-all flex items-center justify-center bg-shine-gold"
                                 id="loginButton">
                             <i class="fas fa-sign-in-alt mr-3"></i>
                             <span id="buttonText">Entrar no Sistema</span>
@@ -197,41 +222,33 @@
                     </div>
                 </form>
 
-                <!-- Links adicionais -->
-                <div class="mt-8 text-center">
-                    <div class="flex items-center justify-center space-x-4 text-sm text-gray-500">
-                        <div class="flex items-center">
-                            <i class="fas fa-shield-alt mr-1 text-green-500"></i>
-                            <span>Acesso Seguro</span>
-                        </div>
-                        <div class="w-px h-4 bg-gray-300"></div>
-                        <div class="flex items-center">
-                            <i class="fas fa-clock mr-1 text-blue-500"></i>
-                            <span>24/7 Disponível</span>
-                        </div>
-                    </div>
+                <div class="mt-6 text-center text-sm">
+                  <a href="/forgot-password" class="font-medium text-gold hover:underline">
+                    Esqueceu sua senha?
+                  </a>
                 </div>
+
+                <div class="mt-8 text-center text-sm text-gray-500">
+                    <p>
+                        Não tem uma conta? 
+                        <a href="/register" class="font-medium text-gold hover:underline">
+                            Cadastre-se
+                        </a>
+                    </p>
+                </div>
+
             </div>
+        </div> 
+        
+        <div class="mt-8 text-center text-sm text-gray-600">
+             <p class="flex items-center justify-center">
+                <i class="fas fa-crown mr-2 text-gold"></i>
+                Studio Kadosh © <%= new Date().getFullYear() %>
+            </p>
         </div>
 
-        <!-- Informações adicionais -->
-        <div class="mt-8 text-center">
-            <div class="glass-effect rounded-2xl p-6">
-                <div class="flex items-center justify-center space-x-6 text-sm text-gray-600">
-                    <div class="flex items-center">
-                        <i class="fas fa-crown mr-2 text-purple-600"></i>
-                        <span>Studio Kadosh</span>
-                    </div>
-                    <div class="w-px h-4 bg-gray-300"></div>
-                    <div class="flex items-center">
-                        <i class="fas fa-calendar mr-2 text-pink-600"></i>
-                        <span>© <%= new Date().getFullYear() %></span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
+    </div> 
+    
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('loginForm');
@@ -241,14 +258,16 @@
             const togglePassword = document.getElementById('togglePassword');
             const passwordInput = document.getElementById('password');
             const eyeIcon = document.getElementById('eyeIcon');
-            const usernameInput = document.getElementById('username');
+            
+            // --- CORRIGIDO ---
+            const emailInput = document.getElementById('email'); // Corrigido de usernameInput
 
             // Toggle password visibility
             if (togglePassword && passwordInput && eyeIcon) {
                 togglePassword.addEventListener('click', function() {
                     const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
                     passwordInput.setAttribute('type', type);
-                    
+
                     if (type === 'password') {
                         eyeIcon.classList.remove('fa-eye-slash');
                         eyeIcon.classList.add('fa-eye');
@@ -262,80 +281,25 @@
             // Form submission with loading state
             if (form && button && buttonText && loadingIcon) {
                 form.addEventListener('submit', function() {
-                    button.disabled = true;
                     buttonText.textContent = 'Entrando...';
                     loadingIcon.classList.remove('hidden');
-                    button.classList.add('opacity-75');
+                    button.classList.add('opacity-75', 'cursor-not-allowed');
                 });
             }
 
-            // Auto-focus no primeiro campo
-            if (usernameInput) {
-                usernameInput.focus();
+            // Auto-focus no primeiro campo (se não houver erro)
+            const errorDiv = document.querySelector('.error-shake');
+            // --- CORRIGIDO ---
+            if (emailInput && !errorDiv) {
+                emailInput.focus(); // Foca no e-mail
             }
 
-            // Animação de entrada
-            const loginCard = document.querySelector('.glass-effect');
-            if (loginCard) {
-                loginCard.style.opacity = '0';
-                loginCard.style.transform = 'translateY(20px)';
-                loginCard.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-                
+            // Efeito de shake em erro
+            if (errorDiv) {
                 setTimeout(() => {
-                    loginCard.style.opacity = '1';
-                    loginCard.style.transform = 'translateY(0)';
-                }, 100);
+                    errorDiv.classList.remove('error-shake');
+                }, 500);
             }
-
-            // Efeito de digitação no placeholder
-            const inputs = document.querySelectorAll('input[type="text"], input[type="password"]');
-            inputs.forEach(input => {
-                input.addEventListener('focus', function() {
-                    this.parentElement.classList.add('ring-2', 'ring-purple-500');
-                });
-                
-                input.addEventListener('blur', function() {
-                    this.parentElement.classList.remove('ring-2', 'ring-purple-500');
-                });
-            });
-
-            // Validação em tempo real
-            const validateForm = () => {
-                const username = usernameInput.value.trim();
-                const password = passwordInput.value.trim();
-                
-                if (username.length > 0 && password.length > 0) {
-                    button.classList.remove('opacity-50');
-                    button.disabled = false;
-                } else {
-                    button.classList.add('opacity-50');
-                    button.disabled = true;
-                }
-            };
-
-            if (usernameInput && passwordInput) {
-                usernameInput.addEventListener('input', validateForm);
-                passwordInput.addEventListener('input', validateForm);
-                
-                // Validação inicial
-                validateForm();
-            }
-// Efeito de shake em erro
-const errorDiv = document.querySelector('.error-shake');
-if (errorDiv) {
-    setTimeout(() => {
-        errorDiv.classList.remove('error-shake');
-    }, 500);
-}
-            // Keyboard shortcuts
-            document.addEventListener('keydown', function(e) {
-                // Enter para submeter
-                if (e.key === 'Enter' && (e.target === usernameInput || e.target === passwordInput)) {
-                    if (!button.disabled) {
-                        form.submit();
-                    }
-                }
-            });
         });
     </script>
 </body>

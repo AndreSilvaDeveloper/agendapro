@@ -6,26 +6,29 @@ const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
+const bcrypt = require('bcrypt'); // Embora não usado aqui, é usado em models/User.js
 const bodyParser = require('body-parser');
 const path = require('path');
 
+// Carrega o arquivo principal de rotas
 const routes = require('./routes/index');
 
 const app = express();
 
-// ——— Conexão com MongoDB ———
+// --- Conexão com MongoDB ---
 mongoose
-  .connect(process.env.MONGO_URI)  // opções de parser já padrão no driver atual
+  .connect(process.env.MONGO_URI)
   .then(() => console.log('🟢 Conectado ao MongoDB'))
   .catch(err => console.error('🔴 Erro ao conectar MongoDB:', err));
 
-// ——— Serverless / Proxy (Vercel) ———
+// --- Configuração de Proxy (Vercel, Heroku, etc.) ---
+// Necessário para o 'secure: true' do cookie funcionar
 app.set('trust proxy', 1);
 
-// ——— Detecta ambiente ———
+// --- Detecta ambiente ---
 const isProd = process.env.NODE_ENV === 'production';
 
-// ——— Sessão com persistência no MongoDB ———
+// --- Sessão com persistência no MongoDB ---
 app.use(session({
   secret: process.env.SESSION_SECRET || 'salao-kadosh-segredo',
   resave: false,
@@ -38,27 +41,29 @@ app.use(session({
   cookie: {
     maxAge: 14 * 24 * 60 * 60 * 1000, // 14 dias em ms
     secure:  isProd,                  // true somente em produção (HTTPS)
-    sameSite: isProd ? 'none' : 'lax' // none p/ prod cross-site, lax p/ dev
+    sameSite: isProd ? 'none' : 'lax' // 'none' para prod (cross-site), 'lax' para dev
   }
 }));
 
-// ——— Configurações de view engine e static ———
+// --- Configurações de View Engine (EJS) e Pasta Estática (public) ---
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
+// Middlewares para processar formulários e arquivos estáticos
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ——— Rotas da aplicação ———
+// --- Rotas da aplicação ---
+// Esta é a linha que carrega o arquivo 'routes/index.js'
 app.use('/', routes);
 
-// ——— Middleware de tratamento de erro ———
+// --- Middleware de tratamento de erro ---
 app.use((err, req, res, next) => {
   console.error('⛔️ ERRO:', err.stack);
   res.status(err.status || 500).send('Erro interno no servidor');
 });
 
-// ——— Inicialização do servidor ———
+// --- Inicialização do servidor ---
 const PORT = process.env.PORT || 3006;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);

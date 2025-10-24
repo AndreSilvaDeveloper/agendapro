@@ -6,40 +6,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Chart.js e plugin de DataLabels -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <style>
-        .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        :root {
+            --color-gold-light: #FFD700; 
+            --color-gold-dark: #B8860B; 
+            --color-gold-accent: #DAA520;
         }
-        .gradient-purple {
-            background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+
+        .text-gold {
+            color: var(--color-gold-dark);
         }
-        .gradient-blue {
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        .bg-gold {
+            background-color: var(--color-gold-accent);
         }
-        .gradient-green {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        .bg-gold-light {
+            background-color: #FFFBEB; 
         }
-        .gradient-yellow {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        .border-gold {
+            border-color: var(--color-gold-light);
         }
-        .gradient-red {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        .hover\:text-gold:hover {
+            color: var(--color-gold-dark);
         }
-        .card-hover {
-            transition: all 0.3s ease;
+        .hover\:bg-gold-light:hover {
+            background-color: #FFF8DC; 
         }
-        .card-hover:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-        .glass-effect {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
+
         .animate-fade-in {
             animation: fadeIn 0.5s ease-in;
         }
@@ -47,63 +41,104 @@
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        
+        /* --- ESTILOS PARA BRILHO --- */
+        .text-gradient-gold {
+            background: linear-gradient(
+                90deg, 
+                #B8860B, #FFD700, #DAA520, #FFD700, #B8860B
+            );
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+            background-size: 200% auto;
+            animation: text-shine 4s linear infinite;
+        }
+
+        @keyframes text-shine {
+            from { background-position: 200% center; }
+            to { background-position: 0% center; }
+        }
+
+        .bg-shine-gold {
+            position: relative;
+            overflow: hidden;
+        }
+        .bg-shine-gold::after {
+            content: '';
+            position: absolute;
+            top: -10%; 
+            left: -75%;
+            width: 50%;
+            height: 120%;
+            background: linear-gradient(
+                90deg, 
+                rgba(255, 255, 255, 0) 0%, 
+                rgba(255, 255, 255, 0.4) 50%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            transform: skewX(-25deg);
+            animation: bg-shine 5s infinite linear;
+        }
+
+        @keyframes bg-shine {
+            0% { left: -75%; }
+            100% { left: 125%; }
+        }
+        /* --- FIM ESTILOS BRILHO --- */
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
         .chart-container {
             position: relative;
             height: 300px;
         }
-        .metric-card {
-            background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.9) 100%);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        .positive-trend {
-            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
-            color: #166534;
-        }
-        .negative-trend {
-            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-            color: #991b1b;
-        }
-        .neutral-trend {
-            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-            color: #1e40af;
-        }
+
+        /* Cores semânticas mantidas */
+        .positive-trend { background-color: #dcfce7; color: #166534; }
+        .negative-trend { background-color: #fee2e2; color: #991b1b; }
+        .neutral-trend { background-color: #dbeafe; color: #1e40af; }
     </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
-    <!-- HEADER -->
-    <header class="glass-effect sticky top-0 z-50 border-b border-purple-100">
+<body class="min-h-screen bg-gray-50 font-sans antialiased">
+    <header class="bg-white sticky top-0 z-50 shadow-sm border-b border-gray-100">
         <div class="max-w-7xl mx-auto px-4 py-4">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-4">
-                    <h1 class="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                        Studio Kadosh
+                    <h1 class="flex items-center">
+                        <img src="/images/kadosh.jpg" alt="Studio Kadosh Logo" class="h-9">
                     </h1>
-                    <div class="h-6 w-px bg-purple-200"></div>
+                    <div class="h-6 w-px bg-gray-200"></div>
                     <span class="text-lg font-semibold text-gray-700 flex items-center">
-                        <i class="fas fa-balance-scale mr-2 text-purple-600"></i>
+                        <i class="fas fa-balance-scale mr-2 text-gold"></i>
                         Balanço Geral
                     </span>
                 </div>
                 
-                <!-- Desktop Navigation -->
                 <nav class="hidden lg:flex items-center space-x-6">
-                    <a href="/dashboard" class="text-gray-600 hover:text-purple-600 transition-colors">
+                    <a href="/dashboard" class="text-gray-600 hover:text-gold transition-colors">
                         <i class="fas fa-home mr-2"></i>Dashboard
                     </a>
-                    <a href="/agendamentos-por-dia" class="text-gray-600 hover:text-purple-600 transition-colors">
+                    <a href="/agendamentos-por-dia" class="text-gray-600 hover:text-gold transition-colors">
                         <i class="fas fa-calendar-alt mr-2"></i>Agendamentos
                     </a>
-                    <a href="/clients" class="text-gray-600 hover:text-purple-600 transition-colors">
+                    <a href="/clients" class="text-gray-600 hover:text-gold transition-colors">
                         <i class="fas fa-users mr-2"></i>Clientes
                     </a>
-                    <a href="/financeiro" class="text-gray-600 hover:text-purple-600 transition-colors">
+                    <a href="/financeiro" class="text-gray-600 hover:text-gold transition-colors">
                         <i class="fas fa-dollar-sign mr-2"></i>Financeiro
                     </a>
-                    <a href="/balanco" class="text-purple-600 font-semibold">
+                    <a href="/balanco" class="text-gradient-gold font-semibold">
                         <i class="fas fa-balance-scale mr-2"></i>Balanço
                     </a>
-                    <a href="/expenses" class="text-gray-600 hover:text-purple-600 transition-colors">
+                    <a href="/expenses" class="text-gray-600 hover:text-gold transition-colors">
                         <i class="fas fa-receipt mr-2"></i>Despesas
                     </a>
                     <a href="/logout" class="text-red-600 hover:text-red-700 transition-colors">
@@ -111,53 +146,48 @@
                     </a>
                 </nav>
 
-                <!-- Mobile Menu Button -->
-                <button id="menu-button" class="lg:hidden p-2 rounded-lg hover:bg-purple-100 transition-colors">
-                    <i class="fas fa-bars text-purple-600"></i>
+                <button id="menu-button" class="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-bars text-gradient-gold"></i>
                 </button>
             </div>
 
-            <!-- Mobile Menu -->
             <div id="mobile-menu" class="hidden lg:hidden mt-4 space-y-2">
-                <a href="/dashboard" class="flex items-center space-x-3 p-3 rounded-lg bg-gradient-to-r from-gray-600 to-gray-700 text-white hover:opacity-90 transition-opacity">
+                 <a href="/dashboard" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
                     <i class="fas fa-home"></i>
-                    <span>🏠 Dashboard</span>
+                    <span>Dashboard</span>
                 </a>
-                <a href="/agendamentos-por-dia" class="flex items-center space-x-3 p-3 rounded-lg gradient-blue text-white hover:opacity-90 transition-opacity">
+                <a href="/agendamentos-por-dia" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
                     <i class="fas fa-calendar-alt"></i>
-                    <span>📅 Agendamentos</span>
+                    <span>Agendamentos</span>
                 </a>
-                <a href="/clients" class="flex items-center space-x-3 p-3 rounded-lg gradient-purple text-white hover:opacity-90 transition-opacity">
+                <a href="/clients" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
                     <i class="fas fa-users"></i>
-                    <span>👥 Clientes</span>
+                    <span>Clientes</span>
                 </a>
-                <a href="/financeiro" class="flex items-center space-x-3 p-3 rounded-lg gradient-green text-white hover:opacity-90 transition-opacity">
+                <a href="/financeiro" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
                     <i class="fas fa-dollar-sign"></i>
-                    <span>💵 Financeiro</span>
+                    <span>Financeiro</span>
                 </a>
-                <a href="/balanco" class="flex items-center space-x-3 p-3 rounded-lg gradient-yellow text-white hover:opacity-90 transition-opacity">
+                <a href="/balanco" class="flex items-center space-x-3 p-3 rounded-lg bg-gold-light text-gold font-semibold">
                     <i class="fas fa-balance-scale"></i>
-                    <span>⚖️ Balanço</span>
+                    <span>Balanço</span>
                 </a>
-                <a href="/expenses" class="flex items-center space-x-3 p-3 rounded-lg bg-gradient-to-r from-pink-500 to-rose-500 text-white hover:opacity-90 transition-opacity">
+                <a href="/expenses" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
                     <i class="fas fa-receipt"></i>
-                    <span>💸 Despesas</span>
+                    <span>Despesas</span>
                 </a>
-                <a href="/logout" class="flex items-center space-x-3 p-3 rounded-lg gradient-red text-white hover:opacity-90 transition-opacity">
+                <a href="/logout" class="flex items-center space-x-3 p-3 rounded-lg text-red-600 hover:bg-red-100">
                     <i class="fas fa-sign-out-alt"></i>
-                    <span>⬅️ Sair</span>
+                    <span>Sair</span>
                 </a>
             </div>
         </div>
     </header>
 
     <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
-        <!-- CARDS RESUMO -->
         <section class="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
-            <!-- Total Receitas -->
             <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover">
-                <div class="gradient-green p-6">
-                    <div class="flex items-center justify-between">
+                <div class="bg-green-600 p-6"> <div class="flex items-center justify-between">
                         <div>
                             <h2 class="text-lg font-semibold text-white">Total Receitas</h2>
                             <p class="text-3xl font-bold text-white mt-2">R$ <%= totalReceita.toFixed(2) %></p>
@@ -175,10 +205,8 @@
                 </div>
             </div>
 
-            <!-- Total Despesas -->
             <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover">
-                <div class="gradient-red p-6">
-                    <div class="flex items-center justify-between">
+                <div class="bg-red-600 p-6"> <div class="flex items-center justify-between">
                         <div>
                             <h2 class="text-lg font-semibold text-white">Total Despesas</h2>
                             <p class="text-3xl font-bold text-white mt-2">R$ <%= totalDespesa.toFixed(2) %></p>
@@ -196,10 +224,8 @@
                 </div>
             </div>
 
-            <!-- Saldo Líquido -->
             <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover">
-                <div class="<%= liquido >= 0 ? 'gradient-blue' : 'gradient-red' %> p-6">
-                    <div class="flex items-center justify-between">
+                <div class="<%= liquido >= 0 ? 'bg-blue-600' : 'bg-red-600' %> p-6"> <div class="flex items-center justify-between">
                         <div>
                             <h2 class="text-lg font-semibold text-white">Saldo Líquido</h2>
                             <p class="text-3xl font-bold text-white mt-2">R$ <%= liquido.toFixed(2) %></p>
@@ -220,11 +246,9 @@
             </div>
         </section>
 
-        <!-- GRÁFICOS -->
         <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- 1) Receita vs Despesa -->
             <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
-                <div class="gradient-purple p-6">
+                <div class="bg-gold p-6 bg-shine-gold">
                     <h3 class="text-xl font-bold text-white flex items-center">
                         <i class="fas fa-chart-pie mr-3"></i>
                         Receitas vs Despesas
@@ -237,9 +261,8 @@
                 </div>
             </div>
 
-            <!-- 2) Vendas por Produto -->
             <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
-                <div class="gradient-blue p-6">
+                <div class="bg-gold p-6 bg-shine-gold">
                     <h3 class="text-xl font-bold text-white flex items-center">
                         <i class="fas fa-box mr-3"></i>
                         Vendas por Produto
@@ -258,12 +281,10 @@
                 </div>
             </div>
 
-            <!-- 3) Qtd. Serviços vs Produtos -->
             <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
-                <div class="gradient-green p-6">
+                 <div class="bg-gold p-6 bg-shine-gold">
                     <h3 class="text-xl font-bold text-white flex items-center">
-                        <i class="fas fa-chart-donut mr-3"></i>
-                        Serviços vs Produtos
+                        <i class="fas fa-chart-pie mr-3"></i> Serviços vs Produtos (Qtd)
                     </h3>
                 </div>
                 <div class="p-6">
@@ -284,9 +305,8 @@
             </div>
         </section>
 
-        <!-- FATURAMENTO MÊS A MÊS -->
         <section class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
-            <div class="gradient-bg p-6">
+            <div class="bg-gold p-6 bg-shine-gold">
                 <h3 class="text-xl font-bold text-white flex items-center">
                     <i class="fas fa-calendar-alt mr-3"></i>
                     Faturamento Mensal
@@ -297,17 +317,17 @@
                 <div class="overflow-x-auto">
                     <table class="min-w-full">
                         <thead>
-                            <tr class="bg-gradient-to-r from-gray-50 to-purple-50">
-                                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-700 border-b border-purple-100">
-                                    <i class="fas fa-calendar mr-2 text-purple-600"></i>
+                            <tr class="bg-gold-light">
+                                <th class="px-6 py-4 text-left text-sm font-semibold text-gold-dark border-b border-yellow-200">
+                                    <i class="fas fa-calendar mr-2"></i>
                                     Mês
                                 </th>
-                                <th class="px-6 py-4 text-right text-sm font-semibold text-gray-700 border-b border-purple-100">
-                                    <i class="fas fa-dollar-sign mr-2 text-purple-600"></i>
+                                <th class="px-6 py-4 text-right text-sm font-semibold text-gold-dark border-b border-yellow-200">
+                                    <i class="fas fa-dollar-sign mr-2"></i>
                                     Total (R$)
                                 </th>
-                                <th class="px-6 py-4 text-center text-sm font-semibold text-gray-700 border-b border-purple-100">
-                                    <i class="fas fa-chart-line mr-2 text-purple-600"></i>
+                                <th class="px-6 py-4 text-center text-sm font-semibold text-gold-dark border-b border-yellow-200">
+                                    <i class="fas fa-chart-line mr-2"></i>
                                     Tendência
                                 </th>
                             </tr>
@@ -331,7 +351,7 @@
                                     }
                                 }
                             %>
-                            <tr class="hover:bg-purple-50 transition-colors">
+                            <tr class="hover:bg-gray-50 transition-colors">
                                 <td class="px-6 py-4 text-sm font-medium text-gray-900">
                                     <%= row.month %>
                                 </td>
@@ -348,16 +368,16 @@
                             <% }); %>
                         </tbody>
                         <tfoot>
-                            <tr class="bg-gradient-to-r from-purple-50 to-pink-50">
-                                <td class="px-6 py-4 text-sm font-bold text-purple-800">
+                            <tr class="bg-gold-light">
+                                <td class="px-6 py-4 text-sm font-bold text-gold-dark">
                                     <i class="fas fa-calculator mr-2"></i>
                                     TOTAL GERAL
                                 </td>
-                                <td class="px-6 py-4 text-right text-xl font-bold text-purple-800">
+                                <td class="px-6 py-4 text-right text-xl font-bold text-gold-dark">
                                     R$ <%= monthlyTotals.reduce((sum, row) => sum + row.total, 0).toFixed(2) %>
                                 </td>
                                 <td class="px-6 py-4 text-center">
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                                         <i class="fas fa-chart-bar mr-1"></i>
                                         <%= monthlyTotals.length %> meses
                                     </span>
@@ -378,9 +398,8 @@
             </div>
         </section>
 
-        <!-- Insights e Recomendações -->
         <section class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
-            <div class="bg-gradient-to-r from-yellow-500 to-orange-500 p-6">
+            <div class="bg-gold p-6 bg-shine-gold">
                 <h3 class="text-xl font-bold text-white flex items-center">
                     <i class="fas fa-lightbulb mr-3"></i>
                     Insights e Recomendações
@@ -446,7 +465,6 @@
         </section>
     </main>
 
-    <!-- DADOS PARA OS CHARTS -->
     <div id="balanco-data"
          data-receita="<%= totalReceita %>"
          data-despesa="<%= totalDespesa %>"
@@ -455,6 +473,18 @@
          data-prd-count="<%= productCount %>"
          style="display:none">
     </div>
+    
+    <footer class="bg-white border-t border-gray-200 mt-12">
+        <div class="max-w-7xl mx-auto px-4 py-6">
+            <div class="text-center text-gray-600">
+                <p class="flex items-center justify-center">
+                    <i class="fas fa-crown mr-2 text-gold"></i>
+                    Studio Kadosh © <%= new Date().getFullYear() %>
+                    <i class="fas fa-heart ml-2 text-red-500"></i>
+                </p>
+            </div>
+        </div>
+    </footer>
 
     <script>
         // Mobile menu toggle
@@ -477,7 +507,7 @@
 
         // Configuração padrão dos charts
         Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
-        Chart.defaults.color = '#374151';
+        Chart.defaults.color = '#374151'; // Cor do texto padrão (cinza escuro)
 
         // 1) Receita vs Despesa
         if (receita > 0 || despesa > 0) {
@@ -487,7 +517,7 @@
                     labels: ['Receitas', 'Despesas'],
                     datasets: [{
                         data: [receita, despesa],
-                        backgroundColor: ['#10b981', '#ef4444'],
+                        backgroundColor: ['#10b981', '#ef4444'], // Verde e Vermelho mantidos
                         borderWidth: 0,
                         hoverOffset: 10
                     }]
@@ -513,7 +543,7 @@
                                     const label = context.label || '';
                                     const value = context.parsed;
                                     const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
                                     return `${label}: R$ ${value.toFixed(2)} (${percentage}%)`;
                                 }
                             }
@@ -527,9 +557,11 @@
         if (produtos && produtos.length > 0) {
             const prodLabels = produtos.map(p => p.name);
             const prodData = produtos.map(p => p.total);
-            const colors = [
-                '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', 
-                '#ef4444', '#ec4899', '#6366f1', '#84cc16'
+            // Usando uma paleta consistente com o tema, mas variada
+            const colors = [ 
+                '#B8860B', '#DAA520', '#FFD700', // Tons de Dourado
+                '#6b7280', '#9ca3af', '#d1d5db', // Tons de Cinza
+                '#a78bfa', '#c4b5fd'            // Tons de Roxo suave
             ];
 
             new Chart(document.getElementById('chartProd').getContext('2d'), {
@@ -538,7 +570,7 @@
                     labels: prodLabels,
                     datasets: [{
                         data: prodData,
-                        backgroundColor: colors.slice(0, prodData.length),
+                        backgroundColor: colors.slice(0, prodData.length), // Usa a paleta definida
                         borderWidth: 0,
                         hoverOffset: 10
                     }]
@@ -553,7 +585,7 @@
                                 padding: 20,
                                 usePointStyle: true,
                                 font: {
-                                    size: 11,
+                                    size: 11, // Um pouco menor para caber mais
                                     weight: '500'
                                 }
                             }
@@ -574,13 +606,14 @@
 
         // 3) Qtd. Serviços vs Produtos
         if (svcCount > 0 || prdCount > 0) {
+             // Usando verde para serviços e azul para produtos (consistente com os cards de resumo)
             new Chart(document.getElementById('chartCount').getContext('2d'), {
                 type: 'doughnut',
                 data: {
                     labels: ['Serviços', 'Produtos'],
                     datasets: [{
                         data: [svcCount, prdCount],
-                        backgroundColor: ['#10b981', '#3b82f6'],
+                        backgroundColor: ['#10b981', '#3b82f6'], // Verde e Azul
                         borderWidth: 0,
                         hoverOffset: 10
                     }]
@@ -610,7 +643,7 @@
                         }
                     }
                 },
-                plugins: [ChartDataLabels]
+                plugins: [ChartDataLabels] // Registrar o plugin
             });
         }
 

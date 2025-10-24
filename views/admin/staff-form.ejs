@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title><%= pageTitle %> – AgendaPro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax.libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --color-gold-light: #FFD700;
+            --color-gold-dark: #B8860B;
+            --color-gold-accent: #DAA520;
+        }
+        .text-gold-dark { color: var(--color-gold-dark); }
+        .bg-gold { background-color: var(--color-gold-accent); }
+        .border-gold { border-color: var(--color-gold-accent); }
+        .ring-gold-dark { --tw-ring-color: var(--color-gold-dark); }
+        .hover\:bg-gold-dark:hover { background-color: var(--color-gold-dark); }
+        .form-input:focus, .form-textarea:focus, .form-checkbox:focus, input[type="time"]:focus {
+            border-color: var(--color-gold-dark);
+            box-shadow: 0 0 0 2px var(--color-gold-light);
+            outline: none;
+        }
+        /* Melhora aparência do input time */
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            cursor: pointer; opacity: 0.6; filter: invert(0.6) sepia(1) saturate(5) hue-rotate(10deg);
+        }
+        input[type="time"]:hover::-webkit-calendar-picker-indicator { opacity: 0.8; }
+        /* Esconde inputs de tempo quando 'Folga' está marcado */
+        .day-row:has(input[type="checkbox"][name$="[isOff]"]:checked) input[type="time"] {
+             visibility: hidden;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <main class="container mx-auto max-w-2xl p-4 sm:p-8 mt-8">
+        
+        <div class="bg-white shadow-xl rounded-lg overflow-hidden">
+            <div class="bg-gray-50 p-5 border-b border-gray-200 flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-gray-800"><%= pageTitle %></h1>
+                <a href="/admin/equipe" class="text-sm text-gray-600 hover:text-gold-dark transition-colors">
+                    <i class="fas fa-arrow-left mr-1"></i> Voltar para Lista
+                </a>
+            </div>
+
+            <form action="<%= editing ? '/admin/equipe/' + staffMember._id + '/editar' : '/admin/equipe/novo' %>" 
+                  method="POST" 
+                  class="p-8 space-y-6">
+
+                <% if (error) { %>
+                    <div class="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                        <i class="fas fa-exclamation-triangle mr-2"></i><%= error %>
+                    </div>
+                <% } %>
+
+                <!-- Campos Básicos -->
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nome do Profissional *</label>
+                    <input type="text" id="name" name="name" required 
+                           value="<%= staffMember.name || '' %>"
+                           class="form-input mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-gold-dark focus:border-gold-dark">
+                </div>
+                <div>
+                    <label for="imageUrl" class="block text-sm font-medium text-gray-700 mb-1">URL da Foto (Opcional)</label>
+                    <input type="url" id="imageUrl" name="imageUrl" 
+                           value="<%= staffMember.imageUrl || '' %>"
+                           placeholder="https://exemplo.com/foto.jpg"
+                           class="form-input mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-gold-dark focus:border-gold-dark">
+                </div>
+
+                <!-- Campo Serviços -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Serviços que Realiza</label>
+                    <div class="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-md p-4">
+                        <% if (availableServices.length === 0) { %>
+                            <p class="text-sm text-gray-500">Nenhum serviço ativo cadastrado. Cadastre serviços primeiro.</p>
+                        <% } else { %>
+                            <% const currentServiceIds = new Set((staffMember.services || []).map(s => s._id ? s._id.toString() : s.toString())); %>
+                            <% availableServices.forEach(service => { %>
+                                <div class="flex items-center">
+                                    <input id="service_<%= service._id %>" name="services" type="checkbox" value="<%= service._id %>"
+                                           class="form-checkbox h-4 w-4 text-gold-dark border-gray-300 rounded focus:ring-gold-dark"
+                                           <%= currentServiceIds.has(service._id.toString()) ? 'checked' : '' %>>
+                                    <label for="service_<%= service._id %>" class="ml-2 block text-sm text-gray-900">
+                                        <%= service.name %> (R$ <%= service.price.toFixed(2).replace('.', ',') %>)
+                                    </label>
+                                </div>
+                            <% }); %>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- === NOVA SEÇÃO: HORÁRIOS DE TRABALHO === -->
+                <div class="pt-4 border-t border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">Horários de Trabalho Padrão</h3>
+                    <div class="space-y-4">
+                        <% 
+                        // Helper para os dias da semana
+                        const daysOfWeek = [
+                            { key: 'monday', label: 'Segunda-feira' }, { key: 'tuesday', label: 'Terça-feira' },
+                            { key: 'wednesday', label: 'Quarta-feira' }, { key: 'thursday', label: 'Quinta-feira' },
+                            { key: 'friday', label: 'Sexta-feira' }, { key: 'saturday', label: 'Sábado' },
+                            { key: 'sunday', label: 'Domingo' }
+                        ];
+                        // Pega os horários atuais ou o padrão (Map vazio se for novo)
+                        const currentHours = staffMember.workingHours || new Map();
+                        %>
+
+                        <% daysOfWeek.forEach(day => { %>
+                            <% const hours = currentHours.get(day.key) || { startTime: '', endTime: '', isOff: false }; %>
+                            <div class="day-row grid grid-cols-1 sm:grid-cols-4 gap-4 items-center border-b pb-4 last:border-b-0">
+                                <!-- Nome do Dia -->
+                                <label class="block text-sm font-medium text-gray-700 sm:col-span-1"><%= day.label %></label>
+                                
+                                <!-- Início -->
+                                <div class="sm:col-span-1">
+                                    <label for="startTime_<%= day.key %>" class="block text-xs text-gray-500 mb-1">Início</label>
+                                    <input type="time" id="startTime_<%= day.key %>" name="workingHours[<%= day.key %>][startTime]" 
+                                           value="<%= hours.startTime || '' %>" 
+                                           class="form-input block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm">
+                                </div>
+                                
+                                <!-- Fim -->
+                                <div class="sm:col-span-1">
+                                    <label for="endTime_<%= day.key %>" class="block text-xs text-gray-500 mb-1">Fim</label>
+                                    <input type="time" id="endTime_<%= day.key %>" name="workingHours[<%= day.key %>][endTime]" 
+                                           value="<%= hours.endTime || '' %>" 
+                                           class="form-input block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm">
+                                </div>
+
+                                <!-- Folga -->
+                                <div class="sm:col-span-1 flex items-center pt-5">
+                                    <input id="isOff_<%= day.key %>" name="workingHours[<%= day.key %>][isOff]" type="checkbox" value="true"
+                                           class="form-checkbox h-4 w-4 text-gold-dark border-gray-300 rounded focus:ring-gold-dark"
+                                           <%= hours.isOff ? 'checked' : '' %>>
+                                    <label for="isOff_<%= day.key %>" class="ml-2 block text-sm text-gray-900">
+                                        Folga
+                                    </label>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+                </div>
+                <!-- === FIM DA NOVA SEÇÃO === -->
+
+                <!-- Campo Ativo -->
+                <div class="flex items-center pt-4 border-t border-gray-200">
+                    <input id="isActive" name="isActive" type="checkbox" 
+                           class="form-checkbox h-4 w-4 text-gold-dark border-gray-300 rounded focus:ring-gold-dark"
+                           <%= (typeof staffMember.isActive === 'undefined' || staffMember.isActive) ? 'checked' : '' %>>
+                    <label for="isActive" class="ml-2 block text-sm text-gray-900">
+                        Membro Ativo (disponível para agendamento)
+                    </label>
+                </div>
+
+                <!-- Botão Salvar -->
+                <div class="pt-5">
+                    <button type="submit"
+                            class="w-full bg-gold text-white py-3 px-6 rounded-lg font-semibold hover:opacity-90 transition-opacity shadow flex items-center justify-center">
+                        <i class="fas fa-save mr-2"></i>
+                        <%= editing ? 'Atualizar Membro' : 'Salvar Novo Membro' %>
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </main>
+
+</body>
+</html>

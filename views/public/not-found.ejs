@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Salão Não Encontrado</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --color-gold-dark: #B8860B;
+            --color-gold-accent: #DAA520;
+        }
+        .text-gold-dark { color: var(--color-gold-dark); }
+        .bg-gold { background-color: var(--color-gold-accent); }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <div class="max-w-md w-full bg-white shadow-xl rounded-2xl p-8 text-center">
+        <i class="fas fa-store-slash fa-4x text-red-400 mb-6"></i>
+        
+        <h1 class="text-3xl font-bold text-gray-800 mb-4">Oops! Salão não encontrado.</h1>
+        
+        <p class="text-gray-600 mb-6">
+            Não conseguimos encontrar a página para <code class="bg-gray-200 text-sm p-1 rounded">/salao/<%= slug %></code>. 
+            Verifique se o link está correto.
+        </p>
+
+        <% if (error && error !== 'Salão não encontrado') { %>
+            <p class="text-red-600 text-sm mb-6">(Detalhe: <%= error %>)</p>
+        <% } %>
+
+        <a href="/login" 
+           class="inline-block bg-gold text-white py-3 px-6 rounded-lg font-semibold hover:opacity-90 transition-opacity">
+            Voltar para o início
+        </a>
+    </div>
+
+</body>
+</html>
