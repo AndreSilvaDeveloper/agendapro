@@ -293,7 +293,8 @@ exports.getAgendaPorDia = async (req, res) => {
         clientId: a.clientId._id.toString(),
         clientName: a.clientId.name,
         timeFormatted: time,
-        servicesNames: a.services.map(s => s.name).join(', ')
+        servicesNames: a.services.map(s => s.name).join(', '),
+        status: a.status // <-- CORREÇÃO APLICADA AQUI
       });
 
       const blocos = Math.ceil((a.duration || 0) / 30);
@@ -360,7 +361,7 @@ exports.editAppointmentDateTime = async (req, res) => {
     // Busca o agendamento APENAS se pertencer a esta organização
     const a = await Appointment.findOne({ _id: id, organizationId: organizationId });
     if (!a) {
-      return res.status(404).send('Agendamento não encontrado.');
+      return res.status(44).send('Agendamento não encontrado.');
     }
 
     const newDate = dayjs.tz(`${date}T${time}`, 'America/Sao_Paulo').toDate();
@@ -372,4 +373,70 @@ exports.editAppointmentDateTime = async (req, res) => {
     console.error("Erro ao editar data/hora:", err);
     res.redirect('/clients?error=Erro ao processar solicitação.');
   }
+};
+
+exports.confirmAppointment = async (req, res) => {
+    try {
+        const organizationId = getOrgId(req);
+        const { id } = req.params;
+
+        const appointment = await Appointment.findOneAndUpdate(
+            {
+                _id: id,
+                organizationId: organizationId,
+                status: 'pendente' // Só atualiza se estiver pendente
+            },
+            { status: 'confirmado' }, // Muda o status
+            { new: true } // Retorna o documento atualizado (opcional)
+        );
+
+        if (!appointment) {
+            // Se não encontrou (ou não estava pendente), retorna erro
+            return res.redirect(`/agendamentos-por-dia?error=${encodeURIComponent('Agendamento não encontrado ou já processado.')}`);
+        }
+
+        // TODO Futuro: Enviar notificação para o cliente (Email ou WhatsApp)
+
+        // Redireciona de volta para a data do agendamento
+        const appointmentDate = dayjs(appointment.date).format('YYYY-MM-DD');
+        res.redirect(`/agendamentos-por-dia?date=${appointmentDate}&success=${encodeURIComponent('Agendamento confirmado!')}`);
+
+    } catch (err) {
+        console.error("Erro ao confirmar agendamento:", err);
+        res.redirect(`/agendamentos-por-dia?error=${encodeURIComponent('Erro ao confirmar o agendamento.')}`);
+    }
+};
+
+/**
+ * POST /admin/appointment/:id/cancel-by-admin
+ * Cancela (recusa) um agendamento pendente.
+ */
+exports.cancelAppointmentByAdmin = async (req, res) => {
+    try {
+        const organizationId = getOrgId(req);
+        const { id } = req.params;
+
+        const appointment = await Appointment.findOneAndUpdate(
+            {
+                _id: id,
+                organizationId: organizationId,
+                status: 'pendente' // Só atualiza se estiver pendente
+            },
+            { status: 'cancelado_pelo_salao' }, // Muda o status
+            { new: true }
+        );
+
+        if (!appointment) {
+            return res.redirect(`/agendamentos-por-dia?error=${encodeURIComponent('Agendamento não encontrado ou já processado.')}`);
+        }
+
+        // TODO Futuro: Enviar notificação para o cliente
+
+        const appointmentDate = dayjs(appointment.date).format('YYYY-MM-DD');
+        res.redirect(`/agendamentos-por-dia?date=${appointmentDate}&success=${encodeURIComponent('Agendamento cancelado.')}`);
+
+    } catch (err) {
+        console.error("Erro ao cancelar agendamento pelo admin:", err);
+        res.redirect(`/agendamentos-por-dia?error=${encodeURIComponent('Erro ao cancelar o agendamento.')}`);
+    }
 };
