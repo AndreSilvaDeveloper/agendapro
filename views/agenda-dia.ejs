@@ -9,8 +9,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root {
-            --color-gold-light: #FFD700; 
-            --color-gold-dark: #B8860B; 
+            --color-gold-light: #FFD700;
+            --color-gold-dark: #B8860B;
             --color-gold-accent: #DAA520;
         }
 
@@ -21,7 +21,7 @@
             background-color: var(--color-gold-accent);
         }
         .bg-gold-light {
-            background-color: #FFFBEB; 
+            background-color: #FFFBEB;
         }
         .border-gold {
             border-color: var(--color-gold-light);
@@ -30,7 +30,7 @@
             color: var(--color-gold-dark);
         }
         .hover\:bg-gold-light:hover {
-            background-color: #FFF8DC; 
+            background-color: #FFF8DC;
         }
 
         .animate-fade-in {
@@ -40,14 +40,14 @@
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
+
         .appointment-card {
             transition: all 0.3s ease;
             border-left: 4px solid transparent;
         }
         .appointment-card:hover {
-            border-left-color: var(--color-gold-dark); 
-            background-color: #fcfcfc; 
+            border-left-color: var(--color-gold-dark);
+            background-color: #fcfcfc;
         }
 
         .time-badge {
@@ -62,7 +62,7 @@
         /* --- ESTILOS PARA BRILHO --- */
         .text-gradient-gold {
             background: linear-gradient(
-                90deg, 
+                90deg,
                 #B8860B, #FFD700, #DAA520, #FFD700, #B8860B
             );
             -webkit-background-clip: text;
@@ -85,13 +85,13 @@
         .bg-shine-gold::after {
             content: '';
             position: absolute;
-            top: -10%; 
+            top: -10%;
             left: -75%;
             width: 50%;
             height: 120%;
             background: linear-gradient(
-                90deg, 
-                rgba(255, 255, 255, 0) 0%, 
+                90deg,
+                rgba(255, 255, 255, 0) 0%,
                 rgba(255, 255, 255, 0.4) 50%,
                 rgba(255, 255, 255, 0) 100%
             );
@@ -162,7 +162,7 @@
                         Agendamentos da Semana
                     </span>
                 </div>
-                
+
                 <nav class="hidden lg:flex items-center space-x-6">
                     <a href="/dashboard" class="text-gray-600 hover:text-gold transition-colors">
                         <i class="fas fa-home mr-2"></i>Dashboard
@@ -242,9 +242,9 @@
                             <i class="fas fa-calendar mr-2 text-gold"></i>
                             Selecionar Dia
                         </label>
-                        <input id="date" 
-                               type="date" 
-                               name="date" 
+                        <input id="date"
+                               type="date"
+                               name="date"
                                value="<%= (typeof date !== 'undefined' && date) ? date : '' %>"
                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all">
                     </div>
@@ -269,20 +269,20 @@
                     let totalAgendamentos = 0;
                     let totalHorariosLivres = 0;
                     let diasComAgendamento = 0;
-                    
+
                     if (typeof days !== 'undefined' && days) {
                         days.forEach(d => {
                             const key = d.format('YYYY-MM-DD');
                             const agendados = (typeof resultsByDay !== 'undefined' && resultsByDay[key]) ? resultsByDay[key].length : 0;
                             const livres = (typeof availableByDay !== 'undefined' && availableByDay[key]) ? availableByDay[key].length : 0;
-                            
+
                             totalAgendamentos += agendados;
                             totalHorariosLivres += livres;
                             if (agendados > 0) diasComAgendamento++;
                         });
                     }
                     %>
-                    
+
                     <div class="bg-blue-50 p-4 rounded-xl border border-blue-200">
                         <div class="flex items-center justify-between">
                             <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -360,10 +360,10 @@
                     const isToday = dayDate.toDateString() === today.toDateString();
                     const isPast = dayDate < today;
                     const isFuture = dayDate > today && !isToday;
-                    
+
                     let badgeClass = 'future-badge';
                     let dayIcon = 'fas fa-calendar-day';
-                    
+
                     if (isToday) {
                         badgeClass = 'today-badge';
                         dayIcon = 'fas fa-calendar-check';
@@ -401,7 +401,7 @@
                                         <i class="fas fa-calendar mr-1"></i>Futuro
                                     <% } %>
                                 </span>
-                                <% 
+                                <%
                                 const agendadosCount = agendadosList.length;
                                 const livresCount = livresList.length;
                                 %>
@@ -427,13 +427,13 @@
                                     <% } %>
                                 </div>
 
-                                <%# --- INÍCIO DA INTEGRAÇÃO --- %>
+                                <%# --- Loop de Agendamentos --- %>
                                 <% if (agendadosList.length > 0) { %>
                                 <div class="space-y-4">
                                     <% agendadosList.forEach(r => { %>
                                     <div class="appointment-card p-4 rounded-xl border border-l-4 <%= r.status === 'pendente' ? 'appointment-pending border-yellow-400 bg-yellow-50' : 'border-gray-200 bg-white' %>">
-                                        
-                                        <%# Conteúdo do card (mantido do original) %>
+
+                                        <%# Conteúdo do card %>
                                         <div class="flex items-center justify-between mb-2">
                                             <div class="flex items-center space-x-3">
                                                 <div class="w-10 h-10 bg-gold-light rounded-full flex items-center justify-center">
@@ -458,17 +458,19 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        <%# Fim do conteúdo do card %>
 
-
-                                        <%# Bloco de botões (integrado) %>
+                                        <%# Bloco de botões (apenas se 'pendente') %>
                                         <% if (r.status === 'pendente') { %>
                                         <div class="mt-3 pt-3 border-t border-yellow-200 flex flex-wrap justify-end gap-2">
-                                            <form action="/admin/appointment/<%= r._id %>/cancel-by-admin" method="POST" onsubmit="return confirm('Cancelar este agendamento solicitado?');">
+                                            <!-- ================================= -->
+                                            <!-- ===     NOVA ALTERAÇÃO AQUI     === -->
+                                            <!-- ================================= -->
+                                            <form action="/admin/appointment/<%= r._id %>/cancel-by-admin" method="POST" onsubmit="return promptCancelReason(this)">
                                                 <button type="submit" class="px-3 py-1 text-xs font-medium text-red-600 bg-red-100 border border-red-200 rounded-md hover:bg-red-200 transition-colors">
                                                     <i class="fas fa-times mr-1"></i> Cancelar
                                                 </button>
                                             </form>
+                                            <!-- ================================= -->
                                             <form action="/admin/appointment/<%= r._id %>/confirm" method="POST">
                                                 <button type="submit" class="px-3 py-1 text-xs font-medium text-green-700 bg-green-100 border border-green-200 rounded-md hover:bg-green-200 transition-colors">
                                                     <i class="fas fa-check mr-1"></i> Confirmar
@@ -476,7 +478,6 @@
                                             </form>
                                         </div>
                                         <% } %>
-                                        <%# Fim do bloco de botões %>
 
                                     </div>
                                     <% }); %>
@@ -490,7 +491,6 @@
                                     <p class="text-sm text-gray-400 mt-1">Dia livre para descanso ou novos clientes</p>
                                 </div>
                                 <% } %>
-                                <%# --- FIM DA INTEGRAÇÃO --- %>
 
                             </div>
 
@@ -532,7 +532,7 @@
                                 </div>
                                 <% } %>
                             </div>
-                        
+
 
 
 <div id="toast-success" class="fixed top-5 right-5 z-50 hidden bg-green-100 border border-green-400 text-green-800 px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3">
@@ -612,8 +612,16 @@
     <% } %>
 
 <script>
-  const raw = document.getElementById('clients-data').dataset.clients;
-  const clients = JSON.parse(raw);
+  // Evita erro se 'clients-data' não existir
+  const clientsDataElement = document.getElementById('clients-data');
+  const raw = clientsDataElement ? clientsDataElement.dataset.clients : '[]';
+  let clients = [];
+  try {
+      clients = JSON.parse(raw);
+  } catch(e) {
+      console.error("Erro ao parsear dados de clientes:", e);
+      clients = []; // Garante que clients seja um array
+  }
 </script>
 
 
@@ -655,11 +663,10 @@
     // Define a data de hoje como padrão se não houver valor
     const dateInput = document.getElementById('date');
     if (dateInput && !dateInput.value) {
-      
-      // *** CORREÇÃO AQUI ***
+
       // Lê a data do atributo 'data-default-date' que definimos no <main>
       const defaultDate = document.querySelector('main').dataset.defaultDate;
-      
+
       if (defaultDate) {
           dateInput.value = defaultDate; // Seta a data vinda do controller
       } else {
@@ -671,22 +678,20 @@
     }
   });
 
-  // Lista de clientes vinda do backend (via EJS) 
-
 // Autocompletar cliente
   const clientSearch = document.getElementById('clientSearch');
   const suggestions = document.getElementById('clientSuggestions');
   const clientIdInput = document.getElementById('clientId');
 
-  if (clientSearch) {
+  if (clientSearch && suggestions && clientIdInput) { // Verifica se todos os elementos existem
     clientSearch.addEventListener('input', () => {
-      // Quando o usuário digita, limpa o ID do cliente.
-      // Ele só é preenchido QUANDO o usuário CLICA na sugestão.
-      clientIdInput.value = ''; 
-      
+      // Limpa o ID
+      clientIdInput.value = '';
+
       const value = clientSearch.value.toLowerCase();
       suggestions.innerHTML = '';
-      const matches = clients.filter(c => c.name.toLowerCase().includes(value));
+      // Garante que 'clients' é um array antes de filtrar
+      const matches = Array.isArray(clients) ? clients.filter(c => c && c.name && c.name.toLowerCase().includes(value)) : [];
 
       if (matches.length > 0) {
         suggestions.classList.remove('hidden');
@@ -696,7 +701,7 @@
           li.className = 'p-2 cursor-pointer hover:bg-gray-100';
           li.addEventListener('click', () => {
             clientSearch.value = c.name;
-            clientIdInput.value = c._id; // ID é setado AQUI
+            clientIdInput.value = c._id;
             suggestions.classList.add('hidden');
           });
           suggestions.appendChild(li);
@@ -714,127 +719,190 @@
     }
   });
 
-  // Clicar em horário → abre o modal e preenche campos de data/hora
+  // Clicar em horário → abre o modal
   document.querySelectorAll('.time-slot').forEach(el => {
-  el.addEventListener('click', (event) => {
-    const time = el.textContent.trim();
-    const section = el.closest('section');
-    const dateText = section.querySelector('h2').textContent.trim(); // Ex: 10/07/2025
-    const [day, month, year] = dateText.split('/');
-    const isoDate = `${year}-${month}-${day}`;
+      el.addEventListener('click', (event) => {
+        const time = el.textContent.trim().replace(/[^0-9:]/g, ''); // Limpa ícone
+        const section = el.closest('section.bg-white'); // Garante que pega a seção correta
+        if (!section) return; // Segurança
 
-    const modal = document.getElementById('modalAgendamento');
+        const dateH2 = section.querySelector('h2.text-xl');
+        if (!dateH2) return; // Segurança
 
-    // Preenche campos
-    document.getElementById('modalDate').value = isoDate;
-    document.getElementById('modalTime').value = time;
-    
-    // Limpa campos do modal anterior
-    document.getElementById('clientSearch').value = '';
-    document.getElementById('clientId').value = '';
-    document.getElementById('serviceName').value = '';
-    document.getElementById('servicePrice').value = '';
-    document.getElementById('serviceDuration').value = '';
+        const dateText = dateH2.textContent.trim(); // Ex: 10/07/2025
+        const [day, month, year] = dateText.split('/');
+        if (!day || !month || !year) return; // Segurança
+        const isoDate = `${year}-${month}-${day}`;
 
-    // Calcula posição do clique
-    const rect = el.getBoundingClientRect();
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+        const modal = document.getElementById('modalAgendamento');
+        if (!modal) return; // Segurança
 
-    const top = rect.top + scrollTop + el.offsetHeight + 8;
-    let left = rect.left + scrollLeft;
+        // Preenche campos
+        const modalDateInput = document.getElementById('modalDate');
+        const modalTimeInput = document.getElementById('modalTime');
+        if (modalDateInput) modalDateInput.value = isoDate;
+        if (modalTimeInput) modalTimeInput.value = time;
 
-    // Garante que o modal não saia da tela
-    if (left + modal.offsetWidth > window.innerWidth) {
-        left = window.innerWidth - modal.offsetWidth - 20; // 20px de margem
-    }
+        // Limpa campos do modal anterior (com verificação)
+        const clientSearchInput = document.getElementById('clientSearch');
+        const clientIdHiddenInput = document.getElementById('clientId');
+        const serviceNameInput = document.getElementById('serviceName');
+        const servicePriceInput = document.getElementById('servicePrice');
+        const serviceDurationInput = document.getElementById('serviceDuration');
+        if(clientSearchInput) clientSearchInput.value = '';
+        if(clientIdHiddenInput) clientIdHiddenInput.value = '';
+        if(serviceNameInput) serviceNameInput.value = '';
+        if(servicePriceInput) servicePriceInput.value = '';
+        if(serviceDurationInput) serviceDurationInput.value = '';
 
-    modal.style.top = `${top}px`;
-    modal.style.left = `${left}px`;
-    modal.classList.remove('hidden');
-    document.getElementById('clientSearch').focus(); // Foca no primeiro campo
+
+        // Calcula posição do clique
+        const rect = el.getBoundingClientRect();
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+
+        const top = rect.top + scrollTop + el.offsetHeight + 8;
+        let left = rect.left + scrollLeft;
+
+        // Garante que o modal não saia da tela
+        if (left + modal.offsetWidth > window.innerWidth) {
+            left = window.innerWidth - modal.offsetWidth - 20; // 20px de margem
+        }
+
+        modal.style.top = `${top}px`;
+        modal.style.left = `${left}px`;
+        modal.classList.remove('hidden');
+        if(clientSearchInput) clientSearchInput.focus(); // Foca no primeiro campo se ele existir
+      });
   });
-});
 
 
   // Fecha o modal
   function fecharModal() {
-  const modal = document.getElementById('modalAgendamento');
-  modal.classList.add('hidden');
-  modal.style.top = '';
-  modal.style.left = '';
-}
+    const modal = document.getElementById('modalAgendamento');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.style.top = '';
+        modal.style.left = '';
+    }
+  }
 
 
   // Antes do submit, monta objeto services e preenche duração
   const modalForm = document.querySelector('#modalAgendamento form');
   if (modalForm) {
     modalForm.addEventListener('submit', function (e) {
-      
-      const clientId = document.getElementById('clientId').value;
-      
-      // Validação do Cliente: verifica se o ID está vazio
-      // ou se o nome digitado não corresponde a um cliente selecionado
-      const clientName = document.getElementById('clientSearch').value;
-      const clientExists = clients.find(c => c._id === clientId && c.name === clientName);
+
+      const clientIdHidden = document.getElementById('clientId');
+      const clientSearchInput = document.getElementById('clientSearch');
+      if (!clientIdHidden || !clientSearchInput) return; // Segurança
+
+      const clientId = clientIdHidden.value;
+      const clientName = clientSearchInput.value;
+
+      // Validação do Cliente
+      // Garante que 'clients' é um array antes de usar 'find'
+      const clientExists = Array.isArray(clients) ? clients.find(c => c && c._id === clientId && c.name === clientName) : null;
 
       if (!clientId || !clientExists) {
-        e.preventDefault(); // Impede o envio do formulário
+        e.preventDefault(); // Impede o envio
         Swal.fire({
           icon: 'error',
           title: 'Cliente Inválido',
           text: 'Por favor, digite o nome e SELECIONE um cliente da lista antes de agendar.',
-          confirmButtonColor: '#ef4444',
-          background: '#fff1f2'
+          confirmButtonColor: '#ef4444', // Cor do botão (vermelho)
+          background: '#fff1f2' // Fundo levemente avermelhado
         });
-        document.getElementById('clientSearch').focus();
+        clientSearchInput.focus();
         return false;
       }
 
+      // Pega dados do serviço e duração (com verificação)
+      const serviceNameInput = document.getElementById('serviceName');
+      const servicePriceInput = document.getElementById('servicePrice');
+      const serviceDurationInput = document.getElementById('serviceDuration');
+      const servicesInputHidden = document.getElementById('servicesInput');
+      const durationInputHidden = document.getElementById('durationInput');
+
+      if (!serviceNameInput || !servicePriceInput || !serviceDurationInput || !servicesInputHidden || !durationInputHidden) return; // Segurança
+
       const service = {
-        name: document.getElementById('serviceName').value,
-        price: parseFloat(document.getElementById('servicePrice').value),
+        name: serviceNameInput.value,
+        price: parseFloat(servicePriceInput.value) || 0, // Garante que é número
         payments: []
       };
-      const duration = parseInt(document.getElementById('serviceDuration').value);
+      const duration = parseInt(serviceDurationInput.value, 10) || 30; // Garante que é número, default 30min
 
-      document.getElementById('servicesInput').value = JSON.stringify([service]);
-      document.getElementById('durationInput').value = duration;
+      servicesInputHidden.value = JSON.stringify([service]);
+      durationInputHidden.value = duration;
     });
   }
+
+  // =================================
+  // ===     NOVA ALTERAÇÃO AQUI     ===
+  // =================================
+  /**
+   * Pede ao admin o motivo do cancelamento antes de enviar o formulário.
+   * (Copiado da correção do client.ejs)
+   */
+  function promptCancelReason(form) {
+      const reason = prompt("Por favor, insira o motivo do cancelamento (será visível para o cliente):");
+
+      // 1. Se o usuário clicou "Cancelar" (null)
+      if (reason === null) {
+          return false; // Impede o envio, sem alerta
+      }
+
+      // 2. Se o usuário clicou "OK" mas deixou em branco
+      if (reason.trim() === "") {
+          alert("O motivo do cancelamento é obrigatório.");
+          return false; // Impede o envio
+      }
+
+      // 3. Se um motivo válido foi fornecido
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'cancellationReason'; // O nome do campo que o controller vai receber
+      input.value = reason.trim();
+      form.appendChild(input);
+
+      return true; // Permite o envio do formulário
+  }
+  // =================================
 </script>
 
 <script>
-  // Verifica parâmetro "success" ou "error" na URL
+  // Verifica parâmetro "success" ou "error" na URL e mostra com SweetAlert2
   const urlParams = new URLSearchParams(window.location.search);
-  const successTime = urlParams.get('success');
-  const errorMsg = urlParams.get('error'); // Pega a msg de erro do controller
+  const successMsg = urlParams.get('success'); // Renomeado para não conflitar com successTime
+  const errorMsg = urlParams.get('error');
 
-if (successTime) {
-  // Remove o parâmetro da URL para não mostrar o alerta ao recarregar
-  window.history.replaceState({}, document.title, window.location.pathname);
-  
+if (successMsg) {
+  // Remove o parâmetro da URL
+  window.history.replaceState({}, document.title, window.location.pathname + window.location.hash); // Mantém o hash se houver
+
   Swal.fire({
     icon: 'success',
-    title: 'Agendamento Confirmado!',
-    text: `O agendamento foi efetuado com sucesso para o horário ${successTime}.`,
+    title: 'Sucesso!',
+    // Decodifica a mensagem vinda da URL (ex: "Agendamento confirmado!")
+    text: decodeURIComponent(successMsg),
     confirmButtonText: 'Fechar',
-    confirmButtonColor: '#10b981',
-    background: '#f0fdf4'
+    confirmButtonColor: '#10b981', // Cor do botão (verde)
+    background: '#f0fdf4' // Fundo levemente esverdeado
   });
 }
 
 if (errorMsg) {
   // Remove o parâmetro da URL
-  window.history.replaceState({}, document.title, window.location.pathname);
+  window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
 
   Swal.fire({
     icon: 'error',
-    title: 'Erro no Agendamento',
-    text: decodeURIComponent(errorMsg), // Decodifica a mensagem (ex: "Cliente não selecionado")
+    title: 'Erro',
+    text: decodeURIComponent(errorMsg), // Decodifica a mensagem
     confirmButtonText: 'Fechar',
-    confirmButtonColor: '#ef4444',
-    background: '#fff1f2'
+    confirmButtonColor: '#ef4444', // Cor do botão (vermelho)
+    background: '#fff1f2' // Fundo levemente avermelhado
   });
 }
 

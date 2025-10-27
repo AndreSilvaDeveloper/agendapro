@@ -117,7 +117,6 @@
             <% } %>
         </div>
 
-
         <% if (produtosPendentes.length > 0) { %>
             <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
                 <div class="p-5 border-b border-gray-200 flex items-center space-x-3">
@@ -143,15 +142,14 @@
             </div>
         <% } %>
 
-
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
              <div class="p-5 border-b border-gray-200 flex items-center space-x-3">
                  <i class="fas fa-history text-xl text-gold-dark"></i>
-                <h2 class="text-xl font-bold text-gray-800">Histórico</h2>
+                <h2 class="text-xl font-bold text-gray-800">Histórico de Agendamentos</h2>
             </div>
 
             <% if (historicoAgendamentos.length === 0) { %>
-                <p class="p-6 text-gray-600 text-center">Você ainda não possui histórico.</p>
+                <p class="p-6 text-gray-600 text-center">Você ainda não possui histórico de agendamentos.</p>
             <% } else { %>
                 <ul class="divide-y divide-gray-200">
                     <% historicoAgendamentos.forEach(appt => { %>
@@ -174,11 +172,52 @@
                             <% if (appt.staffName !== 'Qualquer Profissional') { %>
                             <p class="text-xs text-gray-500 ml-1">Com: <span class="font-medium"><%= appt.staffName %></span></p>
                             <% } %>
+
+                            <!-- ================================= -->
+                            <!-- ===     NOVA ALTERAÇÃO AQUI     === -->
+                            <!-- ================================= -->
+                            <% if (appt.status === 'cancelado_pelo_salao' && appt.cancellationReason) { %>
+                                <div class="mt-2 ml-1 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                    <p class="text-xs text-red-800 font-medium">
+                                        <i class="fas fa-info-circle mr-1"></i>
+                                        Motivo do cancelamento: <%= appt.cancellationReason %>
+                                    </p>
+                                </div>
+                            <% } %>
+                            <!-- ================================= -->
+
                         </li>
                     <% }); %>
                 </ul>
             <% } %>
         </div>
+
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div class="p-5 border-b border-gray-200 flex items-center space-x-3">
+                <i class="fas fa-archive text-xl text-gold-dark"></i>
+               <h2 class="text-xl font-bold text-gray-800">Histórico de Produtos</h2>
+           </div>
+            <p class="text-xs text-gray-500 px-5 pt-3 pb-1">Itens que você já adquiriu e que estão totalmente pagos.</p>
+           
+           <% if (historicoProdutos.length === 0) { %>
+               <p class="p-6 text-gray-600 text-center">Você ainda não possui histórico de produtos pagos.</p>
+           <% } else { %>
+               <ul class="divide-y divide-gray-200">
+                   <% historicoProdutos.forEach(prod => { %>
+                       <li class="p-5 flex justify-between items-start">
+                           <div class="space-y-1">
+                               <h3 class="text-base font-semibold text-gray-900"><%= prod.name %></h3>
+                               <p class="text-sm text-gray-600">Valor Total: R$ <%= prod.price.toFixed(2).replace('.', ',') %></p>
+                               <p class="text-xs text-gray-500">Adicionado em: <%= prod.addedAt %></p>
+                           </div>
+                           <span class="status-tag status-concluido mt-1">
+                               <i class="fas fa-check-double"></i> Pago
+                           </span>
+                       </li>
+                   <% }); %>
+               </ul>
+           <% } %>
+       </div>
 
     </main>
 

@@ -106,7 +106,18 @@ const appointmentSchema = new mongoose.Schema({
     // O fluxo do cliente irá FORÇAR o status 'pendente' na criação.
     default: 'confirmado',
     required: true
+  },
+
+  // =================================
+  // ===     NOVA ALTERAÇÃO AQUI     ===
+  // =================================
+  cancellationReason: {
+    type: String,
+    trim: true,
+    default: null
   }
+  // =================================
+
 }, { timestamps: true }); 
 
 module.exports = mongoose.model('Appointment', appointmentSchema);

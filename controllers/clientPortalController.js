@@ -51,7 +51,10 @@ exports.getMinhaArea = async (req, res) => {
     const proximos = [];
     const historico = [];
 
-    // 3. Separar agendamentos em "Próximos" vs "Histórico"
+    // =================================
+    // ===     NOVA ALTERAÇÃO AQUI     ===
+    // =================================
+    // 3. Separar agendamentos em "Próximos" vs "Histórico" E ADICIONAR MOTIVO
     todosAgendamentos.forEach(appt => {
       const apptData = {
         _id: appt._id,
@@ -60,39 +63,67 @@ exports.getMinhaArea = async (req, res) => {
         status: appt.status, // 'pendente', 'confirmado', 'concluido', etc.
         services: appt.services.map(s => s.name).join(', '),
         staffName: appt.staffId ? appt.staffId.name : 'Qualquer Profissional',
-        total: appt.services.reduce((sum, s) => sum + s.price, 0)
+        total: appt.services.reduce((sum, s) => sum + s.price, 0),
+        cancellationReason: null // Inicializa como nulo
       };
+
+      // Adiciona o motivo APENAS se for cancelado pelo salão
+      if (appt.status === 'cancelado_pelo_salao') {
+          apptData.cancellationReason = appt.cancellationReason;
+      }
       
+      // Classifica o agendamento
       if (appt.status === 'concluido' || appt.status.startsWith('cancelado_')) {
         historico.push(apptData);
       } 
+      // Mostra nos próximos se ainda não passou ou se passou há menos de 1 hora (margem)
       else if (dayjs(appt.date).tz(tz).isAfter(agora.subtract(1, 'hour'))) { 
         proximos.push(apptData);
       } 
+      // Se passou há mais de 1 hora e não está concluído/cancelado (ex: confirmado antigo), vai pro histórico
       else {
         historico.push(apptData);
       }
     });
+    // =================================
+    // === FIM DA ALTERAÇÃO          ===
+    // =================================
 
-    // 4. Buscar os produtos comprados pelo cliente
+    
+    // 4. Buscar e processar os produtos comprados pelo cliente
     const clientData = await Client.findById(clientId).select('products');
-    const produtos = (clientData.products || [])
-      .map(p => ({
-        name: p.name,
-        price: p.price,
-        addedAt: dayjs(p.addedAt).tz(tz).format('DD/MM/YYYY'),
-        totalPaid: (p.payments || []).reduce((sum, pay) => sum + pay.amount, 0),
-        isPending: (p.payments || []).reduce((sum, pay) => sum + pay.amount, 0) < p.price
-      }))
-      .filter(p => p.isPending);
+    const produtosPendentes = [];  // Lista para produtos pendentes
+    const historicoProdutos = []; // Lista para produtos já pagos
+
+    if (clientData.products && clientData.products.length > 0) {
+      clientData.products.forEach(p => {
+        const totalPaid = (p.payments || []).reduce((sum, pay) => sum + pay.amount, 0);
+        const isPending = totalPaid < p.price;
+
+        const formattedProduct = {
+          name: p.name,
+          price: p.price,
+          // Corrigido para buscar timestamp do _id, se 'addedAt' não existir
+          addedAt: p.addedAt ? dayjs(p.addedAt).tz(tz).format('DD/MM/YYYY') : dayjs(p._id.getTimestamp()).tz(tz).format('DD/MM/YYYY'), 
+          totalPaid: totalPaid
+        };
+
+        if (isPending) {
+          produtosPendentes.push(formattedProduct);
+        } else {
+          historicoProdutos.push(formattedProduct);
+        }
+      });
+    }
 
     // 5. Renderizar a view do dashboard do cliente
-    res.render('client/dashboard', {
+    res.render('client/dashboard', { // Seu EJS chama-se 'dashboard.ejs' dentro de 'views/client'
       clientName: clientName,
       orgName: organization.name,
-      proximosAgendamentos: proximos.reverse(),
-      historicoAgendamentos: historico,
-      produtosPendentes: produtos,
+      proximosAgendamentos: proximos.reverse(), // Correto, para inverter a ordem
+      historicoAgendamentos: historico, // Já está na ordem correta (mais recentes primeiro)
+      produtosPendentes: produtosPendentes,     
+      historicoProdutos: historicoProdutos,   
       error: req.query.error || null,
       success: req.query.success || null
     });
@@ -106,6 +137,7 @@ exports.getMinhaArea = async (req, res) => {
 /**
  * GET /portal/agendar
  * Página para o cliente iniciar um novo agendamento.
+ * (Seu código original - Sem alterações)
  */
 exports.getNovoAgendamento = async (req, res) => {
   try {
@@ -139,14 +171,10 @@ exports.getNovoAgendamento = async (req, res) => {
   }
 };
 
-
-// =========================================================================
-// === NOVA FUNÇÃO (POST) ==================================================
-// =========================================================================
-
 /**
  * POST /portal/agendar
  * Processa a solicitação de um novo agendamento do cliente.
+ * (Seu código original - Sem alterações)
  */
 exports.postNovoAgendamento = async (req, res) => {
   try {
@@ -198,7 +226,7 @@ exports.postNovoAgendamento = async (req, res) => {
         return res.redirect('/portal/agendar?error=Este profissional já possui um agendamento neste horário.');
       }
     }
-    // (Se 'qualquer profissional' for escolhido, o admin aprovará manualmente)
+    // (Se 'qualquer profissional' for escolhido, o admin aprovará manually)
 
     // 6. Criar o agendamento
     const newAppointment = new Appointment({

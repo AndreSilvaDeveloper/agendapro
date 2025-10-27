@@ -547,13 +547,13 @@
                                           </button>
                                         </form>
 
-                                        <form action="/appointment/<%= a._id %>/cancel" method="POST" onsubmit="return confirm('Deseja cancelar este agendamento?')" class="inline">
+                                        <form action="/appointment/<%= a._id %>/cancel" method="POST" onsubmit="return promptCancelReason(this)" class="inline">
                                             <button class="flex items-center space-x-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
                                                 <i class="fas fa-times"></i>
                                                 <span class="hidden sm:inline">Cancelar</span>
                                             </button>
                                         </form>
-                                    </div>
+                                        </div>
                                 </div>
 
                                 <% if (a.services && a.services.length) { %>
@@ -1060,6 +1060,36 @@
             form.appendChild(i2);
 
             return true;
+        }
+
+        // =================================
+        // ===     NOVA ALTERAÇÃO AQUI     ===
+        // =================================
+        /**
+         * Pede ao admin o motivo do cancelamento antes de enviar o formulário.
+         */
+        function promptCancelReason(form) {
+            const reason = prompt("Por favor, insira o motivo do cancelamento (será visível para o cliente):");
+
+            // 1. Se o usuário clicou "Cancelar" (null)
+            if (reason === null) {
+                return false; // Impede o envio, sem alerta
+            }
+
+            // 2. Se o usuário clicou "OK" mas deixou em branco
+            if (reason.trim() === "") {
+                alert("O motivo do cancelamento é obrigatório.");
+                return false; // Impede o envio
+            }
+
+            // 3. Se um motivo válido foi fornecido
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'cancellationReason'; // O nome do campo que o controller vai receber
+            input.value = reason.trim();
+            form.appendChild(input);
+            
+            return true; // Permite o envio do formulário
         }
 
         // Inicialização quando DOM estiver carregado
