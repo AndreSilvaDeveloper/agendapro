@@ -16,7 +16,7 @@ exports.getLogin = (req, res) => {
 };
 
 // --- Processar o Login (POST) ---
-// (Sem alterações. Está correto.)
+// (MODIFICADO para prevenir "race condition")
 exports.postLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -31,12 +31,28 @@ exports.postLogin = async (req, res) => {
     if (!isMatch) {
       return res.render('login', { error: 'E-mail ou senha inválidos.', success: null });
     }
+    
+    // Define os dados da sessão
     req.session.loggedIn = true;
     req.session.userId = user._id;
     req.session.username = user.username;
     req.session.role = user.role;
     req.session.organizationId = user.organizationId;
-    return res.redirect('/dashboard');
+    
+    // --- CORREÇÃO AQUI ---
+    // Força a sessão a salvar no banco ANTES de redirecionar.
+    // Isso previne a "condição de corrida" (race condition).
+    req.session.save((err) => {
+      if (err) {
+        // Se houver um erro ao salvar a sessão, lide com ele
+        console.error('Erro ao salvar a sessão:', err);
+        return res.render('login', { error: 'Erro interno ao salvar sua sessão.', success: null });
+      }
+      // Agora que a sessão está salva, podemos redirecionar com segurança.
+      return res.redirect('/dashboard');
+    });
+    // --- FIM DA CORREÇÃO ---
+
   } catch (err) {
     console.error('Erro no login:', err);
     res.render('login', { error: 'Erro interno. Tente novamente.', success: null });
@@ -44,13 +60,12 @@ exports.postLogin = async (req, res) => {
 };
 
 // --- Página de Registro (GET) ---
-// (Sem alterações)
 exports.getRegister = (req, res) => {
   res.render('register', { error: null });
 };
 
 // --- Processar o Registro (POST) ---
-// (MODIFICADO para pré-verificar o SLUG e tratar melhor o erro E11000)
+// (MODIFICADO para prevenir "race condition")
 exports.postRegister = async (req, res) => {
 
   const { salonName, username, email, password, passwordConfirm } = req.body;
@@ -72,8 +87,6 @@ exports.postRegister = async (req, res) => {
     if (existingEmail) {
         return res.render('register', { error: 'Este e-mail já está em uso.' });
     }
-
-    // Gera um slug de teste
     const testSlug = slugify(salonName, {
       lower: true, strict: true, remove: /[*+~.()'"!:@]/g
     });
@@ -81,7 +94,6 @@ exports.postRegister = async (req, res) => {
     if (existingSlug) {
       return res.render('register', { error: 'Este nome de salão já está em uso. Por favor, escolha outro.' });
     }
-
   } catch (err) {
     console.error('Erro na pré-verificação do registro:', err);
     return res.render('register', { error: 'Erro ao verificar dados. Tente novamente.' });
@@ -91,21 +103,15 @@ exports.postRegister = async (req, res) => {
   session.startTransaction();
 
   try {
-    // --- CORREÇÃO AQUI ---
-    // 1. Gere o slug manualmente ANTES de criar a instância
     const generatedSlug = slugify(salonName, {
         lower: true, strict: true, remove: /[*+~.()'"!:@]/g
     });
-
-    // 2. Crie a Organização fornecendo o slug gerado
     const org = new Organization({
       name: salonName,
-      slug: generatedSlug // <-- Fornece o slug aqui
+      slug: generatedSlug
     });
     const newOrg = await org.save({ session });
-    // --- FIM DA CORREÇÃO ---
 
-    // 6. Cria o Usuário (o Dono)
     const user = new User({
       organizationId: newOrg._id,
       username: username,
@@ -115,7 +121,6 @@ exports.postRegister = async (req, res) => {
     });
     const newUser = await user.save({ session });
 
-    // 7. Commita a transação
     await session.commitTransaction();
 
     // 8. Loga o novo usuário
@@ -124,16 +129,25 @@ exports.postRegister = async (req, res) => {
     req.session.username = newUser.username;
     req.session.role = newUser.role;
     req.session.organizationId = newUser.organizationId;
-
-    res.redirect('/dashboard');
+    
+    // --- CORREÇÃO AQUI (mesmo problema do login) ---
+    // Força a sessão a salvar antes de redirecionar.
+    req.session.save((err) => {
+        if (err) {
+            console.error('Erro ao salvar a sessão após o registro:', err);
+            // Mesmo que o registro tenha funcionado, o login automático falhou.
+            // Melhor enviá-lo para a página de login para tentar logar manualmente.
+            return res.redirect('/login?success=Conta criada com sucesso! Faça o login.');
+        }
+        // Sessão salva, redireciona para o dashboard
+        res.redirect('/dashboard');
+    });
+    // --- FIM DA CORREÇÃO ---
 
   } catch (err) {
-    // 9. Aborta a transação
     await session.abortTransaction();
     console.error('Erro no registro (transação):', err);
     let errorMsg = 'Erro ao criar conta. Tente novamente.';
-
-    // Tratamento de Erro (E11000) - está correto
     if (err.code === 11000 && err.keyPattern) {
       if (err.keyPattern.slug) {
         errorMsg = 'Este nome de salão já está em uso. Tente outro.';
@@ -145,16 +159,13 @@ exports.postRegister = async (req, res) => {
         errorMsg = 'Ocorreu um erro de duplicidade. Verifique os campos.';
       }
     }
-
     res.render('register', { error: errorMsg });
   } finally {
-    // 10. Sempre encerra a sessão
     session.endSession();
   }
 };
 
 // --- Logout ---
-// (Sem alterações)
 exports.getLogout = (req, res) => {
   req.session.destroy((err) => {
     if (err) {
@@ -167,7 +178,6 @@ exports.getLogout = (req, res) => {
 };
 
 // --- Rota Raiz ---
-// (Sem alterações)
 exports.getRoot = (req, res) => {
   res.redirect('/dashboard');
 };

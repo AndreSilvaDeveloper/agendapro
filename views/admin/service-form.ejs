@@ -23,11 +23,119 @@
             box-shadow: 0 0 0 2px var(--color-gold-light);
             outline: none;
         }
+
+        /* --- ESTILOS DO HEADER (COPIADOS) --- */
+        .text-gold { color: var(--color-gold-dark); }
+        .bg-gold-light { background-color: #FFFBEB; }
+        .hover\:text-gold:hover { color: var(--color-gold-dark); }
+        .text-gradient-gold {
+            background: linear-gradient(90deg, #B8860B, #FFD700, #DAA520, #FFD700, #B8860B);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+            background-size: 200% auto;
+            animation: text-shine 4s linear infinite;
+        }
+        @keyframes text-shine {
+            from { background-position: 200% center; }
+            to { background-position: 0% center; }
+        }
+        /* --- FIM ESTILOS HEADER --- */
     </style>
 </head>
-<body class="bg-gray-100">
+<body class="min-h-screen bg-gray-50 font-sans antialiased">
 
-    <main class="container mx-auto max-w-2xl p-4 sm:p-8 mt-8">
+    <header class="bg-white sticky top-0 z-50 shadow-sm border-b border-gray-100">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <h1 class="flex items-center">
+                        <img src="/images/kadosh.jpg" alt="Studio Kadosh Logo" class="h-9">
+                    </h1>
+                    <div class="h-6 w-px bg-gray-200"></div>
+                    <span class="text-lg font-semibold text-gray-700 flex items-center">
+                        <i class="fas fa-tags mr-2 text-gold"></i>
+                        <%= pageTitle %>
+                    </span>
+                </div>
+                
+                <nav class="hidden lg:flex items-center space-x-6">
+                    <a href="/dashboard" class="text-gray-600 hover:text-gold transition-colors">
+                        <i class="fas fa-home mr-2"></i>Dashboard
+                    </a>
+                    <a href="/agendamentos-por-dia" class="text-gray-600 hover:text-gold transition-colors">
+                        <i class="fas fa-calendar-alt mr-2"></i>Agendamentos
+                    </a>
+                    <a href="/clients" class="text-gray-600 hover:text-gold transition-colors">
+                        <i class="fas fa-users mr-2"></i>Clientes
+                    </a>
+                    <a href="/admin/servicos" class="text-gradient-gold font-semibold">
+                        <i class="fas fa-tags mr-2"></i>Serviços
+                    </a>
+                    <a href="/admin/equipe" class="text-gray-600 hover:text-gold transition-colors">
+                        <i class="fas fa-users-cog mr-2"></i>Equipe
+                    </a>
+                    <a href="/financeiro" class="text-gray-600 hover:text-gold transition-colors">
+                        <i class="fas fa-dollar-sign mr-2"></i>Financeiro
+                    </a>
+                    <a href="/balanco" class="text-gray-600 hover:text-gold transition-colors">
+                        <i class="fas fa-balance-scale mr-2"></i>Balanço
+                    </a>
+                    <a href="/expenses" class="text-gray-600 hover:text-gold transition-colors">
+                        <i class="fas fa-receipt mr-2"></i>Despesas
+                    </a>
+                    <a href="/logout" class="text-red-600 hover:text-red-700 transition-colors">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Sair
+                    </a>
+                </nav>
+
+                <button id="menu-button" class="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                    <i class="fas fa-bars text-gradient-gold"></i>
+                </button>
+            </div>
+
+            <div id="mobile-menu" class="hidden lg:hidden mt-4 space-y-2">
+                <a href="/dashboard" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/agendamentos-por-dia" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Agendamentos</span>
+                </a>
+                <a href="/clients" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
+                    <i class="fas fa-users"></i>
+                    <span>Clientes</span>
+                </a>
+                <a href="/admin/servicos" class="flex items-center space-x-3 p-3 rounded-lg bg-gold-light text-gold font-semibold">
+                    <i class="fas fa-tags"></i>
+                    <span>Serviços</span>
+                </a>
+                <a href="/admin/equipe" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
+                    <i class="fas fa-users-cog"></i>
+                    <span>Equipe</span>
+                </a>
+                <a href="/financeiro" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
+                    <i class="fas fa-dollar-sign"></i>
+                    <span>Financeiro</span>
+                </a>
+                <a href="/balanco" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
+                    <i class="fas fa-balance-scale"></i>
+                    <span>Balanço</span>
+                </a>
+                <a href="/expenses" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
+                    <i class="fas fa-receipt"></i>
+                    <span>Despesas</span>
+                </a>
+                <a href="/logout" class="flex items-center space-x-3 p-3 rounded-lg text-red-600 hover:bg-red-100">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Sair</span>
+                </a>
+            </div>
+        </div>
+    </header>
+    <main class="container mx-auto max-w-2xl p-4 sm:p-8 py-8">
         
         <div class="bg-white shadow-xl rounded-lg overflow-hidden">
             <div class="bg-gray-50 p-5 border-b border-gray-200 flex justify-between items-center">
@@ -108,5 +216,27 @@
         </div>
     </main>
 
+    <footer class="bg-white border-t border-gray-200 mt-12">
+        <div class="max-w-7xl mx-auto px-4 py-6">
+            <div class="text-center text-gray-600">
+                <p class="flex items-center justify-center">
+                    <i class="fas fa-crown mr-2 text-gold"></i>
+                    Studio Kadosh © <%= new Date().getFullYear() %>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        const menuButton = document.getElementById('menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        
+        if (menuButton && mobileMenu) {
+            menuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
+    </script>
 </body>
 </html>

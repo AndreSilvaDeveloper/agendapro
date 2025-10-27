@@ -39,7 +39,7 @@
 </head>
 <body class="">
 
-    <header class="text-white p-8 sm:p-16 rounded-b-3xl shadow-xl
+    <header class="text-white p-8 sm:p-2 rounded-b-3xl shadow-xl
                    <% if (org.coverImageUrl) { %>
                        hero-bg-image
                    <% } else { %>
@@ -135,7 +135,7 @@
             <% } else { %>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <% services.forEach(service => { %>
-                        <div class="bg-black/20 p-5 rounded-xl border border-gray-600 shadow-sm">
+                        <div class="bg-black/80 p-5 rounded-xl border border-gray-600 shadow-sm">
                             <h3 class="text-xl font-semibold text-gold-dark"><%= service.name %></h3>
                             <p class="text-lg font-bold text-white mt-1">
                                 R$ <%= service.price.toFixed(2).replace('.', ',') %>
