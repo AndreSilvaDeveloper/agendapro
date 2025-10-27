@@ -12,6 +12,16 @@
             --color-gold-dark: #B8860B;
             --color-gold-accent: #DAA520;
         }
+        
+        /* --- NOVO FUNDO --- */
+        body {
+            background-image: url('/images/background-login.png'); /* Caminho para sua imagem */
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+        /* --- FIM NOVO FUNDO --- */
 
         .text-gold {
             color: var(--color-gold-dark);
@@ -116,13 +126,22 @@
             color: var(--color-gold-dark); /* Alterado para dourado */
             transform: scale(1.1);
         }
+
+        /* --- Input com fundo transparente --- */
+        .form-input-transparent::placeholder {
+             color: #d1d5db; /* Cor do placeholder (gray-300) */
+        }
+        .form-input-transparent:focus {
+            border-color: transparent;
+            background-color: rgba(255, 255, 255, 0.2); /* Um pouco mais claro no foco */
+        }
     </style>
 </head>
-<body class="min-h-screen bg-gray-50 flex items-center justify-center p-4"> 
+<body class="min-h-screen flex items-center justify-center p-4"> 
     
     <div class="relative z-10 w-full max-w-md">
         
-        <div class="bg-white rounded-3xl shadow-2xl overflow-hidden animate-fade-in"> 
+        <div class="bg-black/30 backdrop-blur-lg rounded-3xl shadow-2xl overflow-hidden animate-fade-in"> 
             
             <div class="bg-gold p-8 text-center relative bg-shine-gold"> 
                 <div class="absolute inset-0 bg-black bg-opacity-10"></div>
@@ -173,7 +192,7 @@
                 <form action="/login" method="POST" class="space-y-6" id="loginForm">
                     
                     <div class="input-group">
-                        <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <label for="email" class="block text-sm font-semibold text-gray-100 mb-2">
                             <i class="fas fa-envelope mr-2 text-gold"></i> E-mail
                         </label>
                         <div class="relative">
@@ -186,12 +205,12 @@
                                    required
                                    autocomplete="email"
                                    placeholder="Digite seu e-mail"
-                                   class="form-input w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all bg-white"> 
+                                   class="form-input form-input-transparent w-full pl-10 pr-4 py-3 border border-gray-500 rounded-xl focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all bg-white/10 text-white placeholder-gray-300"> 
                         </div>
                     </div>
 
                     <div class="input-group">
-                        <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">
+                         <label for="password" class="block text-sm font-semibold text-gray-100 mb-2">
                             <i class="fas fa-lock mr-2 text-gold"></i> Senha
                         </label>
                         <div class="relative">
@@ -204,10 +223,12 @@
                                    required
                                    autocomplete="current-password"
                                    placeholder="Digite sua senha"
-                                   class="form-input w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all bg-white"> <button type="button"
+                                   class="form-input form-input-transparent w-full pl-10 pr-12 py-3 border border-gray-500 rounded-xl focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all bg-white/10 text-white placeholder-gray-300"> 
+                            <button type="button"
                                     id="togglePassword"
                                     class="absolute inset-y-0 right-0 pr-3 flex items-center">
-                                <i class="fas fa-eye text-gray-400 hover:text-gold-dark transition-colors" id="eyeIcon"></i> </button>
+                                <i class="fas fa-eye text-gray-400 hover:text-gold-dark transition-colors" id="eyeIcon"></i> 
+                            </button>
                         </div>
                     </div>
 
@@ -228,7 +249,7 @@
                   </a>
                 </div>
 
-                <div class="mt-8 text-center text-sm text-gray-500">
+                <div class="mt-8 text-center text-sm text-gray-200">
                     <p>
                         Não tem uma conta? 
                         <a href="/register" class="font-medium text-gold hover:underline">
@@ -240,7 +261,7 @@
             </div>
         </div> 
         
-        <div class="mt-8 text-center text-sm text-gray-600">
+        <div class="mt-8 text-center text-sm text-white">
              <p class="flex items-center justify-center">
                 <i class="fas fa-crown mr-2 text-gold"></i>
                 Studio Kadosh © <%= new Date().getFullYear() %>
@@ -259,10 +280,8 @@
             const passwordInput = document.getElementById('password');
             const eyeIcon = document.getElementById('eyeIcon');
             
-            // --- CORRIGIDO ---
-            const emailInput = document.getElementById('email'); // Corrigido de usernameInput
+            const emailInput = document.getElementById('email'); 
 
-            // Toggle password visibility
             if (togglePassword && passwordInput && eyeIcon) {
                 togglePassword.addEventListener('click', function() {
                     const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
@@ -278,7 +297,6 @@
                 });
             }
 
-            // Form submission with loading state
             if (form && button && buttonText && loadingIcon) {
                 form.addEventListener('submit', function() {
                     buttonText.textContent = 'Entrando...';
@@ -287,14 +305,11 @@
                 });
             }
 
-            // Auto-focus no primeiro campo (se não houver erro)
             const errorDiv = document.querySelector('.error-shake');
-            // --- CORRIGIDO ---
             if (emailInput && !errorDiv) {
-                emailInput.focus(); // Foca no e-mail
+                emailInput.focus(); 
             }
 
-            // Efeito de shake em erro
             if (errorDiv) {
                 setTimeout(() => {
                     errorDiv.classList.remove('error-shake');

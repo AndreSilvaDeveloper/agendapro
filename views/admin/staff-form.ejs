@@ -5,7 +5,7 @@
     <title><%= pageTitle %> – AgendaPro</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax.libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
             --color-gold-light: #FFD700;
@@ -22,12 +22,10 @@
             box-shadow: 0 0 0 2px var(--color-gold-light);
             outline: none;
         }
-        /* Melhora aparência do input time */
         input[type="time"]::-webkit-calendar-picker-indicator {
             cursor: pointer; opacity: 0.6; filter: invert(0.6) sepia(1) saturate(5) hue-rotate(10deg);
         }
         input[type="time"]:hover::-webkit-calendar-picker-indicator { opacity: 0.8; }
-        /* Esconde inputs de tempo quando 'Folga' está marcado */
         .day-row:has(input[type="checkbox"][name$="[isOff]"]:checked) input[type="time"] {
              visibility: hidden;
         }
@@ -45,9 +43,15 @@
                 </a>
             </div>
 
+            <!-- 
+              --- MUDANÇA 1: Adicionado enctype="multipart/form-data" ---
+              Isso é OBRIGATÓRIO para o upload de arquivos funcionar.
+            -->
             <form action="<%= editing ? '/admin/equipe/' + staffMember._id + '/editar' : '/admin/equipe/novo' %>" 
                   method="POST" 
-                  class="p-8 space-y-6">
+                  class="p-8 space-y-6"
+                  enctype="multipart/form-data">
+                  
 
                 <% if (error) { %>
                     <div class="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
@@ -55,22 +59,45 @@
                     </div>
                 <% } %>
 
-                <!-- Campos Básicos -->
                 <div>
                     <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nome do Profissional *</label>
                     <input type="text" id="name" name="name" required 
                            value="<%= staffMember.name || '' %>"
                            class="form-input mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-gold-dark focus:border-gold-dark">
                 </div>
+                
+                <!-- 
+                  --- MUDANÇA 2: Bloco de "URL da Foto" substituído por "Upload de Foto" ---
+                -->
                 <div>
-                    <label for="imageUrl" class="block text-sm font-medium text-gray-700 mb-1">URL da Foto (Opcional)</label>
-                    <input type="url" id="imageUrl" name="imageUrl" 
-                           value="<%= staffMember.imageUrl || '' %>"
-                           placeholder="https://exemplo.com/foto.jpg"
-                           class="form-input mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-gold-dark focus:border-gold-dark">
+                    <label for="staffPhoto" class="block text-sm font-medium text-gray-700 mb-1">Foto do Profissional (Opcional)</label>
+                    
+                    <!-- Mostra a foto atual, se ela existir (apenas na edição) -->
+                    <% if (editing && staffMember.imageUrl) { %>
+                        <div class="my-2">
+                            <img src="<%= staffMember.imageUrl %>" alt="<%= staffMember.name %>" class="w-24 h-24 rounded-full object-cover border border-gray-200 p-1">
+                            <p class="mt-1 text-xs text-gray-500">Foto atual. Enviar uma nova foto irá substituí-la.</p>
+                        </div>
+                    <% } %>
+                    
+                    <!-- O novo input type="file" -->
+                    <input type="file" 
+                           id="staffPhoto" 
+                           name="staffPhoto" 
+                           accept="image/*"
+                           class="form-input mt-1 block w-full border border-gray-300 rounded-md shadow-sm text-sm text-gray-500
+                                  file:mr-4 file:py-2 file:px-4
+                                  file:rounded-full file:border-0
+                                  file:text-sm file:font-semibold
+                                  file:bg-gold file:text-white
+                                  hover:file:bg-gold-dark hover:file:cursor-pointer">
+                    
+                    <!-- Campo oculto para enviar a URL antiga (crucial para a edição) -->
+                    <input type="hidden" name="oldImageUrl" value="<%= staffMember.imageUrl || '' %>">
                 </div>
-
-                <!-- Campo Serviços -->
+                <!-- === FIM DA MUDANÇA 2 === -->
+                
+                
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Serviços que Realiza</label>
                     <div class="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-md p-4">
@@ -92,29 +119,25 @@
                     </div>
                 </div>
 
-                <!-- === NOVA SEÇÃO: HORÁRIOS DE TRABALHO === -->
+                <!-- Seção de Horários (Sem alterações) -->
                 <div class="pt-4 border-t border-gray-200">
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Horários de Trabalho Padrão</h3>
                     <div class="space-y-4">
                         <% 
-                        // Helper para os dias da semana
                         const daysOfWeek = [
                             { key: 'monday', label: 'Segunda-feira' }, { key: 'tuesday', label: 'Terça-feira' },
                             { key: 'wednesday', label: 'Quarta-feira' }, { key: 'thursday', label: 'Quinta-feira' },
                             { key: 'friday', label: 'Sexta-feira' }, { key: 'saturday', label: 'Sábado' },
                             { key: 'sunday', label: 'Domingo' }
                         ];
-                        // Pega os horários atuais ou o padrão (Map vazio se for novo)
                         const currentHours = staffMember.workingHours || new Map();
                         %>
 
                         <% daysOfWeek.forEach(day => { %>
                             <% const hours = currentHours.get(day.key) || { startTime: '', endTime: '', isOff: false }; %>
                             <div class="day-row grid grid-cols-1 sm:grid-cols-4 gap-4 items-center border-b pb-4 last:border-b-0">
-                                <!-- Nome do Dia -->
                                 <label class="block text-sm font-medium text-gray-700 sm:col-span-1"><%= day.label %></label>
                                 
-                                <!-- Início -->
                                 <div class="sm:col-span-1">
                                     <label for="startTime_<%= day.key %>" class="block text-xs text-gray-500 mb-1">Início</label>
                                     <input type="time" id="startTime_<%= day.key %>" name="workingHours[<%= day.key %>][startTime]" 
@@ -122,7 +145,6 @@
                                            class="form-input block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm">
                                 </div>
                                 
-                                <!-- Fim -->
                                 <div class="sm:col-span-1">
                                     <label for="endTime_<%= day.key %>" class="block text-xs text-gray-500 mb-1">Fim</label>
                                     <input type="time" id="endTime_<%= day.key %>" name="workingHours[<%= day.key %>][endTime]" 
@@ -130,7 +152,6 @@
                                            class="form-input block w-full border border-gray-300 rounded-md shadow-sm py-1 px-2 text-sm">
                                 </div>
 
-                                <!-- Folga -->
                                 <div class="sm:col-span-1 flex items-center pt-5">
                                     <input id="isOff_<%= day.key %>" name="workingHours[<%= day.key %>][isOff]" type="checkbox" value="true"
                                            class="form-checkbox h-4 w-4 text-gold-dark border-gray-300 rounded focus:ring-gold-dark"
@@ -143,9 +164,8 @@
                         <% }); %>
                     </div>
                 </div>
-                <!-- === FIM DA NOVA SEÇÃO === -->
-
-                <!-- Campo Ativo -->
+                
+                <!-- Campo Ativo (Sem alterações) -->
                 <div class="flex items-center pt-4 border-t border-gray-200">
                     <input id="isActive" name="isActive" type="checkbox" 
                            class="form-checkbox h-4 w-4 text-gold-dark border-gray-300 rounded focus:ring-gold-dark"
@@ -155,7 +175,7 @@
                     </label>
                 </div>
 
-                <!-- Botão Salvar -->
+                <!-- Botão Salvar (Sem alterações) -->
                 <div class="pt-5">
                     <button type="submit"
                             class="w-full bg-gold text-white py-3 px-6 rounded-lg font-semibold hover:opacity-90 transition-opacity shadow flex items-center justify-center">

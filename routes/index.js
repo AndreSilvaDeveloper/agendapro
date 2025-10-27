@@ -6,6 +6,7 @@ const router = express.Router();
 // --- Middlewares ---
 const authMiddleware = require('../middleware/authMiddleware'); // Admin/Staff
 const clientAuthMiddleware = require('../middleware/clientAuthMiddleware'); // Cliente
+const upload = require('../middleware/upload'); // <-- ADICIONADO (Nosso middleware de upload)
 
 // --- Controladores Admin ---
 const authController = require('../controllers/authController');
@@ -69,6 +70,7 @@ router.get('/', authMiddleware, authController.getRoot);
 router.get('/dashboard', authMiddleware, dashboardController.getDashboard);
 
 // --- Rotas Cliente (Admin) ---
+// (Sem alterações aqui... tudo igual)
 router.get('/clients', authMiddleware, clientController.getClients);
 router.get('/search', authMiddleware, clientController.searchClients);
 router.post('/client', authMiddleware, clientController.createClient);
@@ -83,21 +85,21 @@ router.post('/client/:id/product/:pi/pay', authMiddleware, clientController.payC
 router.post('/client/:id/product/:pi/remove-payment/:pj', authMiddleware, clientController.removeClientProductPayment);
 
 // --- Rotas Agendamento (Admin) ---
-router.post('/appointment', authMiddleware, appointmentController.createAppointment); // Criação pelo Admin (já seta 'confirmado')
+// (Sem alterações aqui... tudo igual)
+router.post('/appointment', authMiddleware, appointmentController.createAppointment); 
 router.get('/agendamentos-por-dia', authMiddleware, appointmentController.getAgendaPorDia);
 router.post('/appointment/:id/edit-service/:idx', authMiddleware, appointmentController.editAppointmentService);
 router.post('/appointment/:id/edit-datetime', authMiddleware, appointmentController.editAppointmentDateTime);
 router.post('/appointment/:id/pay-service/:idx', authMiddleware, appointmentController.payAppointmentService);
 router.post('/appointment/:id/remove-service/:idx', authMiddleware, appointmentController.removeServiceFromAppointment);
 router.post('/appointment/:id/remove-payment/service/:sIdx/:pIdx', authMiddleware, appointmentController.removeAppointmentPayment);
-router.post('/appointment/:id/cancel', authMiddleware, appointmentController.cancelAppointment); // Rota genérica de cancelamento
-
-// --- NOVAS ROTAS PARA CONFIRMAR/CANCELAR SOLICITAÇÕES ---
+router.post('/appointment/:id/cancel', authMiddleware, appointmentController.cancelAppointment); 
 router.post('/admin/appointment/:id/confirm', authMiddleware, appointmentController.confirmAppointment);
 router.post('/admin/appointment/:id/cancel-by-admin', authMiddleware, appointmentController.cancelAppointmentByAdmin);
 
 
 // --- Rotas Financeiras (Admin) ---
+// (Sem alterações aqui... tudo igual)
 router.get('/financeiro', authMiddleware, financialController.getFinanceiro);
 router.get('/expenses', authMiddleware, financialController.getExpenses);
 router.post('/expenses', authMiddleware, financialController.createExpense);
@@ -105,6 +107,7 @@ router.post('/expenses/:id/delete', authMiddleware, financialController.deleteEx
 router.get('/balanco', authMiddleware, financialController.getBalanco);
 
 // --- Rotas Serviços (Admin) ---
+// (Sem alterações aqui... tudo igual)
 router.get('/admin/servicos', authMiddleware, serviceController.getServices);
 router.get('/admin/servicos/novo', authMiddleware, serviceController.getNewService);
 router.post('/admin/servicos/novo', authMiddleware, serviceController.postNewService);
@@ -115,9 +118,15 @@ router.post('/admin/servicos/:id/deletar', authMiddleware, serviceController.pos
 // --- Rotas Equipe (Admin) ---
 router.get('/admin/equipe', authMiddleware, staffController.getStaffList);
 router.get('/admin/equipe/novo', authMiddleware, staffController.getNewStaff);
-router.post('/admin/equipe/novo', authMiddleware, staffController.postNewStaff);
+
+// <-- MODIFICADO: Adicionado 'upload.single('staffPhoto')'
+router.post('/admin/equipe/novo', authMiddleware, upload.single('staffPhoto'), staffController.postNewStaff);
+
 router.get('/admin/equipe/:id/editar', authMiddleware, staffController.getEditStaff);
-router.post('/admin/equipe/:id/editar', authMiddleware, staffController.postEditStaff);
+
+// <-- MODIFICADO: Adicionado 'upload.single('staffPhoto')'
+router.post('/admin/equipe/:id/editar', authMiddleware, upload.single('staffPhoto'), staffController.postEditStaff);
+
 router.post('/admin/equipe/:id/deletar', authMiddleware, staffController.postDeleteStaff);
 
 

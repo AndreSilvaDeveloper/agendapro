@@ -6,6 +6,7 @@ const Organization = require('../models/Organization');
 /**
  * GET /portal/:orgId/registro
  * Mostra a página de registro para um cliente de um salão específico.
+ * (Sem alterações)
  */
 exports.getRegister = async (req, res) => {
   try {
@@ -19,6 +20,7 @@ exports.getRegister = async (req, res) => {
     // Renderiza uma nova view (que criaremos depois)
     res.render('client/register', {
       error: null,
+      success: null, // <-- Adicionado para consistência
       orgName: organization.name,
       orgId: organization._id
     });
@@ -31,6 +33,7 @@ exports.getRegister = async (req, res) => {
 /**
  * POST /portal/:orgId/registro
  * Processa o novo registro do cliente.
+ * (Sem alterações)
  */
 exports.postRegister = async (req, res) => {
   const { orgId } = req.params;
@@ -46,6 +49,7 @@ exports.postRegister = async (req, res) => {
     if (!name || !email || !password || !passwordConfirm) {
       return res.render('client/register', {
         error: 'Todos os campos são obrigatórios.',
+        success: null, // <-- Adicionado
         orgName: organization.name,
         orgId: orgId
       });
@@ -53,6 +57,7 @@ exports.postRegister = async (req, res) => {
     if (password !== passwordConfirm) {
       return res.render('client/register', {
         error: 'As senhas não coincidem.',
+        success: null, // <-- Adicionado
         orgName: organization.name,
         orgId: orgId
       });
@@ -60,6 +65,7 @@ exports.postRegister = async (req, res) => {
     if (password.length < 6) {
       return res.render('client/register', {
         error: 'A senha deve ter pelo menos 6 caracteres.',
+        success: null, // <-- Adicionado
         orgName: organization.name,
         orgId: orgId
       });
@@ -74,6 +80,7 @@ exports.postRegister = async (req, res) => {
     if (existingClient) {
       return res.render('client/register', {
         error: 'Este e-mail já está cadastrado neste salão.',
+        success: null, // <-- Adicionado
         orgName: organization.name,
         orgId: orgId
       });
@@ -112,6 +119,7 @@ exports.postRegister = async (req, res) => {
     const org = await Organization.findById(orgId);
     res.render('client/register', {
       error: errorMsg,
+      success: null, // <-- Adicionado
       orgName: org ? org.name : 'Erro',
       orgId: orgId
     });
@@ -121,6 +129,7 @@ exports.postRegister = async (req, res) => {
 /**
  * GET /portal/:orgId/login
  * Mostra a página de login do cliente.
+ * (Sem alterações - já estava correto)
  */
 exports.getLogin = async (req, res) => {
   try {
@@ -134,7 +143,7 @@ exports.getLogin = async (req, res) => {
     // Renderiza uma nova view (que criaremos depois)
     res.render('client/login', {
       error: req.query.error || null,
-      success: req.query.success || null,
+      success: req.query.success || null, // <-- Já estava correto
       orgName: organization.name,
       orgId: organization._id
     });
@@ -159,9 +168,13 @@ exports.postLogin = async (req, res) => {
       orgName = organization.name;
     }
 
+    // =================================
+    // ===     NOVA ALTERAÇÃO AQUI     ===
+    // =================================
     if (!email || !password) {
       return res.render('client/login', {
         error: 'E-mail e senha são obrigatórios.',
+        success: null, // <-- Adicionado
         orgName: orgName,
         orgId: orgId
       });
@@ -176,6 +189,7 @@ exports.postLogin = async (req, res) => {
     if (!client) {
       return res.render('client/login', {
         error: 'E-mail ou senha inválidos.',
+        success: null, // <-- Adicionado
         orgName: orgName,
         orgId: orgId
       });
@@ -187,10 +201,14 @@ exports.postLogin = async (req, res) => {
     if (!isMatch) {
       return res.render('client/login', {
         error: 'E-mail ou senha inválidos.',
+        success: null, // <-- Adicionado
         orgName: orgName,
         orgId: orgId
       });
     }
+    // =================================
+    // === FIM DA ALTERAÇÃO          ===
+    // =================================
 
     // --- Inicia a Sessão do Cliente ---
     req.session.clientLoggedIn = true;
@@ -203,17 +221,25 @@ exports.postLogin = async (req, res) => {
 
   } catch (err) {
     console.error('Erro no login do cliente:', err);
+    // =================================
+    // ===     NOVA ALTERAÇÃO AQUI     ===
+    // =================================
     res.render('client/login', {
       error: 'Erro interno. Tente novamente.',
+      success: null, // <-- Adicionado
       orgName: orgName,
       orgId: orgId
     });
+    // =================================
+    // === FIM DA ALTERAÇÃO          ===
+    // =================================
   }
 };
 
 /**
  * GET /portal/logout
  * Processa o logout do cliente.
+ * (Sem alterações)
  */
 exports.getLogout = (req, res) => {
   const orgId = req.session.clientOrgId; // Pega o orgId antes de destruir a sessão

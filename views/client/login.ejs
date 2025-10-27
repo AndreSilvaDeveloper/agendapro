@@ -12,13 +12,35 @@
             --color-gold-dark: #B8860B;
             --color-gold-accent: #DAA520;
         }
+        
+        /* --- NOVO FUNDO (MESMA IMAGEM) --- */
+        body {
+            /* Usando a mesma imagem da outra tela de login */
+            background-image: url('/images/background-login.png'); 
+            background-size: cover;       
+            background-position: center;  
+            background-repeat: no-repeat; 
+            background-attachment: fixed; 
+        }
+
         .text-gold { color: var(--color-gold-dark); }
         .bg-gold { background-color: var(--color-gold-accent); }
         .border-gold { border-color: var(--color-gold-light); }
         .ring-gold-dark { --tw-ring-color: var(--color-gold-dark); }
+        
         .input-group:focus-within .input-icon {
             color: var(--color-gold-dark);
         }
+
+        /* --- Input com fundo transparente (NOVO) --- */
+        .form-input-transparent::placeholder {
+             color: #d1d5db; /* Cor do placeholder (gray-300) */
+        }
+        .form-input-transparent:focus {
+            border-color: transparent;
+            background-color: rgba(255, 255, 255, 0.2); /* Um pouco mais claro no foco */
+        }
+
         .animate-fade-in {
             animation: fadeIn 0.5s ease-in;
         }
@@ -28,10 +50,11 @@
         }
     </style>
 </head>
-<body class="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+<body class="min-h-screen flex items-center justify-center p-4">
 
     <div class="relative z-10 w-full max-w-md">
-        <div class="bg-white rounded-3xl shadow-2xl overflow-hidden animate-fade-in">
+        
+        <div class="bg-black/30 backdrop-blur-lg rounded-3xl shadow-2xl overflow-hidden animate-fade-in">
             
             <div class="bg-gold p-8 text-center">
                  <h1 class="text-3xl font-bold text-white mb-2">
@@ -59,7 +82,7 @@
                 <form action="/portal/<%= orgId %>/login" method="POST" class="space-y-6" id="loginForm">
                     
                     <div class="input-group">
-                        <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <label for="email" class="block text-sm font-semibold text-gray-100 mb-2">
                             <i class="fas fa-envelope mr-2 text-gold"></i> E-mail
                         </label>
                         <div class="relative">
@@ -72,13 +95,13 @@
                                    required
                                    autocomplete="email"
                                    placeholder="seu.email@exemplo.com"
-                                   class="form-input w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 ring-gold-dark focus:border-transparent transition-all bg-white"
+                                   class="form-input form-input-transparent w-full pl-10 pr-4 py-3 border border-gray-500 rounded-xl focus:ring-2 ring-gold-dark focus:border-transparent transition-all bg-white/10 text-white placeholder-gray-300"
                                    autofocus> 
                         </div>
                     </div>
 
                     <div class="input-group">
-                        <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <label for="password" class="block text-sm font-semibold text-gray-100 mb-2">
                             <i class="fas fa-lock mr-2 text-gold"></i> Senha
                         </label>
                         <div class="relative">
@@ -91,7 +114,7 @@
                                    required
                                    autocomplete="current-password"
                                    placeholder="Digite sua senha"
-                                   class="form-input w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 ring-gold-dark focus:border-transparent transition-all bg-white">
+                                   class="form-input form-input-transparent w-full pl-10 pr-4 py-3 border border-gray-500 rounded-xl focus:ring-2 ring-gold-dark focus:border-transparent transition-all bg-white/10 text-white placeholder-gray-300">
                         </div>
                     </div>
 
@@ -104,7 +127,7 @@
                     </div>
                 </form>
 
-                <div class="mt-8 text-center text-sm text-gray-500 space-y-2">
+                <div class="mt-8 text-center text-sm text-gray-200 space-y-2">
                     <p>
                         Novo por aqui?
                         <a href="/portal/<%= orgId %>/registro" class="font-medium text-gold hover:underline">
@@ -116,7 +139,7 @@
             </div>
         </div> 
 
-        <div class="mt-8 text-center text-sm text-gray-600">
+        <div class="mt-8 text-center text-sm text-white">
              <p>
                 <i class="fas fa-crown mr-2 text-gold"></i>
                 <%= orgName %> © <%= new Date().getFullYear() %>
