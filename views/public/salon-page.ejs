@@ -13,7 +13,6 @@
             --color-gold-accent: #DAA520;
         }
         
-        /* --- MUDANÇA 1: Adicionando o fundo global --- */
         body {
             background-image: url('/images/background-login.png'); 
             background-size: cover;       
@@ -135,14 +134,14 @@
             <% } else { %>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <% services.forEach(service => { %>
-                        <div class="bg-black/80 p-5 rounded-xl border border-gray-600 shadow-sm">
-                            <h3 class="text-xl font-semibold text-gold-dark"><%= service.name %></h3>
-                            <p class="text-lg font-bold text-white mt-1">
+                        <div class="bg-black/70 backdrop-blur-md p-5 rounded-xl border border-gray-600 shadow-sm">
+                            <h3 class="text-xl font-semibold text-gold-accent"><%= service.name %></h3>
+                            <p class="text-lg font-bold text-white mt-1"> 
                                 R$ <%= service.price.toFixed(2).replace('.', ',') %>
                             </p>
-                            <p class="text-sm text-gray-300"><%= service.duration %> minutos</p>
+                            <p class="text-sm text-gray-100"><%= service.duration %> minutos</p> 
                             <% if (service.description) { %>
-                                <p class="text-gray-200 text-sm mt-3"><%= service.description %></p>
+                                <p class="text-gray-100 text-sm mt-3"><%= service.description %></p> 
                             <% } %>
                         </div>
                     <% }); %>

@@ -4,7 +4,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node app.js"
+    "start": "node app.js",
+    "dev": "nodemon app.js"
   },
   "keywords": [],
   "author": "",
@@ -25,6 +26,7 @@
     "multer": "^2.0.2",
     "node-fetch": "^2.7.0",
     "nodemailer": "^7.0.10",
+    "nodemon": "^3.1.10",
     "serverless-http": "^3.2.0",
     "slugify": "^1.6.6",
     "twilio": "^5.7.1"

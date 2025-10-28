@@ -6,9 +6,10 @@ const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
-const bcrypt = require('bcrypt'); // Embora não usado aqui, é usado em models/User.js
+const bcrypt = require('bcrypt');
 const bodyParser = require('body-parser');
 const path = require('path');
+const flash = require('connect-flash'); // --- 1. ADICIONADO ---
 
 // Carrega o arquivo principal de rotas
 const routes = require('./routes/index');
@@ -22,7 +23,6 @@ mongoose
   .catch(err => console.error('🔴 Erro ao conectar MongoDB:', err));
 
 // --- Configuração de Proxy (Vercel, Heroku, etc.) ---
-// Necessário para o 'secure: true' do cookie funcionar
 app.set('trust proxy', 1);
 
 // --- Detecta ambiente ---
@@ -40,10 +40,13 @@ app.use(session({
   }),
   cookie: {
     maxAge: 14 * 24 * 60 * 60 * 1000, // 14 dias em ms
-    secure:  isProd,                  // true somente em produção (HTTPS)
-    sameSite: isProd ? 'none' : 'lax' // 'none' para prod (cross-site), 'lax' para dev
+    secure:  isProd,
+    sameSite: isProd ? 'none' : 'lax'
   }
 }));
+
+// --- Middleware de Flash (para mensagens de erro/sucesso) ---
+app.use(flash()); // --- 2. ADICIONADO (DEVE VIR DEPOIS DA SESSÃO) ---
 
 // --- Configurações de View Engine (EJS) e Pasta Estática (public) ---
 app.set('views', path.join(__dirname, 'views'));
@@ -54,7 +57,6 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- Rotas da aplicação ---
-// Esta é a linha que carrega o arquivo 'routes/index.js'
 app.use('/', routes);
 
 // --- Middleware de tratamento de erro ---
@@ -64,7 +66,7 @@ app.use((err, req, res, next) => {
 });
 
 // --- Inicialização do servidor ---
-const PORT = process.env.PORT || 3006;
+const PORT = process.env.PORT || 3008;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
 });
