@@ -115,8 +115,20 @@ const appointmentSchema = new mongoose.Schema({
     type: String,
     trim: true,
     default: null
-  }
+  },
   // =================================
+
+
+  // ==========================================
+  // ===       NOVA ALTERAÇÃO (GEMINI)      ===
+  // ==========================================
+  // Este campo controla se o cliente já foi
+  // notificado sobre a última mudança de status.
+  clientNotified: {
+    type: Boolean,
+    default: true
+  }
+  // ==========================================
 
 }, { timestamps: true }); 
 

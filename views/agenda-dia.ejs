@@ -14,41 +14,21 @@
             --color-gold-accent: #DAA520;
         }
 
-        .text-gold {
-            color: var(--color-gold-dark);
-        }
-        .bg-gold {
-            background-color: var(--color-gold-accent);
-        }
-        .bg-gold-light {
-            background-color: #FFFBEB;
-        }
-        .border-gold {
-            border-color: var(--color-gold-light);
-        }
-        .hover\:text-gold:hover {
-            color: var(--color-gold-dark);
-        }
-        .hover\:bg-gold-light:hover {
-            background-color: #FFF8DC;
-        }
+        .text-gold { color: var(--color-gold-dark); }
+        .bg-gold { background-color: var(--color-gold-accent); }
+        .bg-gold-light { background-color: #FFFBEB; }
+        .border-gold { border-color: var(--color-gold-light); }
+        .hover\:text-gold:hover { color: var(--color-gold-dark); }
+        .hover\:bg-gold-light:hover { background-color: #FFF8DC; }
 
-        .animate-fade-in {
-            animation: fadeIn 0.5s ease-in;
-        }
+        .animate-fade-in { animation: fadeIn 0.5s ease-in; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .appointment-card {
-            transition: all 0.3s ease;
-            border-left: 4px solid transparent;
-        }
-        .appointment-card:hover {
-            border-left-color: var(--color-gold-dark);
-            background-color: #fcfcfc;
-        }
+        .appointment-card { transition: all 0.3s ease; border-left: 4px solid transparent; }
+        .appointment-card:hover { border-left-color: var(--color-gold-dark); background-color: #fcfcfc; }
 
         .time-badge {
             background-color: #fefce8;
@@ -61,10 +41,7 @@
 
         /* --- ESTILOS PARA BRILHO --- */
         .text-gradient-gold {
-            background: linear-gradient(
-                90deg,
-                #B8860B, #FFD700, #DAA520, #FFD700, #B8860B
-            );
+            background: linear-gradient(90deg, #B8860B, #FFD700, #DAA520, #FFD700, #B8860B);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -72,16 +49,11 @@
             background-size: 200% auto;
             animation: text-shine 4s linear infinite;
         }
-
         @keyframes text-shine {
             from { background-position: 200% center; }
             to { background-position: 0% center; }
         }
-
-        .bg-shine-gold {
-            position: relative;
-            overflow: hidden;
-        }
+        .bg-shine-gold { position: relative; overflow: hidden; }
         .bg-shine-gold::after {
             content: '';
             position: absolute;
@@ -89,58 +61,25 @@
             left: -75%;
             width: 50%;
             height: 120%;
-            background: linear-gradient(
-                90deg,
-                rgba(255, 255, 255, 0) 0%,
-                rgba(255, 255, 255, 0.4) 50%,
-                rgba(255, 255, 255, 0) 100%
-            );
+            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
             transform: skewX(-25deg);
             animation: bg-shine 5s infinite linear;
         }
-
         @keyframes bg-shine {
             0% { left: -75%; }
             100% { left: 125%; }
         }
         /* --- FIM ESTILOS BRILHO --- */
 
-        .card-hover {
-            transition: all 0.3s ease;
-        }
-        .card-hover:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-        .time-slot {
-            transition: all 0.2s ease;
-        }
-        .time-slot:hover {
-            transform: scale(1.05);
-        }
-        .day-header {
-            background-color: #f9fafb; /* bg-gray-50 */
-        }
-        .weekday-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.5rem 1rem;
-            border-radius: 9999px;
-            font-size: 0.875rem;
-            font-weight: 600;
-        }
-        .today-badge {
-            background-color: #fef3c7; /* yellow-200 */
-            color: #92400e; /* yellow-900 */
-        }
-        .future-badge {
-            background-color: #dbeafe; /* blue-100 */
-            color: #1e40af; /* blue-800 */
-        }
-        .past-badge {
-            background-color: #f3f4f6; /* gray-100 */
-            color: #4b5563; /* gray-600 */
-        }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); }
+        .time-slot { transition: all 0.2s ease; }
+        .time-slot:hover { transform: scale(1.05); }
+        .day-header { background-color: #f9fafb; }
+        .weekday-badge { display: inline-flex; align-items: center; padding: 0.5rem 1rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 600; }
+        .today-badge { background-color: #fef3c7; color: #92400e; }
+        .future-badge { background-color: #dbeafe; color: #1e40af; }
+        .past-badge { background-color: #f3f4f6; color: #4b5563; }
     </style>
 </head>
 <body class="min-h-screen bg-gray-50 font-sans antialiased">
@@ -164,27 +103,13 @@
                 </div>
 
                 <nav class="hidden lg:flex items-center space-x-6">
-                    <a href="/dashboard" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-home mr-2"></i>Dashboard
-                    </a>
-                    <a href="/agendamentos-por-dia" class="text-gradient-gold font-semibold">
-                        <i class="fas fa-calendar-alt mr-2"></i>Agendamentos
-                    </a>
-                    <a href="/clients" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-users mr-2"></i>Clientes
-                    </a>
-                    <a href="/financeiro" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-dollar-sign mr-2"></i>Financeiro
-                    </a>
-                    <a href="/balanco" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-balance-scale mr-2"></i>Balanço
-                    </a>
-                    <a href="/expenses" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-receipt mr-2"></i>Despesas
-                    </a>
-                    <a href="/logout" class="text-red-600 hover:text-red-700 transition-colors">
-                        <i class="fas fa-sign-out-alt mr-2"></i>Sair
-                    </a>
+                    <a href="/dashboard" class="text-gray-600 hover:text-gold transition-colors"><i class="fas fa-home mr-2"></i>Dashboard</a>
+                    <a href="/agendamentos-por-dia" class="text-gradient-gold font-semibold"><i class="fas fa-calendar-alt mr-2"></i>Agendamentos</a>
+                    <a href="/clients" class="text-gray-600 hover:text-gold transition-colors"><i class="fas fa-users mr-2"></i>Clientes</a>
+                    <a href="/financeiro" class="text-gray-600 hover:text-gold transition-colors"><i class="fas fa-dollar-sign mr-2"></i>Financeiro</a>
+                    <a href="/balanco" class="text-gray-600 hover:text-gold transition-colors"><i class="fas fa-balance-scale mr-2"></i>Balanço</a>
+                    <a href="/expenses" class="text-gray-600 hover:text-gold transition-colors"><i class="fas fa-receipt mr-2"></i>Despesas</a>
+                    <a href="/logout" class="text-red-600 hover:text-red-700 transition-colors"><i class="fas fa-sign-out-alt mr-2"></i>Sair</a>
                 </nav>
 
                 <button id="menu-button" class="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
@@ -193,34 +118,13 @@
             </div>
 
             <div id="mobile-menu" class="hidden lg:hidden mt-4 space-y-2">
-                <a href="/dashboard" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-home"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="/agendamentos-por-dia" class="flex items-center space-x-3 p-3 rounded-lg bg-gold-light text-gold font-semibold">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>Agendamentos</span>
-                </a>
-                <a href="/clients" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-users"></i>
-                    <span>Clientes</span>
-                </a>
-                <a href="/financeiro" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-dollar-sign"></i>
-                    <span>Financeiro</span>
-                </a>
-                <a href="/balanco" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-balance-scale"></i>
-                    <span>Balanço</span>
-                </a>
-                <a href="/expenses" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-receipt"></i>
-                    <span>Despesas</span>
-                </a>
-                <a href="/logout" class="flex items-center space-x-3 p-3 rounded-lg text-red-600 hover:bg-red-100">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Sair</span>
-                </a>
+                <a href="/dashboard" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold"><i class="fas fa-home"></i><span>Dashboard</span></a>
+                <a href="/agendamentos-por-dia" class="flex items-center space-x-3 p-3 rounded-lg bg-gold-light text-gold font-semibold"><i class="fas fa-calendar-alt"></i><span>Agendamentos</span></a>
+                <a href="/clients" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold"><i class="fas fa-users"></i><span>Clientes</span></a>
+                <a href="/financeiro" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold"><i class="fas fa-dollar-sign"></i><span>Financeiro</span></a>
+                <a href="/balanco" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold"><i class="fas fa-balance-scale"></i><span>Balanço</span></a>
+                <a href="/expenses" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold"><i class="fas fa-receipt"></i><span>Despesas</span></a>
+                <a href="/logout" class="flex items-center space-x-3 p-3 rounded-lg text-red-600 hover:bg-red-100"><i class="fas fa-sign-out-alt"></i><span>Sair</span></a>
             </div>
         </div>
     </header>
@@ -242,9 +146,7 @@
                             <i class="fas fa-calendar mr-2 text-gold"></i>
                             Selecionar Dia
                         </label>
-                        <input id="date"
-                               type="date"
-                               name="date"
+                        <input id="date" type="date" name="date"
                                value="<%= (typeof date !== 'undefined' && date) ? date : '' %>"
                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all">
                     </div>
@@ -383,23 +285,15 @@
                                     <i class="<%= dayIcon %> text-white"></i>
                                 </div>
                                 <div>
-                                    <h2 class="text-xl font-bold text-gray-900">
-                                        <%= d.format('DD/MM/YYYY') %>
-                                    </h2>
-                                    <p class="text-gray-600">
-                                        <%= weekdayMap[d.format('dddd')] %>
-                                    </p>
+                                    <h2 class="text-xl font-bold text-gray-900"><%= d.format('DD/MM/YYYY') %></h2>
+                                    <p class="text-gray-600"><%= weekdayMap[d.format('dddd')] %></p>
                                 </div>
                             </div>
                             <div class="flex items-center space-x-3">
                                 <span class="weekday-badge <%= badgeClass %>">
-                                    <% if (isToday) { %>
-                                        <i class="fas fa-star mr-1"></i>Hoje
-                                    <% } else if (isPast) { %>
-                                        <i class="fas fa-history mr-1"></i>Passado
-                                    <% } else { %>
-                                        <i class="fas fa-calendar mr-1"></i>Futuro
-                                    <% } %>
+                                    <% if (isToday) { %><i class="fas fa-star mr-1"></i>Hoje
+                                    <% } else if (isPast) { %><i class="fas fa-history mr-1"></i>Passado
+                                    <% } else { %><i class="fas fa-calendar mr-1"></i>Futuro<% } %>
                                 </span>
                                 <%
                                 const agendadosCount = agendadosList.length;
@@ -421,9 +315,7 @@
                                         Agendamentos
                                     </h3>
                                     <% if (agendadosList.length > 0) { %>
-                                    <span class="bg-gold-light text-gold-dark px-3 py-1 rounded-full text-sm font-medium">
-                                        <%= agendadosList.length %>
-                                    </span>
+                                    <span class="bg-gold-light text-gold-dark px-3 py-1 rounded-full text-sm font-medium"><%= agendadosList.length %></span>
                                     <% } %>
                                 </div>
 
@@ -432,8 +324,6 @@
                                 <div class="space-y-4">
                                     <% agendadosList.forEach(r => { %>
                                     <div class="appointment-card p-4 rounded-xl border border-l-4 <%= r.status === 'pendente' ? 'appointment-pending border-yellow-400 bg-yellow-50' : 'border-gray-200 bg-white' %>">
-
-                                        <%# Conteúdo do card %>
                                         <div class="flex items-center justify-between mb-2">
                                             <div class="flex items-center space-x-3">
                                                 <div class="w-10 h-10 bg-gold-light rounded-full flex items-center justify-center">
@@ -441,9 +331,7 @@
                                                 </div>
                                                 <div>
                                                     <div class="font-semibold text-gray-900">
-                                                        <a href="/client/<%= r.clientId %>" class="text-gold hover:text-gold-dark transition-colors">
-                                                            <%= r.clientName %>
-                                                        </a>
+                                                        <a href="/client/<%= r.clientId %>" class="text-gold hover:text-gold-dark transition-colors"><%= r.clientName %></a>
                                                     </div>
                                                     <div class="text-sm text-gray-600">
                                                         <i class="fas fa-concierge-bell mr-1"></i>
@@ -459,18 +347,13 @@
                                             </div>
                                         </div>
 
-                                        <%# Bloco de botões (apenas se 'pendente') %>
                                         <% if (r.status === 'pendente') { %>
                                         <div class="mt-3 pt-3 border-t border-yellow-200 flex flex-wrap justify-end gap-2">
-                                            <!-- ================================= -->
-                                            <!-- ===     NOVA ALTERAÇÃO AQUI     === -->
-                                            <!-- ================================= -->
                                             <form action="/admin/appointment/<%= r._id %>/cancel-by-admin" method="POST" onsubmit="return promptCancelReason(this)">
                                                 <button type="submit" class="px-3 py-1 text-xs font-medium text-red-600 bg-red-100 border border-red-200 rounded-md hover:bg-red-200 transition-colors">
                                                     <i class="fas fa-times mr-1"></i> Cancelar
                                                 </button>
                                             </form>
-                                            <!-- ================================= -->
                                             <form action="/admin/appointment/<%= r._id %>/confirm" method="POST">
                                                 <button type="submit" class="px-3 py-1 text-xs font-medium text-green-700 bg-green-100 border border-green-200 rounded-md hover:bg-green-200 transition-colors">
                                                     <i class="fas fa-check mr-1"></i> Confirmar
@@ -478,7 +361,6 @@
                                             </form>
                                         </div>
                                         <% } %>
-
                                     </div>
                                     <% }); %>
                                 </div>
@@ -491,7 +373,6 @@
                                     <p class="text-sm text-gray-400 mt-1">Dia livre para descanso ou novos clientes</p>
                                 </div>
                                 <% } %>
-
                             </div>
 
                             <div>
@@ -501,9 +382,7 @@
                                         Horários Disponíveis
                                     </h3>
                                     <% if (livresList.length > 0) { %>
-                                    <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                                        <%= livresList.length %>
-                                    </span>
+                                    <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium"><%= livresList.length %></span>
                                     <% } %>
                                 </div>
 
@@ -533,14 +412,10 @@
                                 <% } %>
                             </div>
 
-
-
-<div id="toast-success" class="fixed top-5 right-5 z-50 hidden bg-green-100 border border-green-400 text-green-800 px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3">
-  <i class="fas fa-check-circle text-green-600"></i>
-  <span id="toast-message" class="font-semibold"></span>
-</div>
-
-
+                            <div id="toast-success" class="fixed top-5 right-5 z-50 hidden bg-green-100 border border-green-400 text-green-800 px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3">
+                              <i class="fas fa-check-circle text-green-600"></i>
+                              <span id="toast-message" class="font-semibold"></span>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -563,33 +438,33 @@
         </div>
 
         <div id="modalAgendamento" class="absolute bg-white rounded-lg p-6 w-full max-w-md hidden z-50 shadow-xl border border-gray-300">
-  <h2 class="text-lg font-bold mb-4 text-gray-800">Agendar Horário</h2>
-  <form action="/appointment" method="POST">
-    <input type="hidden" id="modalDate" name="date">
-    <input type="hidden" id="modalTime" name="time">
+          <h2 class="text-lg font-bold mb-4 text-gray-800">Agendar Horário</h2>
+          <form action="/appointment" method="POST">
+            <input type="hidden" id="modalDate" name="date">
+            <input type="hidden" id="modalTime" name="time">
 
-    <div class="mb-4">
-      <label for="clientSearch" class="block text-sm font-medium text-gray-700">Cliente:</label>
-      <input type="text" id="clientSearch" class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-gold-dark" placeholder="Digite o nome do cliente..." autocomplete="off" required>
-      <input type="hidden" name="clientId" id="clientId">
-      <ul id="clientSuggestions" class="border border-gray-300 rounded mt-1 bg-white max-h-40 overflow-y-auto hidden"></ul>
-    </div>
+            <div class="mb-4">
+              <label for="clientSearch" class="block text-sm font-medium text-gray-700">Cliente:</label>
+              <input type="text" id="clientSearch" class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-gold-dark" placeholder="Digite o nome do cliente..." autocomplete="off" required>
+              <input type="hidden" name="clientId" id="clientId">
+              <ul id="clientSuggestions" class="border border-gray-300 rounded mt-1 bg-white max-h-40 overflow-y-auto hidden"></ul>
+            </div>
 
-    <div class="mb-4">
-      <label class="block text-sm font-medium text-gray-700">Serviço:</label>
-      <input type="text" id="serviceName" class="w-full p-2 border border-gray-300 rounded mb-2 focus:ring-2 focus:ring-gold-dark" placeholder="Nome do serviço" required>
-      <input type="number" id="servicePrice" class="w-full p-2 border border-gray-300 rounded mb-2 focus:ring-2 focus:ring-gold-dark" placeholder="Preço (R$)" required step="0.01">
-      <input type="number" id="serviceDuration" class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-gold-dark" placeholder="Duração (min)" required>
-      <input type="hidden" name="services" id="servicesInput">
-      <input type="hidden" name="duration" id="durationInput">
-    </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700">Serviço:</label>
+              <input type="text" id="serviceName" class="w-full p-2 border border-gray-300 rounded mb-2 focus:ring-2 focus:ring-gold-dark" placeholder="Nome do serviço" required>
+              <input type="number" id="servicePrice" class="w-full p-2 border border-gray-300 rounded mb-2 focus:ring-2 focus:ring-gold-dark" placeholder="Preço (R$)" required step="0.01">
+              <input type="number" id="serviceDuration" class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-gold-dark" placeholder="Duração (min)" required>
+              <input type="hidden" name="services" id="servicesInput">
+              <input type="hidden" name="duration" id="durationInput">
+            </div>
 
-    <div class="flex justify-end gap-4 mt-6">
-      <button type="button" onclick="fecharModal()" class="text-gray-500 hover:text-gray-700">Cancelar</button>
-      <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Agendar</button>
-    </div>
-  </form>
-</div>
+            <div class="flex justify-end gap-4 mt-6">
+              <button type="button" onclick="fecharModal()" class="text-gray-500 hover:text-gray-700">Cancelar</button>
+              <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Agendar</button>
+            </div>
+          </form>
+        </div>
     </main>
 
     <footer class="bg-white border-t border-gray-200 mt-12">
@@ -604,11 +479,16 @@
         </div>
     </footer>
 
-
     <% if (typeof clients !== 'undefined' && clients) { %>
-      <div id="clients-data" data-clients='<%- JSON.stringify(clients) %>'></div>
+      <div id="clients-data" class="hidden" data-clients='<%- JSON.stringify(clients) %>'></div>
     <% } else { %>
-      <div id="clients-data" data-clients='[]'></div>
+      <div id="clients-data" class="hidden" data-clients='[]'></div>
+    <% } %>
+
+    <% if (typeof pendingAppointments !== 'undefined' && pendingAppointments) { %>
+      <div id="pending-data" class="hidden" data-pending='<%- JSON.stringify(pendingAppointments) %>'></div>
+    <% } else { %>
+      <div id="pending-data" class="hidden" data-pending='[]'></div>
     <% } %>
 
 <script>
@@ -624,25 +504,17 @@
   }
 </script>
 
-
-    <script>
+<script>
   // Mobile menu toggle
   const menuButton = document.getElementById('menu-button');
   const mobileMenu = document.getElementById('mobile-menu');
-
   if (menuButton && mobileMenu) {
-    menuButton.addEventListener('click', () => {
-      mobileMenu.classList.toggle('hidden');
-    });
+    menuButton.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
   }
 
-  // Inicialização das animações
+  // Inicialização + ALERTA de pendentes
   document.addEventListener('DOMContentLoaded', function () {
-    const observerOptions = {
-      threshold: 0.1,
-      rootMargin: '0px 0px -50px 0px'
-    };
-
+    const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -50px 0px' };
     const observer = new IntersectionObserver(function (entries) {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -651,7 +523,6 @@
         }
       });
     }, observerOptions);
-
 
     document.querySelectorAll('.animate-fade-in').forEach(el => {
       el.style.opacity = '0';
@@ -663,36 +534,172 @@
     // Define a data de hoje como padrão se não houver valor
     const dateInput = document.getElementById('date');
     if (dateInput && !dateInput.value) {
-
-      // Lê a data do atributo 'data-default-date' que definimos no <main>
       const defaultDate = document.querySelector('main').dataset.defaultDate;
-
       if (defaultDate) {
-          dateInput.value = defaultDate; // Seta a data vinda do controller
+        dateInput.value = defaultDate;
       } else {
-          // Se não veio data, usa a data de hoje
-          const today = new Date();
-          const formattedDate = today.toISOString().split('T')[0];
-          dateInput.value = formattedDate;
+        const today = new Date();
+        const formattedDate = today.toISOString().split('T')[0];
+        dateInput.value = formattedDate;
       }
     }
+
+    // ======================================================
+    // ===  Alerta de Agendamentos Pendentes (robusto)    ===
+    // ======================================================
+    console.log("--- [Agenda-Dia] Iniciando verificação de Agendamentos Pendentes ---");
+    if (window.__pendenteAlertShown) {
+      console.log("[Agenda-Dia] Alerta já exibido neste load. Abortando.");
+      return;
+    }
+
+    // Função fallback: coleta pendentes a partir do DOM renderizado
+    function collectPendingFromDOM() {
+      const items = [];
+      document.querySelectorAll('.appointment-card.appointment-pending').forEach(card => {
+        const section = card.closest('section.bg-white');
+        const dateH2 = section ? section.querySelector('h2.text-xl') : null;
+        const dateText = dateH2 ? dateH2.textContent.trim() : ''; // dd/mm/yyyy
+        const m = dateText.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+
+        // Hora (pega o badge dentro do card e limpa ícone/espacos)
+        const timeBadge = card.querySelector('div.bg-gold-light.text-gold-dark.text-sm.font-bold') || card.querySelector('div.bg-gold-light.text-gold-dark');
+        let timeText = timeBadge ? timeBadge.textContent : '';
+        timeText = (timeText || '').replace(/[^\d:]/g, '').slice(0,5); // HH:MM
+
+        // Cliente
+        const clientAnchor = card.querySelector('.font-semibold a, a.text-gold');
+        const clientName = clientAnchor ? clientAnchor.textContent.trim() : 'Cliente';
+
+        // Serviço
+        const serviceEl = card.querySelector('.text-sm.text-gray-600');
+        const serviceName = serviceEl ? serviceEl.textContent.trim().replace(/\s+/g,' ') : 'Serviço';
+
+        // ID do agendamento (pega do action do form)
+        const cancelForm = card.querySelector('form[action*="/cancel-by-admin"]');
+        let id = null;
+        if (cancelForm && cancelForm.action) {
+          const mId = cancelForm.action.match(/appointment\/([^/]+)\/cancel-by-admin/);
+          if (mId) id = mId[1];
+        }
+
+        // Monta ISO aproximado para exibir (fuso -03:00)
+        let iso = new Date().toISOString();
+        if (m && timeText) {
+          iso = `${m[3]}-${m[2]}-${m[1]}T${timeText}:00-03:00`;
+        }
+
+        items.push({
+          _id: id,
+          date: iso,
+          clientId: { name: clientName },
+          staffId: { name: 'Qualquer Profissional' },
+          services: [{ name: serviceName }]
+        });
+      });
+      return items;
+    }
+
+    try {
+      const dataElementPending = document.getElementById('pending-data');
+      console.log("[Agenda-Dia] Elemento #pending-data encontrado:", !!dataElementPending);
+
+      let pendingList = [];
+      if (dataElementPending) {
+        const pendingDataString = dataElementPending.dataset.pending;
+        console.log("[Agenda-Dia] String de dados pendentes (data-pending):", pendingDataString);
+        if (pendingDataString && pendingDataString !== 'undefined') {
+          try {
+            pendingList = JSON.parse(pendingDataString || '[]');
+          } catch (e) {
+            console.warn("[Agenda-Dia] Falha ao parsear data-pending. Usando fallback DOM.", e);
+          }
+        }
+      }
+
+      // Fallback: se vazio, coleta do DOM renderizado
+      if (!Array.isArray(pendingList) || pendingList.length === 0) {
+        console.log("[Agenda-Dia] Usando fallback: coletando pendentes do DOM…");
+        pendingList = collectPendingFromDOM();
+        console.log("[Agenda-Dia] Pendentes coletados do DOM:", pendingList);
+      }
+
+      if (Array.isArray(pendingList) && pendingList.length > 0) {
+        let alertHTML = '<div style="text-align: left; max-height: 400px; overflow-y: auto; padding-right: 15px;">';
+        pendingList.forEach(appt => {
+          const dateObj = new Date(appt.date);
+          const date = isNaN(dateObj.getTime())
+            ? ''
+            : dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+          const time = isNaN(dateObj.getTime())
+            ? ''
+            : dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+          const clientName = appt?.clientId?.name || 'Cliente';
+          const staffName = appt?.staffId?.name || 'Qualquer Profissional';
+          const serviceName = (appt?.services && appt.services[0]?.name) ? appt.services[0].name : 'Serviço';
+
+          // Botões só se tivermos _id
+          const btns = appt?._id ? `
+              <form action="/admin/appointment/${appt._id}/cancel-by-admin" method="POST" onsubmit="return promptCancelReason(this)" style="margin:0;">
+                <button type="submit" style="background:#fee2e2;color:#dc2626;border:1px solid #fecaca;padding:5px 10px;font-size:0.8em;font-weight:600;border-radius:5px;cursor:pointer;">
+                  <i class="fas fa-times"></i> Cancelar
+                </button>
+              </form>
+              <form action="/admin/appointment/${appt._id}/confirm" method="POST" style="margin:0;">
+                <button type="submit" style="background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0;padding:5px 10px;font-size:0.8em;font-weight:600;border-radius:5px;cursor:pointer;">
+                  <i class="fas fa-check"></i> Confirmar
+                </button>
+              </form>` : '';
+
+          alertHTML += `
+            <div style="padding:12px;border:1px solid #fce7b6;background:#fffbeb;border-radius:8px;margin-bottom:12px;">
+              <div style="font-weight:bold;font-size:1.1em;color:var(--color-gold-dark);">
+                <i class="fas fa-user"></i> ${clientName}
+              </div>
+              <div style="font-size:0.95em;color:#555;margin-top:5px;">
+                <i class="fas fa-concierge-bell"></i> ${serviceName}<br>
+                <i class="fas fa-user-tie"></i> ${staffName}<br>
+                ${(date || time) ? `<i class="fas fa-calendar-alt"></i> ${date}${date && time ? ' às ' : ''}${time}` : ''}
+              </div>
+              <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px;">
+                ${btns}
+              </div>
+            </div>`;
+        });
+        alertHTML += '</div>';
+
+        Swal.fire({
+          iconHtml: '<i class="fas fa-bell fa-beat" style="color:#F59E0B;font-size:2.5em;"></i>',
+          title: `Você tem ${pendingList.length} Agendamento${pendingList.length > 1 ? 's' : ''} Pendente${pendingList.length > 1 ? 's' : ''}!`,
+          html: alertHTML,
+          showCloseButton: true,
+          showConfirmButton: false,
+          width: '500px',
+          background: '#ffffff'
+        });
+
+        window.__pendenteAlertShown = true;
+        console.log("[Agenda-Dia] Alerta Swal de pendentes disparado.");
+      } else {
+        console.log("[Agenda-Dia] Nenhum agendamento pendente identificado. Alerta não exibido.");
+      }
+    } catch (e) {
+      console.error("[Agenda-Dia] Erro CRÍTICO ao processar agendamentos pendentes:", e);
+    }
+    console.log("--- [Agenda-Dia] Fim da verificação de Agendamentos Pendentes ---");
   });
 
-// Autocompletar cliente
+  // Autocompletar cliente
   const clientSearch = document.getElementById('clientSearch');
   const suggestions = document.getElementById('clientSuggestions');
   const clientIdInput = document.getElementById('clientId');
 
-  if (clientSearch && suggestions && clientIdInput) { // Verifica se todos os elementos existem
+  if (clientSearch && suggestions && clientIdInput) {
     clientSearch.addEventListener('input', () => {
-      // Limpa o ID
       clientIdInput.value = '';
-
       const value = clientSearch.value.toLowerCase();
       suggestions.innerHTML = '';
-      // Garante que 'clients' é um array antes de filtrar
       const matches = Array.isArray(clients) ? clients.filter(c => c && c.name && c.name.toLowerCase().includes(value)) : [];
-
       if (matches.length > 0) {
         suggestions.classList.remove('hidden');
         matches.forEach(c => {
@@ -721,193 +728,157 @@
 
   // Clicar em horário → abre o modal
   document.querySelectorAll('.time-slot').forEach(el => {
-      el.addEventListener('click', (event) => {
-        const time = el.textContent.trim().replace(/[^0-9:]/g, ''); // Limpa ícone
-        const section = el.closest('section.bg-white'); // Garante que pega a seção correta
-        if (!section) return; // Segurança
+    el.addEventListener('click', (event) => {
+      const time = el.textContent.trim().replace(/[^0-9:]/g, '');
+      const section = el.closest('section.bg-white');
+      if (!section) return;
+      const dateH2 = section.querySelector('h2.text-xl');
+      if (!dateH2) return;
 
-        const dateH2 = section.querySelector('h2.text-xl');
-        if (!dateH2) return; // Segurança
+      const dateText = dateH2.textContent.trim(); // 10/07/2025
+      const [day, month, year] = dateText.split('/');
+      if (!day || !month || !year) return;
+      const isoDate = `${year}-${month}-${day}`;
 
-        const dateText = dateH2.textContent.trim(); // Ex: 10/07/2025
-        const [day, month, year] = dateText.split('/');
-        if (!day || !month || !year) return; // Segurança
-        const isoDate = `${year}-${month}-${day}`;
+      const modal = document.getElementById('modalAgendamento');
+      if (!modal) return;
 
-        const modal = document.getElementById('modalAgendamento');
-        if (!modal) return; // Segurança
+      const modalDateInput = document.getElementById('modalDate');
+      const modalTimeInput = document.getElementById('modalTime');
+      if (modalDateInput) modalDateInput.value = isoDate;
+      if (modalTimeInput) modalTimeInput.value = time;
 
-        // Preenche campos
-        const modalDateInput = document.getElementById('modalDate');
-        const modalTimeInput = document.getElementById('modalTime');
-        if (modalDateInput) modalDateInput.value = isoDate;
-        if (modalTimeInput) modalTimeInput.value = time;
+      const clientSearchInput = document.getElementById('clientSearch');
+      const clientIdHiddenInput = document.getElementById('clientId');
+      const serviceNameInput = document.getElementById('serviceName');
+      const servicePriceInput = document.getElementById('servicePrice');
+      const serviceDurationInput = document.getElementById('serviceDuration');
+      if(clientSearchInput) clientSearchInput.value = '';
+      if(clientIdHiddenInput) clientIdHiddenInput.value = '';
+      if(serviceNameInput) serviceNameInput.value = '';
+      if(servicePriceInput) servicePriceInput.value = '';
+      if(serviceDurationInput) serviceDurationInput.value = '';
 
-        // Limpa campos do modal anterior (com verificação)
-        const clientSearchInput = document.getElementById('clientSearch');
-        const clientIdHiddenInput = document.getElementById('clientId');
-        const serviceNameInput = document.getElementById('serviceName');
-        const servicePriceInput = document.getElementById('servicePrice');
-        const serviceDurationInput = document.getElementById('serviceDuration');
-        if(clientSearchInput) clientSearchInput.value = '';
-        if(clientIdHiddenInput) clientIdHiddenInput.value = '';
-        if(serviceNameInput) serviceNameInput.value = '';
-        if(servicePriceInput) servicePriceInput.value = '';
-        if(serviceDurationInput) serviceDurationInput.value = '';
+      const rect = el.getBoundingClientRect();
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
 
+      const top = rect.top + scrollTop + el.offsetHeight + 8;
+      let left = rect.left + scrollLeft;
 
-        // Calcula posição do clique
-        const rect = el.getBoundingClientRect();
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+      if (left + modal.offsetWidth > window.innerWidth) {
+        left = window.innerWidth - modal.offsetWidth - 20;
+      }
 
-        const top = rect.top + scrollTop + el.offsetHeight + 8;
-        let left = rect.left + scrollLeft;
-
-        // Garante que o modal não saia da tela
-        if (left + modal.offsetWidth > window.innerWidth) {
-            left = window.innerWidth - modal.offsetWidth - 20; // 20px de margem
-        }
-
-        modal.style.top = `${top}px`;
-        modal.style.left = `${left}px`;
-        modal.classList.remove('hidden');
-        if(clientSearchInput) clientSearchInput.focus(); // Foca no primeiro campo se ele existir
-      });
+      modal.style.top = `${top}px`;
+      modal.style.left = `${left}px`;
+      modal.classList.remove('hidden');
+      if(clientSearchInput) clientSearchInput.focus();
+    });
   });
-
 
   // Fecha o modal
   function fecharModal() {
     const modal = document.getElementById('modalAgendamento');
     if (modal) {
-        modal.classList.add('hidden');
-        modal.style.top = '';
-        modal.style.left = '';
+      modal.classList.add('hidden');
+      modal.style.top = '';
+      modal.style.left = '';
     }
   }
-
 
   // Antes do submit, monta objeto services e preenche duração
   const modalForm = document.querySelector('#modalAgendamento form');
   if (modalForm) {
     modalForm.addEventListener('submit', function (e) {
-
       const clientIdHidden = document.getElementById('clientId');
       const clientSearchInput = document.getElementById('clientSearch');
-      if (!clientIdHidden || !clientSearchInput) return; // Segurança
+      if (!clientIdHidden || !clientSearchInput) return;
 
       const clientId = clientIdHidden.value;
       const clientName = clientSearchInput.value;
 
-      // Validação do Cliente
-      // Garante que 'clients' é um array antes de usar 'find'
       const clientExists = Array.isArray(clients) ? clients.find(c => c && c._id === clientId && c.name === clientName) : null;
-
       if (!clientId || !clientExists) {
-        e.preventDefault(); // Impede o envio
+        e.preventDefault();
         Swal.fire({
           icon: 'error',
           title: 'Cliente Inválido',
           text: 'Por favor, digite o nome e SELECIONE um cliente da lista antes de agendar.',
-          confirmButtonColor: '#ef4444', // Cor do botão (vermelho)
-          background: '#fff1f2' // Fundo levemente avermelhado
+          confirmButtonColor: '#ef4444',
+          background: '#fff1f2'
         });
         clientSearchInput.focus();
         return false;
       }
 
-      // Pega dados do serviço e duração (com verificação)
       const serviceNameInput = document.getElementById('serviceName');
       const servicePriceInput = document.getElementById('servicePrice');
       const serviceDurationInput = document.getElementById('serviceDuration');
       const servicesInputHidden = document.getElementById('servicesInput');
       const durationInputHidden = document.getElementById('durationInput');
 
-      if (!serviceNameInput || !servicePriceInput || !serviceDurationInput || !servicesInputHidden || !durationInputHidden) return; // Segurança
+      if (!serviceNameInput || !servicePriceInput || !serviceDurationInput || !servicesInputHidden || !durationInputHidden) return;
 
       const service = {
         name: serviceNameInput.value,
-        price: parseFloat(servicePriceInput.value) || 0, // Garante que é número
+        price: parseFloat(servicePriceInput.value) || 0,
         payments: []
       };
-      const duration = parseInt(serviceDurationInput.value, 10) || 30; // Garante que é número, default 30min
+      const duration = parseInt(serviceDurationInput.value, 10) || 30;
 
       servicesInputHidden.value = JSON.stringify([service]);
       durationInputHidden.value = duration;
     });
   }
 
-  // =================================
-  // ===     NOVA ALTERAÇÃO AQUI     ===
-  // =================================
-  /**
-   * Pede ao admin o motivo do cancelamento antes de enviar o formulário.
-   * (Copiado da correção do client.ejs)
-   */
+  // Prompt motivo cancelamento (global)
   function promptCancelReason(form) {
       const reason = prompt("Por favor, insira o motivo do cancelamento (será visível para o cliente):");
-
-      // 1. Se o usuário clicou "Cancelar" (null)
-      if (reason === null) {
-          return false; // Impede o envio, sem alerta
-      }
-
-      // 2. Se o usuário clicou "OK" mas deixou em branco
+      if (reason === null) return false;
       if (reason.trim() === "") {
           alert("O motivo do cancelamento é obrigatório.");
-          return false; // Impede o envio
+          return false;
       }
-
-      // 3. Se um motivo válido foi fornecido
       const input = document.createElement('input');
       input.type = 'hidden';
-      input.name = 'cancellationReason'; // O nome do campo que o controller vai receber
+      input.name = 'cancellationReason';
       input.value = reason.trim();
       form.appendChild(input);
-
-      return true; // Permite o envio do formulário
+      return true;
   }
-  // =================================
 </script>
 
 <script>
-  // Verifica parâmetro "success" ou "error" na URL e mostra com SweetAlert2
+  // SweetAlert via parâmetros da URL (success/error)
   const urlParams = new URLSearchParams(window.location.search);
-  const successMsg = urlParams.get('success'); // Renomeado para não conflitar com successTime
+  const successMsg = urlParams.get('success');
   const errorMsg = urlParams.get('error');
 
-if (successMsg) {
-  // Remove o parâmetro da URL
-  window.history.replaceState({}, document.title, window.location.pathname + window.location.hash); // Mantém o hash se houver
+  if (successMsg) {
+    window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+    Swal.fire({
+      icon: 'success',
+      title: 'Sucesso!',
+      text: decodeURIComponent(successMsg),
+      confirmButtonText: 'Fechar',
+      confirmButtonColor: '#10b981',
+      background: '#f0fdf4'
+    });
+  }
 
-  Swal.fire({
-    icon: 'success',
-    title: 'Sucesso!',
-    // Decodifica a mensagem vinda da URL (ex: "Agendamento confirmado!")
-    text: decodeURIComponent(successMsg),
-    confirmButtonText: 'Fechar',
-    confirmButtonColor: '#10b981', // Cor do botão (verde)
-    background: '#f0fdf4' // Fundo levemente esverdeado
-  });
-}
-
-if (errorMsg) {
-  // Remove o parâmetro da URL
-  window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
-
-  Swal.fire({
-    icon: 'error',
-    title: 'Erro',
-    text: decodeURIComponent(errorMsg), // Decodifica a mensagem
-    confirmButtonText: 'Fechar',
-    confirmButtonColor: '#ef4444', // Cor do botão (vermelho)
-    background: '#fff1f2' // Fundo levemente avermelhado
-  });
-}
-
+  if (errorMsg) {
+    window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+    Swal.fire({
+      icon: 'error',
+      title: 'Erro',
+      text: decodeURIComponent(errorMsg),
+      confirmButtonText: 'Fechar',
+      confirmButtonColor: '#ef4444',
+      background: '#fff1f2'
+    });
+  }
 </script>
-
 
 </body>
 </html>

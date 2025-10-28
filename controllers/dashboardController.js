@@ -1,6 +1,7 @@
 // controllers/dashboardController.js
 const Client = require('../models/Client');
 const Appointment = require('../models/Appointment');
+const Organization = require('../models/Organization');
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
@@ -12,27 +13,66 @@ dayjs.extend(timezone);
 dayjs.extend(isoWeek);
 dayjs.extend(isBetween);
 
-/**
- * Pega o ID da organização logada a partir da sessão.
- * Esta é a chave de segurança para o multi-salão.
- */
 const getOrgId = (req) => req.session.organizationId;
 
 exports.getDashboard = async (req, res) => {
   try {
-    const organizationId = getOrgId(req); // Pega o ID do salão logado
+    const organizationId = getOrgId(req);
+    const ref = dayjs().tz('America/Sao_Paulo');
 
-    const hojeStart = dayjs().tz('America/Sao_Paulo').startOf('day').toDate();
-    const hojeEnd = dayjs().tz('America/Sao_Paulo').endOf('day').toDate();
-    const amanhaStart = dayjs().tz('America/Sao_Paulo').add(1, 'day').startOf('day').toDate();
-    const amanhaEnd = dayjs().tz('America/Sao_Paulo').add(1, 'day').endOf('day').toDate();
+    const hojeStart = ref.startOf('day').toDate();
+    const hojeEnd = ref.endOf('day').toDate();
+    const amanhaStart = ref.add(1, 'day').startOf('day').toDate();
+    const amanhaEnd = ref.add(1, 'day').endOf('day').toDate();
 
-    // Busca agendamentos de HOJE APENAS desta organização
-    const rawHoje = await Appointment.find({
-      organizationId: organizationId, // <-- FILTRO DE SEGURANÇA
-      date: { $gte: hojeStart, $lte: hojeEnd }
-    }).populate('clientId').sort('date');
+    const [
+      organization,
+      rawHoje,
+      rawAmanha,
+      todosAgendamentos,
+      todosClientes,
+      // Busca de agendamentos pendentes
+      pendingAppointments
+    ] = await Promise.all([
+      // 1. Busca a organização
+      Organization.findById(organizationId).lean(),
 
+      // 2. Busca agendamentos de HOJE
+      Appointment.find({
+        organizationId: organizationId,
+        date: { $gte: hojeStart, $lte: hojeEnd }
+      }).populate('clientId').sort('date'),
+
+      // 3. Busca agendamentos de AMANHÃ
+      Appointment.find({
+        organizationId: organizationId,
+        date: { $gte: amanhaStart, $lte: amanhaEnd }
+      }).populate('clientId').sort('date'),
+
+      // 4. Busca TODOS os agendamentos (para receita)
+      Appointment.find({ organizationId: organizationId }),
+
+      // 5. Busca TODOS os clientes (para receita)
+      Client.find({ organizationId: organizationId }),
+
+      // 6. Busca todos os pendentes para o alerta
+      Appointment.find({
+        organizationId: organizationId,
+        status: 'pendente' // A chave da sua solicitação
+      })
+      .populate('clientId', 'name')  // Pega o nome do cliente
+      .populate('staffId', 'name')   // Pega o nome do profissional
+      .sort({ date: 1 })             // Mostra os mais antigos primeiro
+      .lean() // .lean() para performance
+    ]);
+
+    if (!organization) {
+      console.warn(`Organização ${organizationId} não encontrada na busca. Deslogando...`);
+      req.session.destroy();
+      return res.redirect('/login');
+    }
+
+    // Processa agendamentos de HOJE
     const proximosHoje = [...new Map(
       rawHoje
         .filter(a => a.clientId && ((a.services || []).length || (a.products || []).length))
@@ -47,12 +87,7 @@ exports.getDashboard = async (req, res) => {
         })
     ).values()];
 
-    // Busca agendamentos de AMANHÃ APENAS desta organização
-    const rawAmanha = await Appointment.find({
-      organizationId: organizationId, // <-- FILTRO DE SEGURANÇA
-      date: { $gte: amanhaStart, $lte: amanhaEnd }
-    }).populate('clientId').sort('date');
-
+    // Processa agendamentos de AMANHÃ
     const proximosAmanha = [...new Map(
       rawAmanha
         .filter(a => a.clientId && ((a.services || []).length || (a.products || []).length))
@@ -67,12 +102,9 @@ exports.getDashboard = async (req, res) => {
         })
     ).values()];
 
+    // Calcula Receitas
     let receitaHoje = 0, receitaSemana = 0, receitaMes = 0;
-    const ref = dayjs().tz('America/Sao_Paulo');
-
-    // Busca TODOS os agendamentos APENAS desta organização
-    const todos = await Appointment.find({ organizationId: organizationId });
-    todos.forEach(a => {
+    todosAgendamentos.forEach(a => {
       [...(a.services || []), ...(a.products || [])].forEach(item => {
         (item.payments || []).forEach(p => {
           const pago = dayjs(p.paidAt).tz('America/Sao_Paulo');
@@ -82,10 +114,7 @@ exports.getDashboard = async (req, res) => {
         });
       });
     });
-
-    // Busca TODOS os clientes APENAS desta organização
-    const clients = await Client.find({ organizationId: organizationId });
-    clients.forEach(c => {
+    todosClientes.forEach(c => {
       (c.products || []).forEach(prod => {
         (prod.payments || []).forEach(p => {
           const pago = dayjs(p.paidAt).tz('America/Sao_Paulo');
@@ -97,21 +126,26 @@ exports.getDashboard = async (req, res) => {
     });
 
     res.render('dashboard', {
+      org: organization,
       proximosHoje,
       proximosAmanha,
       receitaHoje,
       receitaSemana,
       receitaMes,
-      error: null // Envia null quando não há erro
+      pendingAppointments: pendingAppointments, // Envia os pendentes para o EJS
+      error: null
     });
+
   } catch (err) {
     console.error("Erro ao carregar dashboard:", err);
     res.render('dashboard', {
+      org: null,
       proximosHoje: [],
       proximosAmanha: [],
       receitaHoje: 0,
       receitaSemana: 0,
       receitaMes: 0,
+      pendingAppointments: [], // Envia array vazio em caso de erro
       error: 'Erro ao carregar o dashboard. Tente novamente.'
     });
   }

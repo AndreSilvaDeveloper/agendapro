@@ -155,7 +155,8 @@ exports.cancelAppointment = async (req, res) => {
       { _id: id, organizationId: organizationId }, // Filtro de segurança
       {
         status: 'cancelado_pelo_salao',  // Novo status
-        cancellationReason: cancellationReason // Salva o motivo
+        cancellationReason: cancellationReason, // Salva o motivo
+        clientNotified: false // <-- AQUI! Notifica o cliente.
       },
       { new: true } // Retorna o documento atualizado
     );
@@ -421,7 +422,10 @@ exports.confirmAppointment = async (req, res) => {
                 organizationId: organizationId,
                 status: 'pendente' // Só atualiza se estiver pendente
             },
-            { status: 'confirmado' }, // Muda o status
+            { 
+                status: 'confirmado', // Muda o status
+                clientNotified: false // <-- AQUI! Notifica o cliente.
+            },
             { new: true } // Retorna o documento atualizado (opcional)
         );
 
@@ -480,7 +484,8 @@ exports.cancelAppointmentByAdmin = async (req, res) => {
             },
             {
                 status: 'cancelado_pelo_salao', // Muda o status
-                cancellationReason: cancellationReason // Salva o motivo
+                cancellationReason: cancellationReason, // Salva o motivo
+                clientNotified: false // <-- AQUI! Notifica o cliente.
             },
             { new: true } // Retorna o doc atualizado (útil para logs, etc)
         );

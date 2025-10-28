@@ -195,7 +195,7 @@
 
     <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
         <section class="bg-white rounded-2xl shadow-lg overflow-hidden animate-fade-in">
-            <div class="bg-gold p-6 bg-shine-gold">
+            <div class="bg-gold p-3 bg-shine-gold">
                 <div class="flex items-center justify-between">
                     <div>
                         <h1 class="text-2xl font-bold text-white">
@@ -219,13 +219,13 @@
         </section>
 
         <section class="bg-white rounded-2xl shadow-lg overflow-hidden animate-fade-in">
-             <div class="bg-gray-50 border-b border-gray-200 p-6">
+             <div class="bg-gray-50 border-b border-gray-200 p-1">
                 <h3 class="text-xl font-bold text-gray-800 flex items-center">
                     <i class="fas fa-bolt mr-3 text-gray-600"></i>
                     Ações Rápidas
                 </h3>
             </div>
-            <div class="p-6">
+            <div class="p-2">
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <a href="/agendamentos-por-dia" class="flex flex-col items-center p-4 bg-white border border-gray-200 rounded-xl hover:bg-gold-light hover:shadow-md transition-all">
                         <i class="fas fa-calendar-plus text-gradient-gold text-2xl mb-2"></i>
@@ -472,10 +472,12 @@
                     </div>
                 </div>
             </div>
+
              <div id="dashboard-data"
                 class="hidden"
                 data-hoje='<%- JSON.stringify(proximosHoje || []) %>'
-                data-amanha='<%- JSON.stringify(proximosAmanha || []) %>'>
+                data-amanha='<%- JSON.stringify(proximosAmanha || []) %>'
+                data-pending='<%- JSON.stringify(pendingAppointments || []) %>'>
             </div>
         </section>
     </main>
@@ -488,10 +490,27 @@
             menuButton.addEventListener('click', () => { mobileMenu.classList.toggle('hidden'); });
         }
 
-        // Script de Animação
+        // Função helper para o formulário de cancelamento
+        function promptCancelReason(form) {
+            const reason = prompt("Por favor, insira o motivo do cancelamento (será visível para o cliente):");
+            if (reason === null) return false;
+            if (reason.trim() === "") {
+                alert("O motivo do cancelamento é obrigatório.");
+                return false;
+            }
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'cancellationReason';
+            input.value = reason.trim();
+            form.appendChild(input);
+            return true;
+        }
+
+        // Script de Animação e Alertas
         document.addEventListener('DOMContentLoaded', function() {
-             const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -50px 0px' };
-             const observer = new IntersectionObserver(function(entries) {
+            // Animação (código original)
+            const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -50px 0px' };
+            const observer = new IntersectionObserver(function(entries) {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         entry.target.style.opacity = '1';
@@ -504,52 +523,122 @@
                 el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
                 observer.observe(el);
             });
-        });
-
-        // Script do SweetAlert
-        document.addEventListener('DOMContentLoaded', function() {
+        
+            // Alerta Próximos Agendamentos (código original)
             try {
-                const dataElement = document.getElementById('dashboard-data');
-                const proximosHoje = JSON.parse(dataElement.dataset.hoje || '[]');
-                const proximosAmanha = JSON.parse(dataElement.dataset.amanha || '[]');
-                let alertHTML = '';
+                const dataElementHojeAmanha = document.getElementById('dashboard-data');
+                // Adicionado verificação extra se o elemento existe
+                if (dataElementHojeAmanha) {
+                    const proximosHoje = JSON.parse(dataElementHojeAmanha.dataset.hoje || '[]');
+                    const proximosAmanha = JSON.parse(dataElementHojeAmanha.dataset.amanha || '[]');
+                    let alertHTML = '';
 
-                if (proximosHoje.length > 0) {
-                    alertHTML += '<h3 style="font-weight: bold; font-size: 1.1em; color: var(--color-gold-dark); margin-top: 10px; margin-bottom: 5px; text-align: left;">Hoje:</h3>';
-                    alertHTML += '<ul style="list-style-type: none; padding-left: 0; text-align: left; margin-top: 5px; max-height: 150px; overflow-y: auto;">';
-                    proximosHoje.forEach(appt => {
-                        alertHTML += `<li style="margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 8px; font-size: 0.9em;">
-                                        <strong>${appt.time}</strong> - ${appt.name} (${appt.service})
-                                      </li>`;
-                    });
-                    alertHTML += '</ul>';
-                }
+                    // ... (resto da lógica original para montar o HTML de hoje/amanhã) ...
+                    if (proximosHoje.length > 0) {
+                        alertHTML += '<h3 style="font-weight: bold; font-size: 1.1em; color: var(--color-gold-dark); margin-top: 10px; margin-bottom: 5px; text-align: left;">Hoje:</h3>';
+                        alertHTML += '<ul style="list-style-type: none; padding-left: 0; text-align: left; margin-top: 5px; max-height: 150px; overflow-y: auto;">';
+                        proximosHoje.forEach(appt => {
+                            alertHTML += `<li style="margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 8px; font-size: 0.9em;"><strong>${appt.time}</strong> - ${appt.name} (${appt.service})</li>`;
+                        });
+                        alertHTML += '</ul>';
+                    }
+                    if (proximosAmanha.length > 0) {
+                        alertHTML += '<h3 style="font-weight: bold; font-size: 1.1em; color: #4b5563; margin-top: 15px; margin-bottom: 5px; text-align: left;">Amanhã:</h3>';
+                        alertHTML += '<ul style="list-style-type: none; padding-left: 0; text-align: left; margin-top: 5px; max-height: 150px; overflow-y: auto;">';
+                        proximosAmanha.forEach(appt => {
+                            alertHTML += `<li style="margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 8px; font-size: 0.9em;"><strong>${appt.time}</strong> - ${appt.name} (${appt.service})</li>`;
+                        });
+                        alertHTML += '</ul>';
+                    }
 
-                if (proximosAmanha.length > 0) {
-                     alertHTML += '<h3 style="font-weight: bold; font-size: 1.1em; color: #4b5563; margin-top: 15px; margin-bottom: 5px; text-align: left;">Amanhã:</h3>';
-                    alertHTML += '<ul style="list-style-type: none; padding-left: 0; text-align: left; margin-top: 5px; max-height: 150px; overflow-y: auto;">';
-                    proximosAmanha.forEach(appt => {
-                        alertHTML += `<li style="margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 8px; font-size: 0.9em;">
-                                        <strong>${appt.time}</strong> - ${appt.name} (${appt.service})
-                                      </li>`;
-                    });
-                    alertHTML += '</ul>';
-                }
-
-                if (alertHTML) {
-                    Swal.fire({
-                        iconHtml: '<i class="fas fa-bell text-gold"></i>',
-                        title: 'Próximos Agendamentos',
-                        html: alertHTML,
-                        confirmButtonText: 'Entendido!',
-                        confirmButtonColor: 'var(--color-gold-dark)',
-                        background: '#ffffff',
-                        customClass: { popup: 'swal-popup-agenda' }
-                    });
+                    if (alertHTML) {
+                        Swal.fire({
+                            iconHtml: '<i class="fas fa-bell text-gold"></i>',
+                            title: 'Próximos Agendamentos',
+                            html: alertHTML,
+                            confirmButtonText: 'Entendido!',
+                            confirmButtonColor: 'var(--color-gold-dark)',
+                            background: '#ffffff',
+                            customClass: { popup: 'swal-popup-agenda' }
+                        });
+                    }
+                } else {
+                    console.warn("Elemento #dashboard-data não encontrado para alerta de próximos agendamentos.");
                 }
             } catch (e) {
-                console.error("Erro ao processar dados do dashboard para SweetAlert:", e);
+                console.error("Erro ao processar dados do dashboard para SweetAlert (Hoje/Amanhã):", e);
             }
+
+            // --- DEBUG: Alerta AGENDAMENTOS PENDENTES com console.logs ---
+            console.log("--- Iniciando verificação de Agendamentos Pendentes ---"); // LOG 1
+            try {
+                const dataElementPending = document.getElementById('dashboard-data'); // Usando o mesmo ID
+                
+                // LOG 2: Verifica se o elemento existe
+                console.log("Elemento #dashboard-data encontrado:", !!dataElementPending); 
+                
+                if (dataElementPending) {
+                    const pendingDataString = dataElementPending.dataset.pending;
+                    
+                    // LOG 3: Mostra o que veio do backend
+                    console.log("String de dados pendentes (data-pending):", pendingDataString); 
+                    
+                    // Verifica se a string não está vazia ou indefinida antes de parsear
+                    if (pendingDataString && pendingDataString !== 'undefined') {
+                        const pendingList = JSON.parse(pendingDataString || '[]');
+                        
+                        // LOG 4: Mostra a lista após o parse
+                        console.log("Lista de pendentes (após JSON.parse):", pendingList); 
+                        console.log("Número de pendentes:", pendingList.length); // LOG 5: Mostra a contagem
+
+                        if (pendingList.length > 0) {
+                            console.log("Encontrados pendentes. Montando o alerta Swal..."); // LOG 6
+                            let alertHTML = '<div style="text-align: left; max-height: 400px; overflow-y: auto; padding-right: 15px;">';
+                            
+                            pendingList.forEach(appt => {
+                                // ... (lógica original para montar o HTML de cada item pendente) ...
+                                const dateObj = new Date(appt.date);
+                                const date = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                                const time = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                                const clientName = appt.clientId ? appt.clientId.name : 'Cliente';
+                                const staffName = appt.staffId ? appt.staffId.name : 'Qualquer Profissional';
+                                const serviceName = (appt.services && appt.services.length > 0) ? appt.services[0].name : 'Serviço';
+                                alertHTML += `
+                                    <div style="padding: 12px; border: 1px solid #fce7b6; background: #fffbeb; border-radius: 8px; margin-bottom: 12px;">
+                                        <div style="font-weight: bold; font-size: 1.1em; color: var(--color-gold-dark);"><i class="fas fa-user"></i> ${clientName}</div>
+                                        <div style="font-size: 0.95em; color: #555; margin-top: 5px;"><i class="fas fa-concierge-bell"></i> ${serviceName}<br><i class="fas fa-user-tie"></i> ${staffName}<br><i class="fas fa-calendar-alt"></i> ${date} às ${time}</div>
+                                        <div style="margin-top: 10px; display: flex; justify-content: flex-end; gap: 8px;">
+                                            <form action="/admin/appointment/${appt._id}/cancel-by-admin" method="POST" onsubmit="return promptCancelReason(this)" style="margin:0;"><button type="submit" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; padding: 5px 10px; font-size: 0.8em; font-weight: 600; border-radius: 5px; cursor: pointer;"><i class="fas fa-times"></i> Cancelar</button></form>
+                                            <form action="/admin/appointment/${appt._id}/confirm" method="POST" style="margin:0;"><button type="submit" style="background: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; padding: 5px 10px; font-size: 0.8em; font-weight: 600; border-radius: 5px; cursor: pointer;"><i class="fas fa-check"></i> Confirmar</button></form>
+                                        </div>
+                                    </div>`;
+                            });
+                            alertHTML += '</div>';
+
+                            // Dispara o SweetAlert
+                            Swal.fire({
+                                iconHtml: '<i class="fas fa-bell fa-beat" style="color: #F59E0B; font-size: 2.5em;"></i>',
+                                title: `Você tem ${pendingList.length} Agendamento${pendingList.length > 1 ? 's' : ''} Pendente${pendingList.length > 1 ? 's' : ''}!`,
+                                html: alertHTML,
+                                showCloseButton: true,
+                                showConfirmButton: false,
+                                width: '500px',
+                                background: '#ffffff',
+                            });
+                            console.log("Alerta Swal de pendentes disparado."); // LOG 7
+                        } else {
+                            console.log("Nenhum agendamento pendente encontrado. Alerta não será exibido."); // LOG 8
+                        }
+                    } else {
+                        console.log("String de dados pendentes está vazia ou indefinida. Nada a fazer."); // LOG 9
+                    }
+                } else {
+                    console.error("Elemento #dashboard-data não encontrado para dados pendentes!"); // LOG 10
+                }
+            } catch (e) {
+                console.error("Erro CRÍTICO ao processar agendamentos pendentes para SweetAlert:", e); // LOG 11
+            }
+            console.log("--- Fim da verificação de Agendamentos Pendentes ---"); // LOG 12
         });
     </script>
 </body>
