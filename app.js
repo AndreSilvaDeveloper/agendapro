@@ -1,4 +1,4 @@
-// app.js - Corrigido e Otimizado
+// app.j
 
 require('dotenv').config();
 

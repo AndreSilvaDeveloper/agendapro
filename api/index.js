@@ -7,15 +7,16 @@ const session    = require('express-session');
 const MongoStore = require('connect-mongo');
 const bodyParser = require('body-parser');
 const path       = require('path');
-const connectDB  = require('../db');           // seu módulo de conexão com cache
+const connectDB  = require('../db');
 const routes     = require('../routes/index');
+const flash      = require('connect-flash'); // <--- 1. ADICIONE ESTA LINHA
 
 const app = express();
 
-// ——— Confia no proxy do Vercel ———
+// --- Confia no proxy do Vercel ---
 app.set('trust proxy', 1);
 
-// ——— Garante conexão ao Mongo antes de qualquer rota ———
+// --- Garante conexão ao Mongo antes de qualquer rota ---
 app.use(async (req, res, next) => {
   try {
     await connectDB();
@@ -26,7 +27,7 @@ app.use(async (req, res, next) => {
   }
 });
 
-// ——— Sessão com persistência no MongoDB ———
+// --- Sessão com persistência no MongoDB ---
 const isProd = process.env.NODE_ENV === 'production';
 app.use(session({
   secret: process.env.SESSION_SECRET || 'salao-kadosh-segredo',
@@ -44,6 +45,18 @@ app.use(session({
   }
 }));
 
+// <--- 2. ADICIONE O MIDDLEWARE DO FLASH (DEPOIS DA SESSÃO) ---
+app.use(flash());
+
+// <--- 3. ADICIONE O MIDDLEWARE GLOBAL (PARA AS VIEWS) ---
+app.use((req, res, next) => {
+  res.locals.success_msg = req.flash('success_msg');
+  res.locals.error_msg = req.flash('error_msg');
+  res.locals.error = req.flash('error'); 
+  next();
+});
+
+// --- Restante das configurações ---
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, '../public')));
 app.set('view engine', 'ejs');
