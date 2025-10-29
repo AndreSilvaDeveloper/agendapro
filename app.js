@@ -1,4 +1,4 @@
-// app.js
+// app.js - Corrigido e Otimizado
 
 require('dotenv').config();
 
@@ -9,7 +9,7 @@ const MongoStore = require('connect-mongo');
 const bcrypt = require('bcrypt');
 const bodyParser = require('body-parser');
 const path = require('path');
-const flash = require('connect-flash'); // --- 1. ADICIONADO ---
+const flash = require('connect-flash'); 
 
 // Carrega o arquivo principal de rotas
 const routes = require('./routes/index');
@@ -46,7 +46,17 @@ app.use(session({
 }));
 
 // --- Middleware de Flash (para mensagens de erro/sucesso) ---
-app.use(flash()); // --- 2. ADICIONADO (DEVE VIR DEPOIS DA SESSÃO) ---
+// (Deve vir DEPOIS da sessão)
+app.use(flash());
+
+// --- [NOVO] Middleware global para passar msgs flash para as Views ---
+// (Disponibiliza as variáveis 'success_msg' e 'error_msg' em todos os .ejs)
+app.use((req, res, next) => {
+  res.locals.success_msg = req.flash('success_msg');
+  res.locals.error_msg = req.flash('error_msg');
+  res.locals.error = req.flash('error'); // Para compatibilidade com passport.js
+  next();
+});
 
 // --- Configurações de View Engine (EJS) e Pasta Estática (public) ---
 app.set('views', path.join(__dirname, 'views'));
