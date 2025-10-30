@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-R">
     <title><%= pageTitle %> – AgendaPro</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
@@ -53,6 +53,38 @@
     </style>
 </head>
 <body class="min-h-screen bg-gray-50 font-sans antialiased">
+
+    <% /* ============================
+       =  HELPERS SEGUROS (ID e PREÇO)
+       ============================ */ %>
+    <%
+      // Converte vários formatos (12.34 / 12,34 / 1.234,56) para número
+      const toNumber = (v) => {
+        if (v === null || v === undefined) return null;
+        if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+        if (typeof v === 'string') {
+          const cleaned = v.trim().replace(/\s+/g, '').replace(/\./g, '').replace(/,/g, '.');
+          const parsed = parseFloat(cleaned);
+          return Number.isNaN(parsed) ? null : parsed;
+        }
+        return null;
+      };
+      const formatPriceBRL = (v) => {
+        const n = toNumber(v);
+        const safe = (n === null) ? 0 : n;
+        return safe.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      };
+
+      // Lista de serviços disponíveis (garante que é array)
+      const available = Array.isArray(availableServices) ? availableServices : [];
+      
+      // Lista de serviços que o profissional JÁ FAZ (vindo do controller)
+      // CORREÇÃO: Usar 'Services' (maiúsculo)
+      const selectedServiceObjects = (staffMember && Array.isArray(staffMember.Services)) ? staffMember.Services : [];
+      
+      // Cria um Set (conjunto) de IDs (convertidos para String) para checagem rápida
+      const selectedIds = new Set(selectedServiceObjects.map(s => String(s.id)));
+    %>
 
     <header class="bg-white sticky top-0 z-50 shadow-sm border-b border-gray-100">
         <div class="max-w-7xl mx-auto px-4 py-4">
@@ -136,7 +168,7 @@
                     <i class="fas fa-receipt"></i>
                     <span>Despesas</span>
                 </a>
-                <a href="/logout" class="flex items-center space-x-3 p-3 rounded-lg text-red-600 hover:bg-red-100">
+                <a href="/logout" class="flex items-center space-x-3 p-3 rounded-lg text-red-600 hover:text-red-100">
                     <i class="fas fa-sign-out-alt"></i>
                     <span>Sair</span>
                 </a>
@@ -153,11 +185,11 @@
                 </a>
             </div>
 
-            <form action="<%= editing ? '/admin/equipe/' + staffMember._id + '/editar' : '/admin/equipe/novo' %>" 
+            <form action="<%= editing ? '/admin/equipe/' + staffMember.id + '/editar' : '/admin/equipe/novo' %>" 
                   method="POST" 
                   class="p-8 space-y-6"
                   enctype="multipart/form-data">
-                  
+                
 
                 <% if (error) { %>
                     <div class="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
@@ -200,18 +232,20 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Serviços que Realiza</label>
                     <div class="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-md p-4">
-                        <% if (availableServices.length === 0) { %>
+                        <% if (!Array.isArray(available) || available.length === 0) { %>
                             <p class="text-sm text-gray-500">Nenhum serviço ativo cadastrado. Cadastre serviços primeiro.</p>
                         <% } else { %>
-                            <% const currentServiceIds = new Set((staffMember.services || []).map(s => s._id ? s._id.toString() : s.toString())); %>
-                            <% availableServices.forEach(service => { %>
+                            <% available.forEach(service => { 
+                                 // CORREÇÃO: Usar service.id (Sequelize usa 'id')
+                                 const sid = String(service.id);
+                            %>
                                 <div class="flex items-center">
-                                    <input id="service_<%= service._id %>" name="services" type="checkbox" value="<%= service._id %>"
+                                    <input id="service_<%= sid %>" name="services" type="checkbox" value="<%= sid %>"
                                            class="form-checkbox h-4 w-4 text-gold-dark border-gray-300 rounded focus:ring-gold-dark"
-                                           <%= currentServiceIds.has(service._id.toString()) ? 'checked' : '' %>>
-                                    <label for="service_<%= service._id %>" class="ml-2 block text-sm text-gray-900">
-                                        <%= service.name %> (R$ <%= service.price.toFixed(2).replace('.', ',') %>)
-                                    </l>
+                                           <%= selectedIds.has(sid) ? 'checked' : '' %>>
+                                    <label for="service_<%= sid %>" class="ml-2 block text-sm text-gray-900">
+                                        <%= (service && service.name) ? service.name : '—' %> (R$ <%= formatPriceBRL(service && service.price) %>)
+                                    </label>
                                 </div>
                             <% }); %>
                         <% } %>
@@ -228,11 +262,11 @@
                             { key: 'friday', label: 'Sexta-feira' }, { key: 'saturday', label: 'Sábado' },
                             { key: 'sunday', label: 'Domingo' }
                         ];
-                        const currentHours = staffMember.workingHours || new Map();
+                        const currentHours = staffMember.workingHours || {};
                         %>
 
                         <% daysOfWeek.forEach(day => { %>
-                            <% const hours = currentHours.get(day.key) || { startTime: '', endTime: '', isOff: false }; %>
+                            <% const hours = currentHours[day.key] || { startTime: '', endTime: '', isOff: false }; %>
                             <div class="day-row grid grid-cols-1 sm:grid-cols-4 gap-4 items-center border-b pb-4 last:border-b-0">
                                 <label class="block text-sm font-medium text-gray-700 sm:col-span-1"><%= day.label %></label>
                                 
@@ -256,7 +290,7 @@
                                            <%= hours.isOff ? 'checked' : '' %>>
                                     <label for="isOff_<%= day.key %>" class="ml-2 block text-sm text-gray-900">
                                         Folga
-                                    </l>
+                                    </label>
                                 </div>
                             </div>
                         <% }); %>

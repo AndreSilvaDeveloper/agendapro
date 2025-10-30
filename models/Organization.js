@@ -1,66 +1,102 @@
 // models/Organization.js
-const mongoose = require('mongoose');
-const slugify = require('slugify'); // Importa o pacote que acabamos de instalar
+const { Sequelize, DataTypes } = require('sequelize');
+const sequelize = require('../db'); // Importa a conexão
+const slugify = require('slugify');  // O slugify continua o mesmo
 
-const organizationSchema = new mongoose.Schema({
+const Organization = sequelize.define('Organization', {
+  // O 'id' (PK, auto-increment) é criado por padrão
+  
   name: {
-    type: String,
-    required: [true, 'O nome do salão é obrigatório.'],
-    trim: true
+    type: DataTypes.STRING,
+    allowNull: false,
+    set(value) {
+      // Substitui o 'trim: true'
+      this.setDataValue('name', value.trim());
+    }
   },
-  
-  // NOVO: O link amigável (ex: /salao/studio-kadosh)
+
   slug: {
-    type: String,
-    required: true,
-    unique: true, // Garante que dois salões não tenham o mesmo link
-    lowercase: true,
-    trim: true,
-    index: true
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true // O hook 'beforeSave' irá preencher isso
+  },
+
+  phone: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    set(value) {
+      this.setDataValue('phone', value ? value.trim() : null);
+    }
   },
   
-  // --- NOVOS CAMPOS PARA A PÁGINA "VITRINE" ---
-  phone: {
-    type: String,
-    trim: true
-  },
   whatsapp: {
-    type: String,
-    trim: true
+    type: DataTypes.STRING,
+    allowNull: true,
+    set(value) {
+      this.setDataValue('whatsapp', value ? value.trim() : null);
+    }
   },
+
   address: {
-    type: String,
-    trim: true,
-    maxlength: 200
+    // Tradução do 'maxlength: 200'
+    type: DataTypes.STRING(200),
+    allowNull: true,
+    set(value) {
+      this.setDataValue('address', value ? value.trim() : null);
+    }
   },
-  coverImageUrl: { // Foto de capa (como na sua inspiração)
-    type: String,
-    trim: true
+
+  coverImageUrl: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    set(value) {
+      this.setDataValue('coverImageUrl', value ? value.trim() : null);
+    }
   },
-  galleryImageUrls: [{ // Fotos da galeria
-    type: String,
-    trim: true
-  }],
-  operatingHours: { // Ex: "Segunda a Sábado, 08:00 - 18:00"
-    type: String,
-    trim: true
-  }
-  // --- FIM DOS NOVOS CAMPOS ---
 
-}, { timestamps: true }); // Adiciona createdAt e updatedAt e remove o createdAt manual
+  galleryImageUrls: {
+    // PostgreSQL tem um tipo nativo de Array, que o Sequelize suporta
+    type: DataTypes.ARRAY(DataTypes.STRING),
+    allowNull: true,
+    defaultValue: [], // Boa prática
+    set(value) {
+      // Garante que todos os URLs no array também sofram 'trim'
+      const trimmedUrls = Array.isArray(value) 
+        ? value.map(url => url ? url.trim() : null) 
+        : [];
+      this.setDataValue('galleryImageUrls', trimmedUrls);
+    }
+  },
 
-// --- NOVO HOOK (Executa ANTES de salvar) ---
-// Isso gera o 'slug' automaticamente a partir do 'name'
-organizationSchema.pre('save', function(next) {
-  // Só gera o slug se o 'name' foi modificado (ou é um novo documento)
-  if (this.isModified('name')) {
-    this.slug = slugify(this.name, {
-      lower: true,      // Força minúsculas
-      strict: true,     // Remove caracteres especiais (como '!')
-      remove: /[*+~.()'"!:@]/g // Remove outros caracteres inválidos
-    });
+  operatingHours: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    set(value) {
+      this.setDataValue('operatingHours', value ? value.trim() : null);
+    }
   }
-  next();
+
+  // 'createdAt' e 'updatedAt' são adicionados automaticamente
+
+}, {
+  // Opções do Modelo
+  
+  // --- Hook para gerar o Slug (Tradução do 'pre('save')') ---
+  hooks: {
+    // 'beforeSave' é um hook do Sequelize que roda ANTES do 'create' e do 'update'
+    // Exatamente como o 'pre('save')' do Mongoose
+    beforeSave: (organization) => {
+      // 'changed('name')' verifica se o campo 'name' foi alterado
+      // 'isNewRecord' é true quando estamos criando um novo
+      if (organization.changed('name') || organization.isNewRecord) {
+        organization.slug = slugify(organization.name, {
+          lower: true,
+          strict: true,
+          remove: /[*+~.()'"!:@]/g
+        });
+      }
+    }
+  }
 });
 
-module.exports = mongoose.model('Organization', organizationSchema);
+module.exports = Organization;

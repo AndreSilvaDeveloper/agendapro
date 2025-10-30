@@ -1,28 +1,31 @@
 // controllers/clientAuthController.js
 
-const Client = require('../models/Client');
-const Organization = require('../models/Organization');
+// --- REMOVIDO ---
+// const Client = require('../models/Client');
+// const Organization = require('../models/Organization');
+
+// --- ADICIONADO ---
+const db = require('../models');
 
 /**
  * GET /portal/:orgId/registro
- * Mostra a página de registro para um cliente de um salão específico.
- * (Sem alterações)
+ * Mostra a página de registro para um cliente.
  */
 exports.getRegister = async (req, res) => {
   try {
     const { orgId } = req.params;
-    const organization = await Organization.findById(orgId);
+    // ATUALIZADO: findById -> findByPk
+    const organization = await db.Organization.findByPk(orgId);
 
     if (!organization) {
       return res.status(404).send('Salão não encontrado.');
     }
 
-    // Renderiza uma nova view (que criaremos depois)
     res.render('client/register', {
       error: null,
-      success: null, // <-- Adicionado para consistência
+      success: null,
       orgName: organization.name,
-      orgId: organization._id
+      orgId: organization.id // ATUALIZADO: _id -> id
     });
   } catch (err) {
     console.error('Erro ao carregar página de registro do cliente:', err);
@@ -33,23 +36,23 @@ exports.getRegister = async (req, res) => {
 /**
  * POST /portal/:orgId/registro
  * Processa o novo registro do cliente.
- * (Sem alterações)
  */
 exports.postRegister = async (req, res) => {
   const { orgId } = req.params;
   const { name, email, phone, password, passwordConfirm } = req.body;
 
   try {
-    const organization = await Organization.findById(orgId);
+    // ATUALIZADO: findById -> findByPk
+    const organization = await db.Organization.findByPk(orgId);
     if (!organization) {
       return res.status(404).send('Salão não encontrado.');
     }
     
-    // --- Validações ---
+    // --- Validações (sem alteração) ---
     if (!name || !email || !password || !passwordConfirm) {
       return res.render('client/register', {
         error: 'Todos os campos são obrigatórios.',
-        success: null, // <-- Adicionado
+        success: null,
         orgName: organization.name,
         orgId: orgId
       });
@@ -57,7 +60,7 @@ exports.postRegister = async (req, res) => {
     if (password !== passwordConfirm) {
       return res.render('client/register', {
         error: 'As senhas não coincidem.',
-        success: null, // <-- Adicionado
+        success: null,
         orgName: organization.name,
         orgId: orgId
       });
@@ -65,30 +68,32 @@ exports.postRegister = async (req, res) => {
     if (password.length < 6) {
       return res.render('client/register', {
         error: 'A senha deve ter pelo menos 6 caracteres.',
-        success: null, // <-- Adicionado
+        success: null,
         orgName: organization.name,
         orgId: orgId
       });
     }
 
-    // Verifica se o e-mail já está em uso NESTE salão
-    const existingClient = await Client.findOne({
-      organizationId: orgId,
-      email: email.toLowerCase()
+    // ATUALIZADO: Client.findOne -> db.Client.findOne
+    const existingClient = await db.Client.findOne({
+      where: { // ATUALIZADO: Adiciona 'where'
+        organizationId: orgId,
+        email: email.toLowerCase()
+      }
     });
 
     if (existingClient) {
       return res.render('client/register', {
         error: 'Este e-mail já está cadastrado neste salão.',
-        success: null, // <-- Adicionado
+        success: null,
         orgName: organization.name,
         orgId: orgId
       });
     }
 
-    // Cria o novo cliente
-    // O hook 'pre-save' no models/Client.js vai criptografar a senha
-    const newClient = new Client({
+    // ATUALIZADO: new Client().save() -> db.Client.create()
+    // O hook 'beforeCreate' no modelo vai criptografar a senha
+    const newClient = await db.Client.create({
       organizationId: orgId,
       name: name,
       email: email.toLowerCase(),
@@ -96,30 +101,28 @@ exports.postRegister = async (req, res) => {
       password: password
     });
 
-    await newClient.save();
-
     // --- Inicia a Sessão do Cliente ---
-    // Note que a sessão do cliente é separada da sessão do admin
     req.session.clientLoggedIn = true;
-    req.session.clientId = newClient._id;
+    req.session.clientId = newClient.id; // ATUALIZADO: _id -> id
     req.session.clientOrgId = newClient.organizationId;
     req.session.clientName = newClient.name;
 
-    // Redireciona para a área logada do cliente (que criaremos)
     res.redirect('/portal/minha-area'); 
 
   } catch (err) {
     console.error('Erro ao registrar cliente:', err);
     let errorMsg = 'Erro ao criar sua conta. Tente novamente.';
-    if (err.code === 11000) {
+    
+    // ATUALIZADO: err.code === 11000 -> err.name
+    if (err.name === 'SequelizeUniqueConstraintError') {
       errorMsg = 'Este e-mail já está em uso.';
     }
     
-    // Tenta recarregar a página com o erro
-    const org = await Organization.findById(orgId);
+    // ATUALIZADO: findById -> findByPk
+    const org = await db.Organization.findByPk(orgId);
     res.render('client/register', {
       error: errorMsg,
-      success: null, // <-- Adicionado
+      success: null,
       orgName: org ? org.name : 'Erro',
       orgId: orgId
     });
@@ -129,23 +132,22 @@ exports.postRegister = async (req, res) => {
 /**
  * GET /portal/:orgId/login
  * Mostra a página de login do cliente.
- * (Sem alterações - já estava correto)
  */
 exports.getLogin = async (req, res) => {
   try {
     const { orgId } = req.params;
-    const organization = await Organization.findById(orgId);
+    // ATUALIZADO: findById -> findByPk
+    const organization = await db.Organization.findByPk(orgId);
 
     if (!organization) {
       return res.status(404).send('Salão não encontrado.');
     }
 
-    // Renderiza uma nova view (que criaremos depois)
     res.render('client/login', {
       error: req.query.error || null,
-      success: req.query.success || null, // <-- Já estava correto
+      success: req.query.success || null,
       orgName: organization.name,
-      orgId: organization._id
+      orgId: organization.id // ATUALIZADO: _id -> id
     });
   } catch (err) {
     console.error('Erro ao carregar página de login do cliente:', err);
@@ -160,102 +162,91 @@ exports.getLogin = async (req, res) => {
 exports.postLogin = async (req, res) => {
   const { orgId } = req.params;
   const { email, password } = req.body;
-  let orgName = 'Erro'; // Fallback
+  let orgName = 'Erro';
 
   try {
-    const organization = await Organization.findById(orgId);
+    // ATUALIZADO: findById -> findByPk
+    const organization = await db.Organization.findByPk(orgId);
     if (organization) {
       orgName = organization.name;
     }
 
-    // =================================
-    // ===     NOVA ALTERAÇÃO AQUI     ===
-    // =================================
     if (!email || !password) {
       return res.render('client/login', {
         error: 'E-mail e senha são obrigatórios.',
-        success: null, // <-- Adicionado
+        success: null,
         orgName: orgName,
         orgId: orgId
       });
     }
     
-    // Procura o cliente pelo e-mail DENTRO do salão específico
-    const client = await Client.findOne({
-      organizationId: orgId,
-      email: email.toLowerCase()
+    // ATUALIZADO: Client.findOne -> db.Client.findOne
+    const client = await db.Client.findOne({
+      where: { // ATUALIZADO: Adiciona 'where'
+        organizationId: orgId,
+        email: email.toLowerCase()
+      }
     });
 
     if (!client) {
       return res.render('client/login', {
         error: 'E-mail ou senha inválidos.',
-        success: null, // <-- Adicionado
+        success: null,
         orgName: orgName,
         orgId: orgId
       });
     }
 
-    // Usa o método 'comparePassword' que adicionamos ao modelo
+    // ATUALIZADO: Nenhuma mudança. O método comparePassword funciona.
     const isMatch = await client.comparePassword(password);
 
     if (!isMatch) {
       return res.render('client/login', {
         error: 'E-mail ou senha inválidos.',
-        success: null, // <-- Adicionado
+        success: null,
         orgName: orgName,
         orgId: orgId
       });
     }
-    // =================================
-    // === FIM DA ALTERAÇÃO          ===
-    // =================================
 
     // --- Inicia a Sessão do Cliente ---
     req.session.clientLoggedIn = true;
-    req.session.clientId = client._id;
+    req.session.clientId = client.id; // ATUALIZADO: _id -> id
     req.session.clientOrgId = client.organizationId;
     req.session.clientName = client.name;
 
-    // Redireciona para a área logada do cliente
     res.redirect('/portal/minha-area');
 
   } catch (err) {
     console.error('Erro no login do cliente:', err);
-    // =================================
-    // ===     NOVA ALTERAÇÃO AQUI     ===
-    // =================================
     res.render('client/login', {
       error: 'Erro interno. Tente novamente.',
-      success: null, // <-- Adicionado
+      success: null,
       orgName: orgName,
       orgId: orgId
     });
-    // =================================
-    // === FIM DA ALTERAÇÃO          ===
-    // =================================
   }
 };
 
 /**
  * GET /portal/logout
  * Processa o logout do cliente.
- * (Sem alterações)
+ * (Sem alterações, não acessa o banco de dados)
  */
 exports.getLogout = (req, res) => {
-  const orgId = req.session.clientOrgId; // Pega o orgId antes de destruir a sessão
+  const orgId = req.session.clientOrgId; 
   
   req.session.destroy((err) => {
     if (err) {
       console.error('Erro ao fazer logout do cliente:', err);
-      return res.redirect('/'); // Redireciona para a home em caso de erro
+      return res.redirect('/');
     }
     
-    // Limpa o cookie e redireciona para a página de login daquele salão
     res.clearCookie('connect.sid');
     if (orgId) {
       res.redirect(`/portal/${orgId}/login`);
     } else {
-      res.redirect('/'); // Fallback
+      res.redirect('/');
     }
   });
 };

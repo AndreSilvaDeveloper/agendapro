@@ -1,73 +1,105 @@
 // models/User.js
-const mongoose = require('mongoose');
+const { Sequelize, DataTypes } = require('sequelize');
+const sequelize = require('../db'); // Importa a conexão do db.js
 const bcrypt = require('bcrypt');
 const SALT_ROUNDS = 10;
 
-const userSchema = new mongoose.Schema({
-  // 1. Vincula o usuário a um Salão (Organization)
-  organizationId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Organization',
-    required: [true, 'A organização (salão) é obrigatória.'],
-    index: true // Adiciona um índice para consultas mais rápidas
-  },
-
-  // 2. O username NÃO é mais globalmente único
-  username: {
-    type: String,
-    required: [true, 'O nome de usuário é obrigatório.'],
-    lowercase: true,
-    trim: true
-    // 'unique: true' foi REMOVIDO daqui.
-  },
-
-  // 3. O email DEVE ser globalmente único (para login e recuperação)
-  email: {
-    type: String,
-    required: [true, 'O e-mail é obrigatório.'],
-    unique: true, // Garante que um e-mail não possa ser usado em duas contas
-    lowercase: true,
-    trim: true,
-  },
-
-  password: {
-    type: String,
-    required: [true, 'A senha é obrigatória.'],
-  },
-
-  // 4. Papel do usuário (Dono do salão ou Funcionário)
-  role: {
-    type: String,
-    enum: ['owner', 'staff'], 
-    default: 'staff',
-    required: true
-  },
+const User = sequelize.define('User', {
+  // O Sequelize cria um 'id' (INTEGER, PRIMARY KEY, AUTO_INCREMENT) por padrão
   
-  resetToken: String,
-  resetTokenExpires: Date,
-}, { timestamps: true }); // Adiciona createdAt e updatedAt
+  // 1. Vínculo com Organization (Foreign Key)
+  organizationId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    // A associação (belongsTo) será definida em um local central
+    // depois que todos os modelos forem carregados.
+  },
 
-// 5. O username deve ser único DENTRO de uma mesma organizationId
-// Isso permite que 'Studio Kadosh' tenha um user 'admin' e 'Beleza Pura' também.
-userSchema.index({ organizationId: 1, username: 1 }, { unique: true });
+  // 2. Username
+  username: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    set(value) {
+      // Substitui 'lowercase: true' e 'trim: true'
+      this.setDataValue('username', value.toLowerCase().trim());
+    }
+  },
 
-// Hook 'pre-save' para criptografar a senha (sem alterações)
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) {
-    return next();
-  }
-  try {
-    const hash = await bcrypt.hash(this.password, SALT_ROUNDS);
-    this.password = hash;
-    next();
-  } catch (err) {
-    next(err);
+  // 3. Email (Globalmente único)
+  email: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true, // Garante unicidade no nível do banco
+    validate: {
+      isEmail: true // Adiciona validação de formato de email
+    },
+    set(value) {
+      // Substitui 'lowercase: true' e 'trim: true'
+      this.setDataValue('email', value.toLowerCase().trim());
+    }
+  },
+
+  // 4. Password
+  password: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+
+  // 5. Role (Papel)
+  role: {
+    type: DataTypes.ENUM('owner', 'staff'),
+    allowNull: false,
+    defaultValue: 'staff'
+  },
+
+  // 6. Reset de Senha
+  resetToken: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  resetTokenExpires: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+
+  // 'createdAt' e 'updatedAt' são adicionados automaticamente (timestamps: true)
+
+}, {
+  // Opções do Modelo
+  
+  // 'timestamps: true' é o padrão no Sequelize, não precisa declarar.
+  
+  // 7. Índices
+  indexes: [
+    {
+      // Equivalente a: userSchema.index({ organizationId: 1, username: 1 }, { unique: true });
+      unique: true,
+      fields: ['organizationId', 'username']
+    }
+  ],
+
+  // 8. Hooks (para criptografar senha)
+  // Substitui o 'userSchema.pre('save', ...)'
+  hooks: {
+    beforeCreate: async (user) => {
+      const hash = await bcrypt.hash(user.password, SALT_ROUNDS);
+      user.password = hash;
+    },
+    beforeUpdate: async (user) => {
+      // Só criptografa de novo se a senha foi modificada
+      if (user.changed('password')) {
+        const hash = await bcrypt.hash(user.password, SALT_ROUNDS);
+        user.password = hash;
+      }
+    }
   }
 });
 
-// Método para comparar a senha (sem alterações)
-userSchema.methods.comparePassword = function(candidatePassword) {
+// 9. Métodos de Instância (para comparar senha)
+// Equivalente a: userSchema.methods.comparePassword
+User.prototype.comparePassword = function(candidatePassword) {
+  // 'this.password' aqui é o hash armazenado no banco
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = User;

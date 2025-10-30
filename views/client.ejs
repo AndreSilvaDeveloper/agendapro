@@ -12,40 +12,20 @@
             --color-gold-dark: #B8860B; 
             --color-gold-accent: #DAA520;
         }
-
-        .text-gold {
-            color: var(--color-gold-dark);
-        }
-        .bg-gold {
-            background-color: var(--color-gold-accent);
-        }
-        .bg-gold-light {
-            background-color: #FFFBEB; 
-        }
-        .border-gold {
-            border-color: var(--color-gold-light);
-        }
-        .hover\:text-gold:hover {
-            color: var(--color-gold-dark);
-        }
-        .hover\:bg-gold-light:hover {
-            background-color: #FFF8DC; 
-        }
-
-        .animate-fade-in {
-            animation: fadeIn 0.5s ease-in;
-        }
+        /* ... (Todos os seus estilos CSS permanecem inalterados) ... */
+        .text-gold { color: var(--color-gold-dark); }
+        .bg-gold { background-color: var(--color-gold-accent); }
+        .bg-gold-light { background-color: #FFFBEB; }
+        .border-gold { border-color: var(--color-gold-light); }
+        .hover\:text-gold:hover { color: var(--color-gold-dark); }
+        .hover\:bg-gold-light:hover { background-color: #FFF8DC; }
+        .animate-fade-in { animation: fadeIn 0.5s ease-in; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
-        /* --- ESTILOS PARA BRILHO --- */
         .text-gradient-gold {
-            background: linear-gradient(
-                90deg, 
-                #B8860B, #FFD700, #DAA520, #FFD700, #B8860B
-            );
+            background: linear-gradient( 90deg, #B8860B, #FFD700, #DAA520, #FFD700, #B8860B );
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -53,71 +33,25 @@
             background-size: 200% auto;
             animation: text-shine 4s linear infinite;
         }
-
         @keyframes text-shine {
             from { background-position: 200% center; }
             to { background-position: 0% center; }
         }
-
-        .bg-shine-gold {
-            position: relative;
-            overflow: hidden;
-        }
+        .bg-shine-gold { position: relative; overflow: hidden; }
         .bg-shine-gold::after {
-            content: '';
-            position: absolute;
-            top: -10%; 
-            left: -75%;
-            width: 50%;
-            height: 120%;
-            background: linear-gradient(
-                90deg, 
-                rgba(255, 255, 255, 0) 0%, 
-                rgba(255, 255, 255, 0.4) 50%,
-                rgba(255, 255, 255, 0) 100%
-            );
+            content: ''; position: absolute; top: -10%; left: -75%; width: 50%; height: 120%;
+            background: linear-gradient( 90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.4) 50%, rgba(255, 255, 255, 0) 100% );
             transform: skewX(-25deg);
             animation: bg-shine 5s infinite linear;
         }
-
-        @keyframes bg-shine {
-            0% { left: -75%; }
-            100% { left: 125%; }
-        }
-        /* --- FIM ESTILOS BRILHO --- */
-        
-        .card-hover {
-            transition: all 0.3s ease;
-        }
-        .card-hover:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-        
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-        .status-paid {
-            background-color: #dcfce7;
-            color: #166534;
-        }
-        .status-pending {
-            background-color: #fef3c7;
-            color: #92400e;
-        }
-        .status-overdue {
-            background-color: #fee2e2;
-            color: #991b1b;
-        }
-        .history-badge {
-            background-color: #e0e7ff;
-            color: #3730a3;
-        }
+        @keyframes bg-shine { 0% { left: -75%; } 100% { left: 125%; } }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+        .status-badge { display: inline-flex; align-items: center; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
+        .status-paid { background-color: #dcfce7; color: #166534; }
+        .status-pending { background-color: #fef3c7; color: #92400e; }
+        .status-overdue { background-color: #fee2e2; color: #991b1b; }
+        .history-badge { background-color: #e0e7ff; color: #3730a3; }
     </style>
 </head>
 <body class="min-h-screen bg-gray-50 font-sans antialiased">
@@ -218,17 +152,17 @@
                 
                 <div class="flex flex-wrap gap-2">
                     <% if (!isHistory) { %>
-                    <form action="/client/<%= client._id %>/edit" method="POST" onsubmit="return editClient(this, '<%= client.name %>', '<%= client.phone %>')" class="inline">
+                    <form action="/client/<%= client.id %>/edit" method="POST" onsubmit="return editClient(this, '<%= client.name %>', '<%= client.phone %>')" class="inline">
                         <button class="flex items-center space-x-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
                             <i class="fas fa-edit"></i>
                             <span>✏️ Editar</span>
                         </button>
                     </form>
-                    <a href="/client/<%= client._id %>/historico" class="flex items-center space-x-2 px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors">
+                    <a href="/client/<%= client.id %>/historico" class="flex items-center space-x-2 px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors">
                         <i class="fas fa-history"></i>
                         <span>📜 Histórico</span>
                     </a>
-                    <form action="/client/<%= client._id %>/delete" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este cliente?')" class="inline">
+                    <form action="/client/<%= client.id %>/delete" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este cliente?')" class="inline">
                         <button class="flex items-center space-x-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
                             <i class="fas fa-trash"></i>
                             <span>🗑️ Excluir</span>
@@ -256,7 +190,7 @@
                     </div>
                     <div class="p-6">
                         <form action="/appointment" method="POST" onsubmit="return processForm()" class="space-y-6">
-                            <input type="hidden" name="clientId" value="<%= client._id %>">
+                            <input type="hidden" name="clientId" value="<%= client.id %>">
                             
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
@@ -303,7 +237,7 @@
                         </h2>
                     </div>
                     <div class="p-6">
-                        <form action="/client/<%= client._id %>/add-product" method="POST" class="mb-6">
+                        <form action="/client/<%= client.id %>/add-product" method="POST" class="mb-6">
                             <div class="flex flex-col sm:flex-row gap-3">
                                 <input name="name" type="text" placeholder="Nome do produto" required 
                                        class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all">
@@ -316,12 +250,13 @@
                             </div>
                         </form>
 
-                        <% if (client.products && client.products.length) { %>
+                        <% if (client.Products && client.Products.length) { %>
                         <div class="space-y-4">
-                            <% client.products.forEach((p, i) => { %>
+                            <% client.Products.forEach((p) => { %>
                             <% 
-                                const totalPaid = (p.payments || []).reduce((sum, pay) => sum + pay.amount, 0);
-                                const remaining = p.price - totalPaid;
+                                // ATUALIZADO: p.payments -> p.Payments
+                                const totalPaid = (p.Payments || []).reduce((sum, pay) => sum + parseFloat(pay.amount), 0);
+                                const remaining = parseFloat(p.price) - totalPaid;
                                 const isPaid = remaining <= 0;
                             %>
                             <div class="bg-white p-4 rounded-xl border border-gray-200">
@@ -342,7 +277,7 @@
                                             <% } %>
                                         </div>
                                         <div class="flex flex-wrap gap-4 text-sm text-gray-600">
-                                            <span><strong>Total:</strong> R$ <%= p.price.toFixed(2) %></span>
+                                            <span><strong>Total:</strong> R$ <%= parseFloat(p.price).toFixed(2) %></span>
                                             <span><strong>Pago:</strong> R$ <%= totalPaid.toFixed(2) %></span>
                                             <% if (remaining > 0) { %>
                                                 <span class="text-red-600 font-semibold">
@@ -353,19 +288,19 @@
                                     </div>
                                     
                                     <div class="flex flex-wrap gap-2">
-                                        <form action="/client/<%= client._id %>/product/<%= i %>/pay" method="POST"onsubmit="return pagarValor(this)"data-remaining="<%= remaining %>"class="inline">
+                                        <form action="/client/<%= client.id %>/product/<%= p.id %>/pay" method="POST" onsubmit="return pagarValor(this)" data-remaining="<%= remaining %>" class="inline">
                                             <button class="flex items-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-opacity">
                                                 <i class="fas fa-credit-card"></i>
                                                 <span>💰 Pagar</span>
                                             </button>
                                         </form>
-                                        <form action="/client/<%= client._id %>/product/<%= i %>/edit" method="POST" onsubmit="return editItem(this, '<%= p.name %>', '<%= p.price %>')" class="inline">
+                                        <form action="/client/<%= client.id %>/product/<%= p.id %>/edit" method="POST" onsubmit="return editItem(this, '<%= p.name %>', '<%= p.price %>')" class="inline">
                                             <button class="flex items-center space-x-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
                                                 <i class="fas fa-edit"></i>
                                                 <span>✏️ Editar</span>
                                             </button>
                                         </form>
-                                        <form action="/client/<%= client._id %>/product/<%= i %>/delete" method="POST" onsubmit="return confirm('Excluir este produto?')" class="inline">
+                                        <form action="/client/<%= client.id %>/product/<%= p.id %>/delete" method="POST" onsubmit="return confirm('Excluir este produto?')" class="inline">
                                             <button class="flex items-center space-x-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
                                                 <i class="fas fa-trash"></i>
                                                 <span>🗑️ Excluir</span>
@@ -374,28 +309,28 @@
                                     </div>
                                 </div>
 
-                                <% if (p.payments && p.payments.length) { %>
+                                <% if (p.Payments && p.Payments.length) { %>
                                 <div class="mt-4 pt-4 border-t border-gray-200">
                                     <h5 class="text-sm font-semibold text-gray-700 mb-3 flex items-center">
                                         <i class="fas fa-history mr-2"></i>
                                         Histórico de Pagamentos
                                     </h5>
                                     <div class="space-y-2">
-                                        <% p.payments.forEach((pay, j) => { %>
+                                        <% p.Payments.forEach((pay) => { %>
                                         <div class="flex items-center justify-between bg-white p-3 rounded-lg border">
                                             <div class="flex items-center space-x-3">
                                                 <div class="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
                                                     <i class="fas fa-check text-white text-xs"></i>
                                                 </div>
                                                 <div>
-                                                    <div class="font-semibold text-gray-900">R$ <%= pay.amount.toFixed(2) %></div>
+                                                    <div class="font-semibold text-gray-900">R$ <%= parseFloat(pay.amount).toFixed(2) %></div>
                                                     <div class="text-sm text-gray-600">
                                                         <%= new Date(pay.paidAt).toLocaleDateString('pt-BR') %> • <%= pay.method %>
                                                         <% if (pay.description) { %> • <%= pay.description %><% } %>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <form action="/client/<%= client._id %>/product/<%= i %>/remove-payment/<%= j %>" method="POST" onsubmit="return confirm('Excluir este pagamento?')" class="inline">
+                                            <form action="/client/<%= client.id %>/product/<%= p.id %>/remove-payment/<%= pay.id %>" method="POST" onsubmit="return confirm('Excluir este pagamento?')" class="inline">
                                                 <button class="text-red-600 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-colors">
                                                     <i class="fas fa-trash text-sm"></i>
                                                 </button>
@@ -428,23 +363,23 @@
                     </div>
                     <div class="p-6">
                         <div class="space-y-4">
-                            <% paidProducts.forEach(function(prod, prodIdx) { %>
+                            <% paidProducts.forEach(function(prod) { %>
                             <div class="bg-green-50 p-4 rounded-xl border border-green-200">
                                 <div class="flex justify-between items-center mb-2">
                                     <strong class="text-green-800 text-lg"><%= prod.name %></strong>
-                                    <span class="text-green-600 font-semibold text-xl">R$ <%= prod.price.toFixed(2) %></span>
+                                    <span class="text-green-600 font-semibold text-xl">R$ <%= parseFloat(prod.price).toFixed(2) %></span>
                                 </div>
                                 <ul class="space-y-2 text-sm">
-                                    <% prod.payments.forEach(function(pay, payIdx) { %>
+                                    <% prod.payments.forEach(function(pay) { %>
                                     <li class="flex items-center justify-between text-green-700 bg-white p-2 rounded border">
                                         <div class="flex items-center">
                                             <i class="fas fa-check-circle mr-2 text-green-600"></i>
                                             <span>
-   <%= pay.formattedDate %> – R$ <%= (pay.amount != null ? pay.amount.toFixed(2) : '0.00') %>
-   (<%= pay.method %><% if (pay.description) { %>, <%= pay.description %><% } %>)
- </span>
+                                                <%= pay.formattedDate %> – R$ <%= (pay.amount != null ? parseFloat(pay.amount).toFixed(2) : '0.00') %>
+                                                (<%= pay.method %><% if (pay.description) { %>, <%= pay.description %><% } %>)
+                                            </span>
                                         </div>
-                                        <form action="/client/<%= client._id %>/product/<%= prodIdx %>/remove-payment/<%= payIdx %>" method="POST" onsubmit="return confirm('Excluir este pagamento?')" class="inline">
+                                        <form action="/client/<%= client.id %>/product/<%= prod.id %>/remove-payment/<%= pay.id %>" method="POST" onsubmit="return confirm('Excluir este pagamento?')" class="inline">
                                             <button class="text-red-600 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors">
                                                 <i class="fas fa-trash text-xs"></i>
                                             </button>
@@ -468,30 +403,29 @@
                     </div>
                     <div class="p-6">
                         <%
-                        // CORREÇÃO: Lógica de filtragem corrigida
+                        // ATUALIZADO: Lógica de filtragem
                         let visible;
                         if (typeof isHistory !== 'undefined' && isHistory) {
-                            // Se for histórico, mostra TODOS os agendamentos
                             visible = appointments || [];
                         } else {
-                            // Se não for histórico, aplica a filtragem original
                             visible = (appointments || []).filter(a => {
-                                // transforma "DD/MM/YYYY …" em Date
                                 const [d, m, y] = a.formatted.split(' ')[0].split('/');
-                                const apptDate = new Date(y + '-' + m + '-' + d + 'T00:00:00');
+                                // Garante que o formato da data é interpretado corretamente
+                                const apptDate = new Date(`${y}-${m}-${d}T00:00:00-03:00`); // Fuso -03:00
                                 const todayMid = new Date();
                                 todayMid.setHours(0,0,0,0);
-                                // se for hoje ou no futuro
+                                
                                 if (apptDate >= todayMid) return true;
-                                // algum serviço ainda não foi pago integralmente?
-                                for (let s of a.services || []) {
-                                    const paid = (s.payments || []).reduce((sum,p)=> sum + p.amount, 0);
-                                    if (paid < s.price) return true;
+                                
+                                // ATUALIZADO: a.services -> a.AppointmentServices, s.payments -> s.AppointmentPayments
+                                for (let s of a.AppointmentServices || []) {
+                                    const paid = (s.AppointmentPayments || []).reduce((sum,p)=> sum + parseFloat(p.amount), 0);
+                                    if (paid < parseFloat(s.price)) return true;
                                 }
-                                // algum produto ainda não foi pago integralmente?
-                                for (let p of a.products || []) {
-                                    const paid = (p.payments || []).reduce((sum,q)=> sum + q.amount, 0);
-                                    if (paid < p.price) return true;
+                                // ATUALIZADO: a.products -> a.AppointmentProducts, p.payments -> p.AppointmentPayments
+                                for (let p of a.AppointmentProducts || []) {
+                                    const paid = (p.AppointmentPayments || []).reduce((sum,q)=> sum + parseFloat(q.amount), 0);
+                                    if (paid < parseFloat(p.price)) return true;
                                 }
                                 return false;
                             });
@@ -507,10 +441,8 @@
                         <div class="space-y-4">
                             <% visible.forEach(function(a) { 
                                 const [datePart, , timePart] = a.formatted.split(' ');
-                                
-                                // Determina se é um agendamento passado
                                 const [d, m, y] = datePart.split('/');
-                                const apptDate = new Date(y + '-' + m + '-' + d + 'T00:00:00');
+                                const apptDate = new Date(`${y}-${m}-${d}T00:00:00-03:00`);
                                 const todayMid = new Date();
                                 todayMid.setHours(0,0,0,0);
                                 const isPast = apptDate < todayMid;
@@ -540,7 +472,7 @@
                                         </button>
                                         <% } %>
 
-                                        <form action="/appointment/<%= a._id %>/edit-datetime" method="POST"
+                                        <form action="/appointment/<%= a.id %>/edit-datetime" method="POST"
                                               onsubmit='return editDateTime(this, "<%= datePart %>", "<%= timePart %>")'
                                               class="inline">
                                           <button class="flex items-center space-x-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
@@ -549,7 +481,7 @@
                                           </button>
                                         </form>
 
-                                        <form action="/appointment/<%= a._id %>/cancel" method="POST" onsubmit="return promptCancelReason(this)" class="inline">
+                                        <form action="/appointment/<%= a.id %>/cancel" method="POST" onsubmit="return promptCancelReason(this)" class="inline">
                                             <button class="flex items-center space-x-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
                                                 <i class="fas fa-times"></i>
                                                 <span class="hidden sm:inline">Cancelar</span>
@@ -558,16 +490,17 @@
                                         </div>
                                 </div>
 
-                                <% if (a.services && a.services.length) { %>
+                                <% if (a.AppointmentServices && a.AppointmentServices.length) { %>
                                 <div class="border-t border-gray-200 pt-4">
                                     <h5 class="font-semibold text-gray-700 mb-3 flex items-center">
                                         <i class="fas fa-concierge-bell mr-2"></i>
                                         Serviços:
                                     </h5>
                                     <div class="space-y-3">
-                                        <% a.services.forEach(function(service, svcIdx) { 
-                                            const servicePaid = (service.payments || []).reduce((sum, p) => sum + p.amount, 0);
-                                            const serviceRemaining = service.price - servicePaid;
+                                        <% a.AppointmentServices.forEach(function(service) { 
+                                            // ATUALIZADO: service.payments -> service.AppointmentPayments
+                                            const servicePaid = (service.AppointmentPayments || []).reduce((sum, p) => sum + parseFloat(p.amount), 0);
+                                            const serviceRemaining = parseFloat(service.price) - servicePaid;
                                             const isServicePaid = serviceRemaining <= 0;
                                         %>
                                         <div class="bg-white p-4 rounded-lg border">
@@ -588,7 +521,7 @@
                                                         <% } %>
                                                     </div>
                                                     <div class="text-sm text-gray-600">
-                                                        <span><strong>Valor:</strong> R$ <%= service.price.toFixed(2) %></span>
+                                                        <span><strong>Valor:</strong> R$ <%= parseFloat(service.price).toFixed(2) %></span>
                                                         <% if (servicePaid > 0) { %>
                                                             <span class="ml-4"><strong>Pago:</strong> R$ <%= servicePaid.toFixed(2) %></span>
                                                         <% } %>
@@ -602,20 +535,20 @@
                                                 
                                                 
                                                 <div class="flex flex-wrap gap-2">
-                                                    <form action="/appointment/<%= a._id %>/pay-service/<%= svcIdx %>" method="POST" onsubmit="return pagarValor(this)"data-remaining="<%= serviceRemaining %>" class="inline">
+                                                    <form action="/appointment/<%= a.id %>/pay-service/<%= service.id %>" method="POST" onsubmit="return pagarValor(this)" data-remaining="<%= serviceRemaining %>" class="inline">
                                                         <button class="flex items-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-opacity">
                                                             <i class="fas fa-credit-card"></i>
                                                             <span>💰 Pagar</span>
                                                         </button>
                                                     </form>
                                                     
-                                                    <form action="/appointment/<%= a._id %>/edit-service/<%= svcIdx %>" method="POST" onsubmit="return editItem(this, '<%= service.name %>', '<%= service.price %>')" class="inline">
+                                                    <form action="/appointment/<%= a.id %>/edit-service/<%= service.id %>" method="POST" onsubmit="return editItem(this, '<%= service.name %>', '<%= service.price %>')" class="inline">
                                                         <button class="flex items-center space-x-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
                                                             <i class="fas fa-edit"></i>
                                                             <span>✏️ Editar</span>
                                                         </button>
                                                     </form>
-                                                    <form action="/appointment/<%= a._id %>/remove-service/<%= svcIdx %>" method="POST" onsubmit="return confirm('Excluir serviço?')" class="inline">
+                                                    <form action="/appointment/<%= a.id %>/remove-service/<%= service.id %>" method="POST" onsubmit="return confirm('Excluir serviço?')" class="inline">
                                                         <button class="flex items-center space-x-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
                                                             <i class="fas fa-trash"></i>
                                                             <span>🗑️ Excluir</span>
@@ -625,20 +558,20 @@
                                                 </div>
                                             </div>
 
-                                            <% if (service.payments && service.payments.length) { %>
+                                            <% if (service.AppointmentPayments && service.AppointmentPayments.length) { %>
                                             <div class="mt-3 pt-3 border-t border-gray-200">
                                                 <div class="space-y-2">
-                                                    <% service.payments.forEach(function(payment, payIdx) { %>
+                                                    <% service.AppointmentPayments.forEach(function(payment) { %>
                                                     <div class="flex items-center justify-between text-sm bg-gray-50 p-2 rounded">
                                                         <div class="flex items-center space-x-2">
                                                             <i class="fas fa-check-circle text-green-600"></i>
                                                             <span>
                                                                 <%= new Date(payment.paidAt).toLocaleDateString('pt-BR') %> – 
-                                                                R$ <%= payment.amount.toFixed(2) %> (<%= payment.method %>
+                                                                R$ <%= parseFloat(payment.amount).toFixed(2) %> (<%= payment.method %>
                                                                 <% if (payment.description) { %>, <%= payment.description %><% } %>)
                                                             </span>
                                                         </div>
-                                                        <form action="/appointment/<%= a._id %>/remove-payment/service/<%= svcIdx %>/<%= payIdx %>" method="POST" onsubmit="return confirm('Excluir este pagamento?')" class="inline">
+                                                        <form action="/appointment/<%= a.id %>/remove-payment/service/<%= service.id %>/<%= payment.id %>" method="POST" onsubmit="return confirm('Excluir este pagamento?')" class="inline">
                                                             <button class="text-red-600 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors">
                                                                 <i class="fas fa-trash text-xs"></i>
                                                             </button>
@@ -755,13 +688,13 @@
                             <i class="fas fa-plus mr-2"></i>
                             Adicionar Produto
                         </button>
-                        <a href="/client/<%= client._id %>/historico" 
+                        <a href="/client/<%= client.id %>/historico" 
                            class="block w-full bg-blue-100 text-blue-700 py-3 rounded-lg font-semibold hover:bg-blue-200 transition-colors text-center">
                             <i class="fas fa-history mr-2"></i>
                             Ver Histórico Completo
                         </a>
                         <% } else { %>
-                        <a href="/client/<%= client._id %>" 
+                        <a href="/client/<%= client.id %>" 
                            class="block w-full bg-gold text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity bg-shine-gold text-center">
                             <i class="fas fa-arrow-left mr-2"></i>
                             Voltar aos Detalhes
@@ -780,106 +713,91 @@
         </div>
     </div>
 
-
     <div id="payment-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden animate-fade-in">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 m-4">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-2xl font-bold text-gray-900" id="payment-modal-title">Registrar Pagamento</h3>
-            <button onclick="closeModal('payment-modal')" class="text-gray-400 hover:text-gray-600">
-                <i class="fas fa-times text-2xl"></i>
-            </button>
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 m-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-2xl font-bold text-gray-900" id="payment-modal-title">Registrar Pagamento</h3>
+                <button onclick="closeModal('payment-modal')" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            
+            <form id="payment-modal-form" method="POST" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Valor Pago</label>
+                    <input type="number" step="0.01" name="amount" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Forma de Pagamento</label>
+                    <select name="method" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark bg-white">
+                        <option value="Pix">Pix</option>
+                        <option value="Dinheiro">Dinheiro</option>
+                        <option value="Cartão">Cartão</option>
+                    </select>
+                </div>
+    
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Data do Pagamento</label>
+                    <input type="date" name="paidAt" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark">
+                </div>
+    
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Descrição (Opcional)</label>
+                    <input type="text" name="description" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark">
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" onclick="closeModal('payment-modal')" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-opacity">
+                        Salvar Pagamento
+                    </button>
+                </div>
+            </form>
         </div>
-        
-        <form id="payment-modal-form" method="POST" class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Valor Pago</label>
-                <input type="number" step="0.01" name="amount" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark">
-            </div>
-            
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Forma de Pagamento</label>
-                <select name="method" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark bg-white">
-                    <option value="Pix">Pix</option>
-                    <option value="Dinheiro">Dinheiro</option>
-                    <option value="Cartão">Cartão</option>
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Data do Pagamento</label>
-                <input type="date" name="paidAt" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark">
-            </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Descrição (Opcional)</label>
-                <input type="text" name="description" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark">
-            </div>
-            
-            <div class="flex justify-end space-x-3 pt-4">
-                <button type="button" onclick="closeModal('payment-modal')" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                    Cancelar
-                </button>
-                <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-opacity">
-                    Salvar Pagamento
-                </button>
-            </div>
-        </form>
     </div>
-</div>
 
     <script>
-        // Mobile menu toggle - com verificação de segurança
+        // ... (Todo o seu JavaScript original permanece aqui, ele já está correto) ...
         const menuButton = document.getElementById('menu-button');
         const mobileMenu = document.getElementById('mobile-menu');
-        
         if (menuButton && mobileMenu) {
             menuButton.addEventListener('click', () => {
                 mobileMenu.classList.toggle('hidden');
             });
         }
-
-        // Funções genéricas para controlar qualquer modal
-            function openModal(modalId) {
-                const modal = document.getElementById(modalId);
-                if(modal) modal.classList.remove('hidden');
-            }
-            function closeModal(modalId) {
-                const modal = document.getElementById(modalId);
-                if(modal) modal.classList.add('hidden');
-            }
-
-            // Converte data "YYYY-MM-DD" para "DD/MM/YYYY"
-            function ymdToDmy(isoDate) {
-                if (!isoDate) return '';
-                const [y, m, d] = isoDate.split('-');
-                return `${d}/${m}/${y}`;
-            }
-
-            // Converte data "DD/MM/YYYY" para "YYYY-MM-DD"
-            function dmyToYmd(dmyDate) {
-                if (!dmyDate) return '';
-                const [d, m, y] = dmyDate.split('/');
-                return `${y}-${m}-${d}`;
-            }
-
-            // Formata data de hoje como YYYY-MM-DD
-            function getTodayIso() {
-                return new Date().toISOString().split('T')[0];
-}
-
-        // Função para scroll seguro
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if(modal) modal.classList.remove('hidden');
+        }
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if(modal) modal.classList.add('hidden');
+        }
+        function ymdToDmy(isoDate) {
+            if (!isoDate) return '';
+            const [y, m, d] = isoDate.split('-');
+            return `${d}/${m}/${y}`;
+        }
+        function dmyToYmd(dmyDate) {
+            if (!dmyDate) return '';
+            const [d, m, y] = dmyDate.split('/');
+            return `${y}-${m}-${d}`;
+        }
+        function getTodayIso() {
+            return new Date().toISOString().split('T')[0];
+        }
         function scrollToElement(selector) {
             const element = document.querySelector(selector);
             if (element) {
                 element.scrollIntoView({behavior: 'smooth'});
             }
         }
-
-        // TODAS AS FUNÇÕES ORIGINAIS MANTIDAS
         function addService() {
             const container = document.getElementById('services');
             if (!container) return;
-            
             const serviceDiv = document.createElement('div');
             serviceDiv.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200';
             serviceDiv.innerHTML = `
@@ -896,10 +814,8 @@
             `;
             container.appendChild(serviceDiv);
         }
-
         function processForm() {
             const services = [], products = [];
-            
             document.querySelectorAll('.service-name').forEach((el, i) => {
                 const name = el.value.trim();
                 const priceElement = document.querySelectorAll('.service-price')[i];
@@ -908,7 +824,6 @@
                     services.push({name: name, price: price});
                 }
             });
-            
             document.querySelectorAll('.product-name').forEach((el, i) => {
                 const name = el.value.trim();
                 const priceElement = document.querySelectorAll('.product-price')[i];
@@ -917,126 +832,79 @@
                     products.push({name: name, price: price});
                 }
             });
-            
             const servicesInput = document.getElementById('servicesInput');
             const productsInput = document.getElementById('productsInput');
-            
             if (servicesInput) servicesInput.value = JSON.stringify(services);
             if (productsInput) productsInput.value = JSON.stringify(products);
-            
             return true;
         }
-
-
-        
         function sendWhatsAppReminder(button, clientName, clientPhone, apptDateTime) {
-            // 1. Encontra o "card" do agendamento onde o botão foi clicado
             const card = button.closest('.p-4.rounded-xl');
-            
-            // 2. Procura todos os nomes de serviço dentro daquele card
             const services = Array.from(card.querySelectorAll('h6.font-semibold'))
                                   .map(h6 => h6.innerText.trim())
                                   .join(', ');
-
-            // 3. Limpa o telefone para conter apenas números
             const phone = clientPhone.replace(/\D/g, '');
-            // Garante o código do Brasil (55)
             const fullPhone = phone.startsWith('55') ? phone : '55' + phone;
-
-            // 4. Monta a mensagem (com quebras de linha \n)
             let message = `Olá, ${clientName}! ✨\n\n`;
             message += `Gostaríamos de lembrar do seu horário no Studio Kadosh, ${apptDateTime}.\n\n`;
-            
             if (services) {
-                message += `Serviços: *${services}*.\n\n`; // *texto* vira negrito no WA
+                message += `Serviços: *${services}*.\n\n`;
             }
-            
             message += `Por favor, nos avise se precisar remarcar. Estamos te esperando! 😊`;
-
-            // 5. Codifica a mensagem para uma URL
             const encodedMessage = encodeURIComponent(message);
-            
-            // 6. Cria o link final do WhatsApp
             const waLink = `https://wa.me/${fullPhone}?text=${encodedMessage}`;
-
-            // 7. Abre o link em uma nova aba
             window.open(waLink, '_blank');
         }
-
-        // Função NOVA E CORRIGIDA
-        function pagarValor(form) { // 1. Remove o segundo argumento
+        function pagarValor(form) { 
             const modal = document.getElementById('payment-modal');
             const modalForm = document.getElementById('payment-modal-form');
-            
-            // 2. Lê o valor restante do atributo data-
             const remainingAmount = parseFloat(form.dataset.remaining);
-
             modalForm.action = form.action; 
-            
             const title = form.closest('.p-4, .bg-white').querySelector('h4, h6').innerText;
             modal.querySelector('#payment-modal-title').innerText = `Pagar: ${title}`;
-
             const amountInput = modalForm.querySelector('input[name="amount"]');
-            
-            // 3. Usa o valor lido
             if (remainingAmount && !isNaN(remainingAmount)) {
                 amountInput.value = remainingAmount.toFixed(2);
             } else {
                 amountInput.value = '';
                 amountInput.placeholder = '0.00';
             }
-            
             modalForm.querySelector('input[name="paidAt"]').value = getTodayIso();
             modalForm.querySelector('input[name="description"]').value = '';
-            
             openModal('payment-modal');
-            
             return false; 
         }
-
         function editItem(form, oldName, oldPrice) {
             const nome = prompt('Novo nome:', oldName);
             if (nome === null) return false;
             const preco = prompt('Novo preço:', oldPrice);
             if (preco === null) return false;
-
             const i1 = document.createElement('input');
             i1.type = 'hidden'; i1.name = 'name'; i1.value = nome;
             form.appendChild(i1);
-
             const i2 = document.createElement('input');
             i2.type = 'hidden'; i2.name = 'price'; i2.value = preco;
             form.appendChild(i2);
-
             return true;
         }
-
         function editClient(form, oldName, oldPhone) {
             const nome = prompt('Novo nome do cliente:', oldName);
             if (nome === null) return false;
             const telefone = prompt('Novo telefone:', oldPhone);
             if (telefone === null) return false;
-
             const i1 = document.createElement('input');
             i1.type = 'hidden'; i1.name = 'name'; i1.value = nome;
             form.appendChild(i1);
-
             const i2 = document.createElement('input');
             i2.type = 'hidden'; i2.name = 'phone'; i2.value = telefone;
             form.appendChild(i2);
-
             return true;
         }
-
         function editDateTime(form, oldDate, oldTime) {
-            // oldDate vem como "DD/MM/YYYY"
             const [day, month, year] = oldDate.split('/');
             const formattedOld = `${day}/${month}/${year}`;
-            
             const userDate = prompt('Nova data (DD/MM/YYYY):', formattedOld);
             if (userDate === null) return false;
-
-            // validação simples de máscara
             const dateMatch = userDate.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
             if (!dateMatch) {
                 alert('Data inválida. Use DD/MM/YYYY.');
@@ -1044,64 +912,41 @@
             }
             const [, d, m, y] = dateMatch;
             const isoDate = `${y}-${m}-${d}`;
-
             const userTime = prompt('Novo horário (HH:MM):', oldTime);
             if (userTime === null) return false;
             if (!/^\d{2}:\d{2}$/.test(userTime)) {
                 alert('Horário inválido. Use HH:MM.');
                 return false;
             }
-
-            // campos hidden só com ISO + HH:MM
             const i1 = document.createElement('input');
             i1.type = 'hidden'; i1.name = 'date'; i1.value = isoDate;
             form.appendChild(i1);
-
             const i2 = document.createElement('input');
             i2.type = 'hidden'; i2.name = 'time'; i2.value = userTime;
             form.appendChild(i2);
-
             return true;
         }
-
-        // =================================
-        // ===     NOVA ALTERAÇÃO AQUI     ===
-        // =================================
-        /**
-         * Pede ao admin o motivo do cancelamento antes de enviar o formulário.
-         */
         function promptCancelReason(form) {
             const reason = prompt("Por favor, insira o motivo do cancelamento (será visível para o cliente):");
-
-            // 1. Se o usuário clicou "Cancelar" (null)
             if (reason === null) {
-                return false; // Impede o envio, sem alerta
+                return false; 
             }
-
-            // 2. Se o usuário clicou "OK" mas deixou em branco
             if (reason.trim() === "") {
                 alert("O motivo do cancelamento é obrigatório.");
-                return false; // Impede o envio
+                return false; 
             }
-
-            // 3. Se um motivo válido foi fornecido
             const input = document.createElement('input');
             input.type = 'hidden';
-            input.name = 'cancellationReason'; // O nome do campo que o controller vai receber
+            input.name = 'cancellationReason';
             input.value = reason.trim();
             form.appendChild(input);
-            
-            return true; // Permite o envio do formulário
+            return true; 
         }
-
-        // Inicialização quando DOM estiver carregado
         document.addEventListener('DOMContentLoaded', function() {
-            // Adiciona efeito de fade-in aos elementos quando aparecem na tela
             const observerOptions = {
                 threshold: 0.1,
                 rootMargin: '0px 0px -50px 0px'
             };
-
             const observer = new IntersectionObserver(function(entries) {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
@@ -1110,8 +955,6 @@
                     }
                 });
             });
-
-            // Aplica animação apenas se os elementos existirem
             document.querySelectorAll('.animate-fade-in').forEach(el => {
                 el.style.opacity = '0';
                 el.style.transform = 'translateY(20px)';

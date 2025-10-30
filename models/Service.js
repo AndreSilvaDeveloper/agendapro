@@ -1,59 +1,81 @@
 // models/Service.js
-const mongoose = require('mongoose');
+const { Sequelize, DataTypes } = require("sequelize");
+const sequelize = require("../db");
 
-const serviceSchema = new mongoose.Schema({
-  // 1. O ID do Salão (inquilino) ao qual este serviço pertence
-  organizationId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Organization',
-    required: [true, 'A organização (salão) é obrigatória.'],
-    index: true // Essencial para performance
-  },
-  
-  // 2. O nome do serviço (ex: "Corte Feminino", "Manicure", "Progressiva")
-  name: {
-    type: String,
-    required: [true, 'O nome do serviço é obrigatório.'],
-    trim: true
-  },
+const Service = sequelize.define(
+  "Service",
+  {
+    // 'id' (PK) é criado automaticamente
 
-  // 3. A descrição (para o cliente ver, como na imagem de inspiração)
-  description: {
-    type: String,
-    trim: true
-  },
+    // 1. ID do Salão
+    organizationId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      // A associação (belongsTo Organization) será definida depois
+    },
 
-  // 4. O preço do serviço
-  price: {
-    type: Number,
-    required: [true, 'O preço é obrigatório.'],
-    min: [0, 'O preço não pode ser negativo.'],
-    default: 0
-  },
+    // 2. Nome do serviço
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      set(value) {
+        this.setDataValue("name", value.trim());
+      },
+    },
 
-  // 5. A duração do serviço em minutos (ex: 30, 60, 120)
-  // Isso é crucial para o sistema de agendamento encontrar horários livres.
-  duration: {
-    type: Number,
-    required: [true, 'A duração em minutos é obrigatória.'],
-    min: [1, 'A duração deve ser de pelo menos 1 minuto.']
-  },
+    // 3. Descrição
+    description: {
+      type: DataTypes.STRING, // Pode ser DataTypes.TEXT se a descrição for longa
+      allowNull: true,
+      set(value) {
+        this.setDataValue("description", value ? value.trim() : null);
+      },
+    },
 
-  // 6. Uma foto para o serviço (como na inspiração) - opcional
-  imageUrl: {
-    type: String,
-    trim: true
-  },
+    // 4. Preço
+    price: {
+      type: DataTypes.DECIMAL(10, 2), // Tipo correto para dinheiro
+      allowNull: false,
+      defaultValue: 0,
+      validate: {
+        min: 0, // Substitui o 'min: [0, ...]' do Mongoose
+      },
+    },
 
-  // 7. Campo para "desativar" um serviço sem apagá-lo
-  isActive: {
-    type: Boolean,
-    default: true
+    // 5. Duração em minutos
+    duration: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      validate: {
+        min: 1, // Substitui o 'min: [1, ...]' do Mongoose
+      },
+    },
+
+    // 6. URL da Imagem
+    imageUrl: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      set(value) {
+        this.setDataValue("imageUrl", value ? value.trim() : null);
+      },
+    },
+
+    // 7. Ativo
+    isActive: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+    },
+  },
+  {
+    // Opções
+    timestamps: true,
+    indexes: [
+      {
+        fields: ["organizationId", "name"],
+      },
+    ],
   }
-  
-}, { timestamps: true }); // Adiciona createdAt e updatedAt
+);
 
-// Índice para buscar serviços rapidamente por nome dentro do salão
-serviceSchema.index({ organizationId: 1, name: 1 });
-
-module.exports = mongoose.model('Service', serviceSchema);
+module.exports = Service;

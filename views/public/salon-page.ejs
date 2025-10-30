@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title><%= org.name %> – Agendamento Online</title>
+    <title><%= org && org.name ? org.name : 'Salão' %> – Agendamento Online</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -37,21 +37,27 @@
     </style>
 </head>
 <body class="">
+    <% 
+      // Proteções: garantem que não quebre se o controller não passar os arrays
+      const _services = Array.isArray(services) ? services : [];
+      const _staff    = Array.isArray(staff)    ? staff    : [];
+      const orgIdSafe = (org && (org.id || org._id)) ? (org.id || org._id) : '';
+    %>
 
     <header class="text-white p-8 sm:p-2 rounded-b-3xl shadow-xl
-                   <% if (org.coverImageUrl) { %>
+                   <% if (org && org.coverImageUrl) { %>
                        hero-bg-image
                    <% } else { %>
                        hero-bg-default
                    <% } %>"
-            <% if (org.coverImageUrl) { %>
+            <% if (org && org.coverImageUrl) { %>
                 style="background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('<%= org.coverImageUrl %>');"
             <% } %> >
         <div class="max-w-4xl mx-auto">
             <h1 class="text-4xl sm:text-6xl font-bold break-words">
-                <%= org.name %>
+                <%= org && org.name ? org.name : 'Seu Salão' %>
             </h1>
-            <% if (org.address) { %>
+            <% if (org && org.address) { %>
                 <p class="text-lg sm:text-xl text-yellow-100 mt-2">
                     <i class="fas fa-map-marker-alt fa-fw mr-1"></i>
                     <%= org.address %>
@@ -63,12 +69,12 @@
     <main class="max-w-4xl mx-auto p-4 sm:p-8 -mt-10 sm:-mt-16">
 
         <div class="bg-black/30 backdrop-blur-lg rounded-2xl shadow-2xl p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <a href="/portal/<%= org._id %>/registro"
+            <a href="/portal/<%= orgIdSafe %>/registro"
                class="w-full bg-gold text-white text-center py-4 px-6 rounded-xl font-bold text-lg hover:opacity-90 transition-all shadow-lg flex items-center justify-center">
                 <i class="fas fa-calendar-plus mr-3"></i>
                 <span>Agendar Horário</span>
             </a>
-            <a href="/portal/<%= org._id %>/login"
+            <a href="/portal/<%= orgIdSafe %>/login"
                class="w-full bg-white text-gold-dark border-2 border-gold text-center py-4 px-6 rounded-xl font-bold text-lg hover:bg-gray-50 transition-all shadow-lg flex items-center justify-center">
                 <i class="fas fa-sign-in-alt mr-3"></i>
                 <span>Já tenho conta</span>
@@ -79,23 +85,23 @@
             <h2 class="text-2xl font-bold text-white mb-6">Informações</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
 
-                <% if (org.address) { %>
+                <% if (org && org.address) { %>
                 <div class="flex items-start space-x-4">
                     <i class="fas fa-map-marker-alt fa-2x text-gold-accent mt-1"></i>
                     <div>
                         <h3 class="font-semibold text-gray-100">Endereço</h3>
                         <p class="text-gray-200"><%= org.address %></p>
-                        </div>
+                    </div>
                 </div>
                 <% } %>
 
-                <% if (org.whatsapp) { %>
+                <% if (org && org.whatsapp) { %>
                 <div class="flex items-start space-x-4">
                     <i class="fab fa-whatsapp fa-2x text-green-500 mt-1"></i>
                     <div>
                         <h3 class="font-semibold text-gray-100">WhatsApp</h3>
                         <p class="text-gray-200"><%= org.whatsapp %></p>
-                        <a href="https://wa.me/<%= org.whatsapp.replace(/\D/g, '') %>" target="_blank"
+                        <a href="https://wa.me/<%= String(org.whatsapp).replace(/\D/g, '') %>" target="_blank"
                            class="text-sm text-blue-400 hover:underline">
                            Enviar mensagem
                         </a>
@@ -103,7 +109,7 @@
                 </div>
                 <% } %>
 
-                <% if (org.phone) { %>
+                <% if (org && org.phone) { %>
                 <div class="flex items-start space-x-4">
                     <i class="fas fa-phone fa-2x text-gold-accent mt-1"></i>
                     <div>
@@ -113,7 +119,7 @@
                 </div>
                 <% } %>
 
-                <% if (org.operatingHours) { %>
+                <% if (org && org.operatingHours) { %>
                 <div class="flex items-start space-x-4">
                     <i class="fas fa-clock fa-2x text-gold-accent mt-1"></i>
                     <div>
@@ -129,15 +135,15 @@
         <div class="mt-8 bg-black/30 backdrop-blur-lg rounded-2xl shadow-xl p-6">
             <h2 class="text-2xl font-bold text-white mb-6">Nossos Serviços</h2>
 
-            <% if (services.length === 0) { %>
+            <% if (!Array.isArray(_services) || _services.length === 0) { %>
                 <p class="text-gray-200">O salão ainda não cadastrou seus serviços.</p>
             <% } else { %>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <% services.forEach(service => { %>
+                    <% _services.forEach(service => { %>
                         <div class="bg-black/70 backdrop-blur-md p-5 rounded-xl border border-gray-600 shadow-sm">
                             <h3 class="text-xl font-semibold text-gold-accent"><%= service.name %></h3>
                             <p class="text-lg font-bold text-white mt-1"> 
-                                R$ <%= service.price.toFixed(2).replace('.', ',') %>
+                                R$ <%= Number(service.price || 0).toFixed(2).replace('.', ',') %>
                             </p>
                             <p class="text-sm text-gray-100"><%= service.duration %> minutos</p> 
                             <% if (service.description) { %>
@@ -149,11 +155,11 @@
             <% } %>
         </div>
 
-        <% if (staff.length > 0) { %>
+        <% if (Array.isArray(_staff) && _staff.length > 0) { %>
         <div class="mt-8 bg-black/30 backdrop-blur-lg rounded-2xl shadow-xl p-6">
             <h2 class="text-2xl font-bold text-white mb-6">Nossa Equipe</h2>
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
-                <% staff.forEach(member => { %>
+                <% _staff.forEach(member => { %>
                     <div class="text-center">
                         <div class="w-24 h-24 mx-auto rounded-full bg-black/20 flex items-center justify-center overflow-hidden border border-gray-600">
                             <% if (member.imageUrl) { %>
@@ -174,7 +180,7 @@
     <footer class="text-center py-10">
         <p class="text-sm text-gray-200">
             <i class="fas fa-crown mr-1.5 text-gold-accent"></i>
-            <%= org.name %> © <%= new Date().getFullYear() %>
+            <%= org && org.name ? org.name : 'Seu Salão' %> © <%= new Date().getFullYear() %>
         </p> 
         <p class="text-xs text-gray-300 mt-4">
             <a href="/login" class="hover:underline">Acesso do Administrador</a>

@@ -1,7 +1,13 @@
 // controllers/financialController.js
-const Client = require('../models/Client');
-const Appointment = require('../models/Appointment');
-const Expense = require('../models/Expense');
+// --- REMOVIDO ---
+// const Client = require('../models/Client');
+// const Appointment = require('../models/Appointment');
+// const Expense = require('../models/Expense');
+
+// --- ADICIONADO ---
+const db = require('../models');
+const { Op } = require('sequelize');
+
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
@@ -13,10 +19,6 @@ dayjs.extend(timezone);
 dayjs.extend(isoWeek);
 dayjs.extend(isBetween);
 
-/**
- * Pega o ID da organização logada a partir da sessão.
- * Esta é a chave de segurança para o multi-salão.
- */
 const getOrgId = (req) => req.session.organizationId;
 
 exports.getFinanceiro = async (req, res) => {
@@ -28,7 +30,7 @@ exports.getFinanceiro = async (req, res) => {
     let label = 'Geral';
     let dayValue = '', monthValue = '', weekValue = '';
 
-    // Lógica de datas (não muda)
+    // Lógica de datas (sem alteração)
     if (day) {
       dayValue = day;
       dateStart = dayjs.tz(`${day}T00:00:00`, 'America/Sao_Paulo');
@@ -49,9 +51,23 @@ exports.getFinanceiro = async (req, res) => {
       label = `Semana de ${dateStart.format('DD/MM')} a ${dateEnd.format('DD/MM/YYYY')}`;
     }
 
-    // Busca dados APENAS desta organização
-    const appointments = await Appointment.find({ organizationId: organizationId }).populate('clientId');
-    const clients = await Client.find({ organizationId: organizationId });
+    // ATUALIZADO: Busca dados com 'include' aninhado
+    const [appointments, clients] = await Promise.all([
+      db.Appointment.findAll({
+        where: { organizationId },
+        include: [
+          { model: db.Client, attributes: ['name'] },
+          { model: db.AppointmentService, include: [db.AppointmentPayment] },
+          { model: db.AppointmentProduct, include: [db.AppointmentPayment] }
+        ]
+      }),
+      db.Client.findAll({
+        where: { organizationId },
+        include: [
+          { model: db.Product, include: [db.Payment] }
+        ]
+      })
+    ]);
 
     let totals = {}, overallTotal = 0;
     let totalServicos = 0, totalProdutos = 0;
@@ -60,32 +76,34 @@ exports.getFinanceiro = async (req, res) => {
     const processPayment = (p, clientName, itemName, itemType) => {
       const paid = dayjs(p.paidAt).tz('America/Sao_Paulo');
       if (!dateStart || paid.isBetween(dateStart, dateEnd, null, '[]')) {
-        if (itemType === 'service') totalServicos += p.amount;
-        if (itemType === 'product') totalProdutos += p.amount;
+        // ATUALIZADO: Usar parseFloat para valores DECIMAL
+        const amount = parseFloat(p.amount);
+        
+        if (itemType === 'service') totalServicos += amount;
+        if (itemType === 'product') totalProdutos += amount;
 
-        // Padroniza a chave do método
         const key = ['pix', 'dinheiro', 'cartao'].find(k => p.method.toLowerCase().includes(k)) || 'outros';
-        totals[key] = (totals[key] || 0) + p.amount;
+        totals[key] = (totals[key] || 0) + amount;
         details[key] = details[key] || [];
         details[key].push({
           date: paid.format('DD/MM/YYYY'),
           client: clientName,
           item: itemName,
-          amount: p.amount.toFixed(2),
+          amount: amount.toFixed(2),
           description: p.description || ''
         });
       }
     };
 
+    // ATUALIZADO: Itera sobre os nomes dos modelos Sequelize
     appointments.forEach(a => {
-      // Verifica se clientId existe antes de acessar .name
-      const clientName = a.clientId ? a.clientId.name : 'Cliente Excluído';
-      a.services.forEach(svc => svc.payments.forEach(p => processPayment(p, clientName, svc.name, 'service')));
-      a.products.forEach(prod => prod.payments.forEach(p => processPayment(p, clientName, prod.name, 'product')));
+      const clientName = a.Client ? a.Client.name : 'Cliente Excluído';
+      (a.AppointmentServices || []).forEach(svc => (svc.AppointmentPayments || []).forEach(p => processPayment(p, clientName, svc.name, 'service')));
+      (a.AppointmentProducts || []).forEach(prod => (prod.AppointmentPayments || []).forEach(p => processPayment(p, clientName, prod.name, 'product')));
     });
 
     clients.forEach(c => {
-      (c.products || []).forEach(prod => prod.payments.forEach(p => processPayment(p, c.name, prod.name, 'product')));
+      (c.Products || []).forEach(prod => (prod.Payments || []).forEach(p => processPayment(p, c.name, prod.name, 'product')));
     });
 
     overallTotal = totalServicos + totalProdutos;
@@ -113,9 +131,13 @@ exports.getFinanceiro = async (req, res) => {
 exports.getExpenses = async (req, res) => {
   try {
     const organizationId = getOrgId(req);
-    // Busca despesas APENAS desta organização
-    const expenses = await Expense.find({ organizationId: organizationId }).sort({ date: -1 });
-    const totalDespesa = expenses.reduce((sum, e) => sum + e.amount, 0);
+    // ATUALIZADO: Expense.find().sort() -> db.Expense.findAll()
+    const expenses = await db.Expense.findAll({ 
+      where: { organizationId: organizationId },
+      order: [['date', 'DESC']] // sort({ date: -1 })
+    });
+    // ATUALIZADO: Usar parseFloat
+    const totalDespesa = expenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
 
     res.render('expenses', {
       expenses,
@@ -140,20 +162,20 @@ exports.createExpense = async (req, res) => {
     const organizationId = getOrgId(req);
     const { date, category, description, amount } = req.body;
 
-    // "Etiqueta" a nova despesa com o ID da organização
-    await Expense.create({
-      organizationId: organizationId, // <-- ETIQUETA DE SEGURANÇA
+    // ATUALIZADO: Expense.create() -> db.Expense.create()
+    await db.Expense.create({
+      organizationId: organizationId,
       date: new Date(date),
-      category: category.toLowerCase(), // Salva em minúsculas (conforme modelo)
+      category: category.toLowerCase(),
       description: description.trim(),
       amount: parseFloat(amount)
     });
     res.redirect('/expenses?success=Despesa salva!');
   } catch (err) {
     console.error("Erro ao criar despesa:", err);
-    // Trata erros de validação do Mongoose
-    if (err.name === 'ValidationError') {
-      return res.redirect(`/expenses?error=${Object.values(err.errors)[0].message}`);
+    // ATUALIZADO: Trata erro de validação do Sequelize
+    if (err.name === 'SequelizeValidationError') {
+      return res.redirect(`/expenses?error=${err.errors[0].message}`);
     }
     res.redirect('/expenses?error=Erro ao salvar despesa.');
   }
@@ -164,13 +186,15 @@ exports.deleteExpense = async (req, res) => {
     const organizationId = getOrgId(req);
     const { id } = req.params;
 
-    // Deleta a despesa APENAS se pertencer a esta organização
-    const result = await Expense.findOneAndDelete({
-      _id: id,
-      organizationId: organizationId // <-- FILTRO DE SEGURANÇA
+    // ATUALIZADO: findOneAndDelete -> destroy
+    const affectedRows = await db.Expense.destroy({
+      where: {
+        id: id,
+        organizationId: organizationId
+      }
     });
 
-    if (!result) {
+    if (affectedRows === 0) {
       return res.redirect('/expenses?error=Despesa não encontrada.');
     }
     res.redirect('/expenses?success=Despesa excluída!');
@@ -185,31 +209,49 @@ exports.getBalanco = async (req, res) => {
   try {
     const organizationId = getOrgId(req);
 
-    // Busca dados APENAS desta organização
-    const appointments = await Appointment.find({ organizationId: organizationId }).populate('clientId');
-    const clients = await Client.find({ organizationId: organizationId });
-    const expenses = await Expense.find({ organizationId: organizationId });
+    // ATUALIZADO: Busca de dados com 'include' aninhado
+    const [appointments, clients, expenses] = await Promise.all([
+      db.Appointment.findAll({
+        where: { organizationId },
+        include: [
+          { model: db.AppointmentService, include: [db.AppointmentPayment] },
+          { model: db.AppointmentProduct, include: [db.AppointmentPayment] }
+        ]
+      }),
+      db.Client.findAll({
+        where: { organizationId },
+        include: [
+          { model: db.Product, include: [db.Payment] }
+        ]
+      }),
+      db.Expense.findAll({ where: { organizationId } })
+    ]);
+
 
     let totalReceita = 0;
     const prodMap = {};
     const monthlyMap = {};
 
     const processPayment = (p, itemName) => {
-      totalReceita += p.amount;
+      // ATUALIZADO: Usar parseFloat
+      const amount = parseFloat(p.amount);
+      totalReceita += amount;
       const m = dayjs(p.paidAt).tz('America/Sao_Paulo').format('YYYY-MM');
-      monthlyMap[m] = (monthlyMap[m] || 0) + p.amount;
-      prodMap[itemName] = (prodMap[itemName] || 0) + p.amount;
+      monthlyMap[m] = (monthlyMap[m] || 0) + amount;
+      prodMap[itemName] = (prodMap[itemName] || 0) + amount;
     };
 
+    // ATUALIZADO: Itera sobre os nomes dos modelos Sequelize
     appointments.forEach(a => {
-      a.services.forEach(item => item.payments.forEach(p => processPayment(p, item.name)));
-      a.products.forEach(item => item.payments.forEach(p => processPayment(p, item.name)));
+      (a.AppointmentServices || []).forEach(item => (item.AppointmentPayments || []).forEach(p => processPayment(p, item.name)));
+      (a.AppointmentProducts || []).forEach(item => (item.AppointmentPayments || []).forEach(p => processPayment(p, item.name)));
     });
     clients.forEach(c => {
-      (c.products || []).forEach(prod => prod.payments.forEach(p => processPayment(p, prod.name)));
+      (c.Products || []).forEach(prod => (prod.Payments || []).forEach(p => processPayment(p, prod.name)));
     });
 
-    const totalDespesa = expenses.reduce((sum, e) => sum + e.amount, 0);
+    // ATUALIZADO: Usar parseFloat
+    const totalDespesa = expenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);
     const liquido = totalReceita - totalDespesa;
 
     const productTotals = Object.entries(prodMap)
@@ -222,10 +264,11 @@ exports.getBalanco = async (req, res) => {
         return { month: `${month}/${year}`, total };
       });
 
+    // ATUALIZADO: Itera sobre os nomes dos modelos Sequelize
     let serviceCount = 0, productCount = 0;
     appointments.forEach(a => {
-      serviceCount += a.services.length;
-      productCount += a.products.length;
+      serviceCount += (a.AppointmentServices || []).length;
+      productCount += (a.AppointmentProducts || []).length;
     });
 
     res.render('balanco', {

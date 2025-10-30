@@ -2,7 +2,8 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Clientes<%= (typeof org !== 'undefined') ? org.name : 'AgendaPro' %></title>    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Clientes — <%= (typeof org !== 'undefined' && org && org.name) ? org.name : 'AgendaPro' %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -13,39 +14,19 @@
             --color-gold-accent: #DAA520;
         }
 
-        .text-gold {
-            color: var(--color-gold-dark);
-        }
-        .bg-gold {
-            background-color: var(--color-gold-accent);
-        }
-        .bg-gold-light {
-            background-color: #FFFBEB; 
-        }
-        .border-gold {
-            border-color: var(--color-gold-light);
-        }
-        .hover\:text-gold:hover {
-            color: var(--color-gold-dark);
-        }
-        .hover\:bg-gold-light:hover {
-            background-color: #FFF8DC; 
-        }
+        .text-gold { color: var(--color-gold-dark); }
+        .bg-gold { background-color: var(--color-gold-accent); }
+        .bg-gold-light { background-color: #FFFBEB; }
+        .border-gold { border-color: var(--color-gold-light); }
+        .hover\:text-gold:hover { color: var(--color-gold-dark); }
+        .hover\:bg-gold-light:hover { background-color: #FFF8DC; }
 
-        .animate-fade-in {
-            animation: fadeIn 0.5s ease-in;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        .animate-fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         
         /* --- ESTILOS PARA BRILHO --- */
         .text-gradient-gold {
-            background: linear-gradient(
-                90deg, 
-                #B8860B, #FFD700, #DAA520, #FFD700, #B8860B
-            );
+            background: linear-gradient(90deg, #B8860B, #FFD700, #DAA520, #FFD700, #B8860B);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -53,16 +34,9 @@
             background-size: 200% auto;
             animation: text-shine 4s linear infinite;
         }
+        @keyframes text-shine { from { background-position: 200% center; } to { background-position: 0% center; } }
 
-        @keyframes text-shine {
-            from { background-position: 200% center; }
-            to { background-position: 0% center; }
-        }
-
-        .bg-shine-gold {
-            position: relative;
-            overflow: hidden;
-        }
+        .bg-shine-gold { position: relative; overflow: hidden; }
         .bg-shine-gold::after {
             content: '';
             position: absolute;
@@ -70,41 +44,22 @@
             left: -75%;
             width: 50%;
             height: 120%;
-            background: linear-gradient(
-                90deg, 
-                rgba(255, 255, 255, 0) 0%, 
-                rgba(255, 255, 255, 0.4) 50%,
-                rgba(255, 255, 255, 0) 100%
-            );
+            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
             transform: skewX(-25deg);
             animation: bg-shine 5s infinite linear;
         }
-
-        @keyframes bg-shine {
-            0% { left: -75%; }
-            100% { left: 125%; }
-        }
+        @keyframes bg-shine { 0% { left: -75%; } 100% { left: 125%; } }
         /* --- FIM ESTILOS BRILHO --- */
         
-        .card-hover {
-            transition: all 0.3s ease;
-        }
-        .card-hover:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
         
-        .client-card {
-            transition: all 0.3s ease;
-            border-left: 4px solid transparent;
-        }
-        .client-card:hover {
-            border-left-color: var(--color-gold-dark);
-            background-color: #fcfcfc;
-        }
+        .client-card { transition: all 0.3s ease; border-left: 4px solid transparent; }
+        .client-card:hover { border-left-color: var(--color-gold-dark); background-color: #fcfcfc; }
+
         .search-highlight {
-            background-color: #fef3c7; /* yellow-100 */
-            color: #b45309; /* yellow-800 */
+            background-color: #fef3c7;
+            color: #b45309;
             padding: 0.125rem 0.25rem;
             border-radius: 0.25rem;
             font-weight: 600;
@@ -112,167 +67,124 @@
     </style>
 </head>
 <body class="min-h-screen bg-gray-50 font-sans antialiased">
-    <header class="bg-white sticky top-0 z-50 shadow-sm border-b border-gray-100">
-        <div class="max-w-7xl mx-auto px-4 py-4">
-            <div class="flex items-center justify-between">
+<header class="bg-white sticky top-0 z-50 shadow-sm border-b border-gray-100">
+    <div class="max-w-7xl mx-auto px-4 py-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
                 <div class="flex items-center space-x-4">
-                    <div class="flex items-center space-x-4">
-                        <h1 class="flex items-center">
-                            <p> Agenda Pro</p>
-                        </h1>
+                    <h1 class="flex items-center"><p> Agenda Pro</p></h1>
                     <div class="h-6 w-px bg-gray-200 hidden sm:block"></div>
-                  
                 </div>
-                    <span class="text-lg font-semibold text-gray-700 flex items-center">
-                        <i class="fas fa-users mr-2 text-gold"></i>
-                        Clientes
-                    </span>
-                </div>
-                
-                <nav class="hidden lg:flex items-center space-x-6">
-                    <a href="/dashboard" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-home mr-2"></i>Dashboard
-                    </a>
-                    <a href="/agendamentos-por-dia" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-calendar-alt mr-2"></i>Agendamentos
-                    </a>
-                    <a href="/clients" class="text-gradient-gold font-semibold">
-                        <i class="fas fa-users mr-2"></i>Clientes
-                    </a>
-                    <a href="/financeiro" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-dollar-sign mr-2"></i>Financeiro
-                    </a>
-                    <a href="/balanco" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-balance-scale mr-2"></i>Balanço
-                    </a>
-                    <a href="/expenses" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-receipt mr-2"></i>Despesas
-                    </a>
-                    <a href="/logout" class="text-red-600 hover:text-red-700 transition-colors">
-                        <i class="fas fa-sign-out-alt mr-2"></i>Sair
-                    </a>
-                </nav>
-
-                <button id="menu-button" class="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                    <i class="fas fa-bars text-gradient-gold"></i>
-                </button>
+                <span class="text-lg font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-users mr-2 text-gold"></i>Clientes
+                </span>
             </div>
-
-            <div id="mobile-menu" class="hidden lg:hidden mt-4 space-y-2">
-                <a href="/dashboard" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-home"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="/agendamentos-por-dia" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>Agendamentos</span>
-                </a>
-                <a href="/clients" class="flex items-center space-x-3 p-3 rounded-lg bg-gold-light text-gold font-semibold">
-                    <i class="fas fa-users"></i>
-                    <span>Clientes</span>
-                </a>
-                <a href="/financeiro" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-dollar-sign"></i>
-                    <span>Financeiro</span>
-                </a>
-                <a href="/balanco" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-balance-scale"></i>
-                    <span>Balanço</span>
-                </a>
-                <a href="/expenses" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-receipt"></i>
-                    <span>Despesas</span>
-                </a>
-                <a href="/logout" class="flex items-center space-x-3 p-3 rounded-lg text-red-600 hover:bg-red-100">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Sair</span>
-                </a>
-            </div>
+            <nav class="hidden lg:flex items-center space-x-6">
+                <a href="/dashboard" class="text-gray-600 hover:text-gold transition-colors"><i class="fas fa-home mr-2"></i>Dashboard</a>
+                <a href="/agendamentos-por-dia" class="text-gray-600 hover:text-gold transition-colors"><i class="fas fa-calendar-alt mr-2"></i>Agendamentos</a>
+                <a href="/clients" class="text-gradient-gold font-semibold"><i class="fas fa-users mr-2"></i>Clientes</a>
+                <a href="/financeiro" class="text-gray-600 hover:text-gold transition-colors"><i class="fas fa-dollar-sign mr-2"></i>Financeiro</a>
+                <a href="/balanco" class="text-gray-600 hover:text-gold transition-colors"><i class="fas fa-balance-scale mr-2"></i>Balanço</a>
+                <a href="/expenses" class="text-gray-600 hover:text-gold transition-colors"><i class="fas fa-receipt mr-2"></i>Despesas</a>
+                <a href="/logout" class="text-red-600 hover:text-red-700 transition-colors"><i class="fas fa-sign-out-alt mr-2"></i>Sair</a>
+            </nav>
+            <button id="menu-button" class="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                <i class="fas fa-bars text-gradient-gold"></i>
+            </button>
         </div>
-    </header>
 
-    <div class="max-w-7xl mx-auto px-4 py-8">
-        <% if (typeof error !== 'undefined' && error) { %>
+        <div id="mobile-menu" class="hidden lg:hidden mt-4 space-y-2">
+            <a href="/dashboard" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold"><i class="fas fa-home"></i><span>Dashboard</span></a>
+            <a href="/agendamentos-por-dia" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold"><i class="fas fa-calendar-alt"></i><span>Agendamentos</span></a>
+            <a href="/clients" class="flex items-center space-x-3 p-3 rounded-lg bg-gold-light text-gold font-semibold"><i class="fas fa-users"></i><span>Clientes</span></a>
+            <a href="/financeiro" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold"><i class="fas fa-dollar-sign"></i><span>Financeiro</span></a>
+            <a href="/balanco" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold"><i class="fas fa-balance-scale"></i><span>Balanço</span></a>
+            <a href="/expenses" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold"><i class="fas fa-receipt"></i><span>Despesas</span></a>
+            <a href="/logout" class="flex items-center space-x-3 p-3 rounded-lg text-red-600 hover:bg-red-100"><i class="fas fa-sign-out-alt"></i><span>Sair</span></a>
+        </div>
+    </div>
+</header>
+
+<div class="max-w-7xl mx-auto px-4 py-8">
+    <% if (typeof error !== 'undefined' && error) { %>
         <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl animate-fade-in">
             <div class="flex items-center">
                 <i class="fas fa-exclamation-triangle text-red-600 mr-3"></i>
                 <span class="text-red-800 font-medium"><%= error %></span>
             </div>
         </div>
-        <% } %>
+    <% } %>
 
-        <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
-            <div class="xl:col-span-2 space-y-8">
-                <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
-                    <div class="bg-gold p-6 bg-shine-gold">
-                        <h2 class="text-xl font-bold text-white flex items-center">
-                            <i class="fas fa-user-plus mr-3"></i>
-                            Cadastrar Novo Cliente
-                        </h2>
-                    </div>
-                    <div class="p-6">
-                        <form action="/client" method="POST" class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Nome Completo</label>
-                                <input type="text" name="name" placeholder="Digite o nome do cliente" required
-                                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Telefone</label>
-                                <input type="text" name="phone" placeholder="(11) 99999-9999" required
-                                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all">
-                            </div>
-                            <button type="submit" class="w-full bg-gold text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity bg-shine-gold">
-                                <i class="fas fa-plus mr-2"></i>
-                                Cadastrar Cliente
-                            </button>
-                        </form>
-                    </div>
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <div class="xl:col-span-2 space-y-8">
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
+                <div class="bg-gold p-6 bg-shine-gold">
+                    <h2 class="text-xl font-bold text-white flex items-center">
+                        <i class="fas fa-user-plus mr-3"></i>Cadastrar Novo Cliente
+                    </h2>
                 </div>
-
-                <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
-                    <div class="bg-gold p-6 bg-shine-gold">
-                        <h2 class="text-xl font-bold text-white flex items-center">
-                            <i class="fas fa-search mr-3"></i>
-                            Buscar Cliente
-                        </h2>
-                    </div>
-                    <div class="p-6">
-                        <form action="/search" method="GET" class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Nome ou Telefone</label>
-                                <input type="text" name="q" placeholder="Digite para buscar..." required
-                                       value="<%= typeof query !== 'undefined' ? query : '' %>"
-                                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all">
-                            </div>
-                            <button type="submit" class="w-full bg-gold text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity bg-shine-gold">
-                                <i class="fas fa-search mr-2"></i>
-                                Buscar Cliente
-                            </button>
-                        </form>
-                    </div>
+                <div class="p-6">
+                    <form action="/client" method="POST" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nome Completo</label>
+                            <input type="text" name="name" placeholder="Digite o nome do cliente" required
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Telefone</label>
+                            <input type="text" name="phone" placeholder="(11) 99999-9999" required
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all">
+                        </div>
+                        <button type="submit" class="w-full bg-gold text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity bg-shine-gold">
+                            <i class="fas fa-plus mr-2"></i>Cadastrar Cliente
+                        </button>
+                    </form>
                 </div>
+            </div>
 
-                <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
-                    <div class="bg-gold p-6 bg-shine-gold">
-                        <div class="flex items-center justify-between">
-                            <h2 class="text-xl font-bold text-white flex items-center">
-                                <i class="fas fa-users mr-3"></i>
-                                <% if (typeof query !== 'undefined' && query) { %>
-                                    Resultados da Busca
-                                <% } else { %>
-                                    Lista de Clientes
-                                <% } %>
-                            </h2>
-                            <% if (clients && clients.length > 0) { %>
+            <div class="bg-white rounded-2xl shadow- xl overflow-hidden card-hover animate-fade-in">
+                <div class="bg-gold p-6 bg-shine-gold">
+                    <h2 class="text-xl font-bold text-white flex items-center">
+                        <i class="fas fa-search mr-3"></i>Buscar Cliente
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <form action="/search" method="GET" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nome ou Telefone</label>
+                            <input type="text" name="q" placeholder="Digite para buscar..." required
+                                   value="<%= typeof query !== 'undefined' ? query : '' %>"
+                                   class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all">
+                        </div>
+                        <button type="submit" class="w-full bg-gold text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity bg-shine-gold">
+                            <i class="fas fa-search mr-2"></i>Buscar Cliente
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
+                <div class="bg-gold p-6 bg-shine-gold">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-bold text-white flex items-center">
+                            <i class="fas fa-users mr-3"></i>
+                            <% if (typeof query !== 'undefined' && query) { %>Resultados da Busca<% } else { %>Lista de Clientes<% } %>
+                        </h2>
+                        <% if (clients && clients.length > 0) { %>
                             <span class="bg-white bg-opacity-20 text-white px-3 py-1 rounded-full text-sm font-semibold">
                                 <%= clients.length %> cliente<%= clients.length !== 1 ? 's' : '' %>
                             </span>
-                            <% } %>
-                        </div>
+                        <% } %>
                     </div>
-                    <div class="p-6">
-                        <% if (typeof query !== 'undefined' && query) { %>
+                </div>
+                <div class="p-6">
+                    <% 
+                      // Escapa o termo de busca para uso seguro no RegExp
+                      const q = (typeof query !== 'undefined' && query) ? String(query) : '';
+                      const qEsc = q ? q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
+                    %>
+
+                    <% if (typeof query !== 'undefined' && query) { %>
                         <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                             <div class="flex items-center justify-between">
                                 <span class="text-blue-800">
@@ -280,24 +192,19 @@
                                     Buscando por: "<strong><%= query %></strong>"
                                 </span>
                                 <a href="/clients" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                                    <i class="fas fa-times mr-1"></i>
-                                    Limpar busca
+                                    <i class="fas fa-times mr-1"></i>Limpar busca
                                 </a>
                             </div>
                         </div>
-                        <% } %>
+                    <% } %>
 
-                        <% if (!clients || clients.length === 0) { %>
+                    <% if (!clients || clients.length === 0) { %>
                         <div class="text-center py-12">
                             <div class="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
                                 <i class="fas fa-users text-4xl text-gray-400"></i>
                             </div>
                             <h3 class="text-lg font-semibold text-gray-900 mb-2">
-                                <% if (typeof query !== 'undefined' && query) { %>
-                                    Nenhum cliente encontrado
-                                <% } else { %>
-                                    Nenhum cliente cadastrado
-                                <% } %>
+                                <% if (typeof query !== 'undefined' && query) { %>Nenhum cliente encontrado<% } else { %>Nenhum cliente cadastrado<% } %>
                             </h3>
                             <p class="text-gray-600 mb-4">
                                 <% if (typeof query !== 'undefined' && query) { %>
@@ -307,84 +214,82 @@
                                 <% } %>
                             </p>
                             <% if (typeof query !== 'undefined' && query) { %>
-                            <a href="/clients" class="inline-flex items-center px-4 py-2 bg-gold-light text-gold-dark rounded-lg hover:bg-yellow-100 transition-colors">
-                                <i class="fas fa-list mr-2"></i>
-                                Ver todos os clientes
-                            </a>
+                                <a href="/clients" class="inline-flex items-center px-4 py-2 bg-gold-light text-gold-dark rounded-lg hover:bg-yellow-100 transition-colors">
+                                    <i class="fas fa-list mr-2"></i>Ver todos os clientes
+                                </a>
                             <% } %>
                         </div>
-                        <% } else { %>
+                    <% } else { %>
                         <div class="space-y-3">
                             <% clients.forEach(function(client) { %>
-                            <div class="client-card bg-white p-4 rounded-xl border border-gray-200">
-                                <div class="flex items-center justify-between">
-                                    <a href="/client/<%= client._id %>" class="flex-1 group">
-                                        <div class="flex items-center space-x-4">
-                                            <div class="w-12 h-12 bg-gold-light rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-                                                <i class="fas fa-user text-gold"></i>
-                                            </div>
-                                            <div class="flex-1">
-                                                <h3 class="font-semibold text-gray-900 group-hover:text-gold-dark transition-colors">
-                                                    <% if (typeof query !== 'undefined' && query) { %>
-                                                        <%- client.name.replace(new RegExp(query, 'gi'), '<span class="search-highlight">$&</span>') %>
-                                                    <% } else { %>
-                                                        <%= client.name %>
-                                                    <% } %>
-                                                </h3>
-                                                <p class="text-gray-600 flex items-center">
-                                                    <i class="fas fa-phone mr-2 text-gold"></i>
-                                                    <% if (typeof query !== 'undefined' && query) { %>
-                                                        <%- client.phone.replace(new RegExp(query, 'gi'), '<span class="search-highlight">$&</span>') %>
-                                                    <% } else { %>
-                                                        <%= client.phone %>
-                                                    <% } %>
-                                                </p>
-                                            </div>
-                                            <div class="text-gold-dark group-hover:translate-x-1 transition-transform">
-                                                <i class="fas fa-chevron-right"></i>
+                                <div class="client-card bg-white p-4 rounded-xl border border-gray-200">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex-1">
+                                            <div class="flex items-center space-x-4">
+                                                <div class="w-12 h-12 bg-gold-light rounded-full flex items-center justify-center transition-transform">
+                                                    <i class="fas fa-user text-gold"></i>
+                                                </div>
+                                                <div class="flex-1">
+                                                    <h3 class="font-semibold text-gray-900 transition-colors">
+                                                        <a href="/client/<%= client.id %>" class="text-gold hover:text-gold-dark transition-colors">
+                                                            <% if (q) { %>
+                                                                <%- String(client.name || '')
+                                                                    .replace(new RegExp(qEsc, 'gi'), '<span class="search-highlight">$&</span>') %>
+                                                            <% } else { %>
+                                                                <%= client.name %>
+                                                            <% } %>
+                                                        </a>
+                                                    </h3>
+                                                    <p class="text-gray-600 flex items-center">
+                                                        <i class="fas fa-phone mr-2 text-gold"></i>
+                                                        <% if (q) { %>
+                                                            <%- String(client.phone || '')
+                                                                .replace(new RegExp(qEsc, 'gi'), '<span class="search-highlight">$&</span>') %>
+                                                        <% } else { %>
+                                                            <%= client.phone %>
+                                                        <% } %>
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
-                                    </a>
-                                    <form action="/client/<%= client._id %>/delete" method="POST" 
-                                          onsubmit="return confirm('⚠️ Tem certeza que deseja excluir o cliente <%= client.name %>?\n\nEsta ação não pode ser desfeita!')" 
-                                          class="ml-4">
-                                        <button type="submit" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors group">
-                                            <i class="fas fa-trash group-hover:scale-110 transition-transform"></i>
-                                        </button>
-                                    </form>
+
+                                        <form action="/client/<%= client.id %>/delete" method="POST"
+                                              onsubmit="return confirm('⚠️ Tem certeza que deseja excluir o cliente <%= client.name %>?\\n\\nEsta ação não pode ser desfeita!')"
+                                              class="ml-4">
+                                            <button type="submit" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors group" title="Excluir cliente">
+                                                <i class="fas fa-trash group-hover:scale-110 transition-transform"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </div>
-                            </div>
                             <% }); %>
                         </div>
-                        <% } %>
-                    </div>
+                    <% } %>
                 </div>
             </div>
+        </div>
 
-            <div class="space-y-6">
-                <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
-                    <div class="bg-gray-700 p-6">
-                        <h3 class="text-xl font-bold text-white flex items-center">
-                            <i class="fas fa-chart-bar mr-3"></i>
-                            Estatísticas
-                        </h3>
-                    </div>
-                    <div class="p-6 space-y-4">
-                        <div class="bg-purple-50 p-4 rounded-xl border border-purple-200">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                                        <i class="fas fa-users text-purple-600"></i>
-                                    </div>
-                                    <span class="font-medium text-purple-800">Total de Clientes</span>
+        <div class="space-y-6">
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
+                <div class="bg-gray-700 p-6">
+                    <h3 class="text-xl font-bold text-white flex items-center">
+                        <i class="fas fa-chart-bar mr-3"></i>Estatísticas
+                    </h3>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="bg-purple-50 p-4 rounded-xl border border-purple-200">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-users text-purple-600"></i>
                                 </div>
-                                <span class="text-2xl font-bold text-purple-600">
-                                    <%= clients ? clients.length : 0 %>
-                                </span>
+                                <span class="font-medium text-purple-800">Total de Clientes</span>
                             </div>
+                            <span class="text-2xl font-bold text-purple-600"><%= clients ? clients.length : 0 %></span>
                         </div>
+                    </div>
 
-                        <% if (typeof query !== 'undefined' && query) { %>
+                    <% if (typeof query !== 'undefined' && query) { %>
                         <div class="bg-blue-50 p-4 rounded-xl border border-blue-200">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center space-x-3">
@@ -393,67 +298,58 @@
                                     </div>
                                     <span class="font-medium text-blue-800">Resultados</span>
                                 </div>
-                                <span class="text-2xl font-bold text-blue-600">
-                                    <%= clients ? clients.length : 0 %>
-                                </span>
+                                <span class="text-2xl font-bold text-blue-600"><%= clients ? clients.length : 0 %></span>
                             </div>
                         </div>
-                        <% } %>
-                    </div>
+                    <% } %>
                 </div>
+            </div>
 
-                <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
-                    <div class="bg-gray-700 p-6">
-                        <h3 class="text-xl font-bold text-white flex items-center">
-                            <i class="fas fa-bolt mr-3"></i>
-                            Ações Rápidas
-                        </h3>
-                    </div>
-                    <div class="p-6 space-y-3">
-                        <button onclick="scrollToElement('form[action=\'/client\']')" 
-                                class="w-full bg-gold text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity bg-shine-gold">
-                            <i class="fas fa-user-plus mr-2"></i>
-                            Cadastrar Cliente
-                        </button>
-                        <button onclick="scrollToElement('form[action=\'/search\']')" 
-                                class="w-full bg-blue-100 text-blue-700 py-3 rounded-lg font-semibold hover:bg-blue-200 transition-colors">
-                            <i class="fas fa-search mr-2"></i>
-                            Buscar Cliente
-                        </button>
-                        <a href="/agendamentos-por-dia" 
-                           class="block w-full bg-gold-light text-gold-dark py-3 rounded-lg font-semibold hover:bg-yellow-100 transition-colors text-center">
-                            <i class="fas fa-calendar-alt mr-2"></i>
-                            Ver Agendamentos
-                        </a>
-                        <a href="/dashboard" 
-                           class="block w-full bg-gray-100 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-colors text-center">
-                            <i class="fas fa-home mr-2"></i>
-                            Ir para Dashboard
-                        </a>
-                    </div>
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
+                <div class="bg-gray-700 p-6">
+                    <h3 class="text-xl font-bold text-white flex items-center">
+                        <i class="fas fa-bolt mr-3"></i>Ações Rápidas
+                    </h3>
                 </div>
+                <div class="p-6 space-y-3">
+                    <button onclick="scrollToElement('form[action=\'/client\']')"
+                            class="w-full bg-gold text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity bg-shine-gold">
+                        <i class="fas fa-user-plus mr-2"></i>Cadastrar Cliente
+                    </button>
+                    <button onclick="scrollToElement('form[action=\'/search\']')"
+                            class="w-full bg-blue-100 text-blue-700 py-3 rounded-lg font-semibold hover:bg-blue-200 transition-colors">
+                        <i class="fas fa-search mr-2"></i>Buscar Cliente
+                    </button>
+                    <a href="/agendamentos-por-dia"
+                       class="block w-full bg-gold-light text-gold-dark py-3 rounded-lg font-semibold hover:bg-yellow-100 transition-colors text-center">
+                        <i class="fas fa-calendar-alt mr-2"></i>Ver Agendamentos
+                    </a>
+                    <a href="/dashboard"
+                       class="block w-full bg-gray-100 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-colors text-center">
+                        <i class="fas fa-home mr-2"></i>Ir para Dashboard
+                    </a>
+                </div>
+            </div>
 
-                <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
-                    <div class="bg-yellow-500 p-6">
-                        <h3 class="text-xl font-bold text-white flex items-center">
-                            <i class="fas fa-lightbulb mr-3"></i>
-                            Dicas
-                        </h3>
-                    </div>
-                    <div class="p-6">
-                        <div class="space-y-4 text-sm text-gray-600">
-                            <div class="flex items-start space-x-3">
-                                <i class="fas fa-check-circle text-green-500 mt-0.5"></i>
-                                <p>Clique no nome do cliente para ver detalhes completos e histórico.</p>
-                            </div>
-                            <div class="flex items-start space-x-3">
-                                <i class="fas fa-check-circle text-green-500 mt-0.5"></i>
-                                <p>Use a busca para encontrar clientes rapidamente por nome ou telefone.</p>
-                            </div>
-                            <div class="flex items-start space-x-3">
-                                <i class="fas fa-check-circle text-green-500 mt-0.5"></i>
-                                <p>O botão vermelho permite excluir clientes (cuidado: ação irreversível!).</p>
-                            </div>
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
+                <div class="bg-yellow-500 p-6">
+                    <h3 class="text-xl font-bold text-white flex items-center">
+                        <i class="fas fa-lightbulb mr-3"></i>Dicas
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4 text-sm text-gray-600">
+                        <div class="flex items-start space-x-3">
+                            <i class="fas fa-check-circle text-green-500 mt-0.5"></i>
+                            <p>Clique no nome do cliente para ver detalhes completos e histórico.</p>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <i class="fas fa-check-circle text-green-500 mt-0.5"></i>
+                            <p>Use a busca para encontrar clientes rapidamente por nome ou telefone.</p>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <i class="fas fa-check-circle text-green-500 mt-0.5"></i>
+                            <p>O botão vermelho permite excluir clientes (cuidado: ação irreversível!).</p>
                         </div>
                     </div>
                 </div>
@@ -465,7 +361,6 @@
         // Mobile menu toggle
         const menuButton = document.getElementById('menu-button');
         const mobileMenu = document.getElementById('mobile-menu');
-        
         if (menuButton && mobileMenu) {
             menuButton.addEventListener('click', () => {
                 mobileMenu.classList.toggle('hidden');
@@ -475,24 +370,16 @@
         // Função para scroll suave
         function scrollToElement(selector) {
             const element = document.querySelector(selector);
-            if (element) {
-                element.scrollIntoView({behavior: 'smooth'});
-            }
+            if (element) element.scrollIntoView({behavior: 'smooth'});
         }
 
         // Auto-focus no primeiro campo quando a página carrega
         document.addEventListener('DOMContentLoaded', function() {
             const firstInput = document.querySelector('input[name="name"]');
-            if (firstInput) {
-                firstInput.focus();
-            }
+            if (firstInput) firstInput.focus();
 
-            // Adiciona efeito de fade-in aos elementos
-            const observerOptions = {
-                threshold: 0.1,
-                rootMargin: '0px 0px -50px 0px'
-            };
-
+            // Efeito de fade-in
+            const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -50px 0px' };
             const observer = new IntersectionObserver(function(entries) {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {

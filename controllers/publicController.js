@@ -1,23 +1,47 @@
 // controllers/publicController.js
 
-const Organization = require('../models/Organization');
-const Service = require('../models/Service');
-const Staff = require('../models/Staff');
-const dayjs = require('dayjs');
+// --- REMOVIDO ---
+// const Organization = require('../models/Organization');
+// const Service = require('../models/Service');
+// const Staff = require('../models/Staff');
+// const dayjs = require('dayjs'); // Não era usado neste arquivo
+
+// --- ADICIONADO ---
+const db = require('../models');
 
 /**
  * GET /salao/:slug
  * Mostra a "página pública" ou "vitrine" de um salão específico.
- * Esta é a página que o cliente acessa para encontrar os links de login e agendamento.
+ * (ATUALIZADO para Sequelize com 'include')
  */
 exports.getSalonBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
 
-    // 1. Encontra a organização (salão) pelo seu link amigável (slug)
-    const organization = await Organization.findOne({ slug: slug.toLowerCase() });
+    // 1. (ATUALIZADO) Encontra a organização e INCLUI seus serviços e equipe ativos
+    // Esta é UMA ÚNICA busca no banco de dados.
+    const organization = await db.Organization.findOne({
+      where: { slug: slug.toLowerCase() },
+      include: [
+        {
+          model: db.Service,
+          where: { isActive: true },
+          required: false // LEFT JOIN: mostra o salão mesmo que não tenha serviços
+        },
+        {
+          model: db.Staff,
+          where: { isActive: true },
+          required: false // LEFT JOIN: mostra o salão mesmo que não tenha equipe
+        }
+      ],
+      order: [
+        // Adiciona ordenação para os modelos incluídos
+        [db.Service, 'name', 'ASC'],
+        [db.Staff, 'name', 'ASC']
+      ]
+    });
 
-    // Se o salão não for encontrado, mostra uma página de erro 404
+    // 2. Se o salão não for encontrado, mostra 404
     if (!organization) {
       return res.status(404).render('public/not-found', {
         error: 'Salão não encontrado',
@@ -25,23 +49,14 @@ exports.getSalonBySlug = async (req, res) => {
       });
     }
 
-    // 2. Busca os serviços ATIVOS deste salão
-    const services = await Service.find({
-      organizationId: organization._id,
-      isActive: true
-    }).sort({ name: 1 });
+    // 3. (REMOVIDO) - Queries separadas para Service e Staff não são mais necessárias
 
-    // 3. Busca a equipe (profissionais) ATIVOS deste salão
-    const staff = await Staff.find({
-      organizationId: organization._id,
-      isActive: true
-    }).sort({ name: 1 });
-
-    // 4. Renderiza a nova view da vitrine (que criaremos a seguir)
+    // 4. Renderiza a página
+    // Os dados estão em 'organization.Services' e 'organization.Staff'
     res.render('public/salon-page', {
-      org: organization, // Envia todos os dados do salão (nome, endereço, fotos, etc.)
-      services: services,  // Lista de serviços
-      staff: staff,        // Lista de equipe
+      org: organization, 
+      services: organization.Services, // Passa os serviços incluídos
+      staff: organization.Staff,       // Passa a equipe incluída
       error: null
     });
 

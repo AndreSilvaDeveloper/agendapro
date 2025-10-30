@@ -1,58 +1,66 @@
 // models/Staff.js
-const mongoose = require('mongoose');
+const { Sequelize, DataTypes } = require('sequelize');
+const sequelize = require('../db');
 
-// --- NOVO SUB-ESQUEMA ---
-// Define a estrutura para o horário de um dia
-const dailyHoursSchema = new mongoose.Schema({
-  startTime: { type: String, trim: true }, // Formato "HH:mm" (ex: "08:00")
-  endTime: { type: String, trim: true },   // Formato "HH:mm" (ex: "18:00")
-  isOff: { type: Boolean, default: false } // Indica se é dia de folga
-}, { _id: false }); // _id: false para não criar IDs para cada dia
-
-const staffSchema = new mongoose.Schema({
+const Staff = sequelize.define('Staff', {
+  // 'id' (PK) é criado automaticamente
+  
   organizationId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Organization',
-    required: [true, 'A organização (salão) é obrigatória.'],
-    index: true
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    // A associação (belongsTo Organization) será definida depois
   },
+  
   name: {
-    type: String,
-    required: [true, 'O nome do profissional é obrigatório.'],
-    trim: true
+    type: DataTypes.STRING,
+    allowNull: false,
+    set(value) {
+      this.setDataValue('name', value.trim());
+    }
   },
+  
   imageUrl: {
-    type: String,
-    trim: true
+    type: DataTypes.STRING,
+    allowNull: true,
+    set(value) {
+      this.setDataValue('imageUrl', value ? value.trim() : null);
+    }
   },
-  services: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Service'
-  }],
+  
+  // O array 'services' foi REMOVIDO daqui.
+  // Esta será uma relação Many-to-Many, definida fora do modelo
+  // através de uma tabela de junção (ex: 'StaffServices').
+  
   isActive: {
-    type: Boolean,
-    default: true
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true
   },
-
-  // --- NOVO CAMPO: HORÁRIOS DE TRABALHO ---
+  
+  // --- Horários de Trabalho (Tradução de Map para JSONB) ---
   workingHours: {
-    type: Map,
-    of: dailyHoursSchema, // Usa o sub-esquema que definimos acima
-    // Define um valor padrão para todos os dias da semana
-    default: {
+    type: DataTypes.JSONB, // Usa o tipo JSONB nativo do PostgreSQL
+    allowNull: false,
+    // O objeto de 'default' do Mongoose funciona perfeitamente aqui
+    defaultValue: {
       monday:    { startTime: '08:00', endTime: '18:00', isOff: false },
       tuesday:   { startTime: '08:00', endTime: '18:00', isOff: false },
       wednesday: { startTime: '08:00', endTime: '18:00', isOff: false },
       thursday:  { startTime: '08:00', endTime: '18:00', isOff: false },
       friday:    { startTime: '08:00', endTime: '18:00', isOff: false },
       saturday:  { startTime: '08:00', endTime: '14:00', isOff: false },
-      sunday:    { startTime: '', endTime: '', isOff: true } // Domingo folga por padrão
+      sunday:    { startTime: '', endTime: '', isOff: true }
     }
   }
-  // --- FIM DO NOVO CAMPO ---
+  
+}, {
+  // Opções
+  timestamps: true,
+  indexes: [
+    {
+      fields: ['organizationId', 'name']
+    }
+  ]
+});
 
-}, { timestamps: true });
-
-staffSchema.index({ organizationId: 1, name: 1 });
-
-module.exports = mongoose.model('Staff', staffSchema);
+module.exports = Staff;
