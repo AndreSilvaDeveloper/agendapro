@@ -1,11 +1,5 @@
 // controllers/authController.js
 
-// --- REMOVIDO ---
-// const mongoose = require('mongoose');
-// const User = require('../models/User');
-// const Organization = require('../models/Organization');
-
-// --- ADICIONADO ---
 const db = require('../models'); // Importa o 'models/index.js'
 const { Op } = require('sequelize'); // Importa o operador do Sequelize
 
@@ -47,10 +41,13 @@ exports.postLogin = async (req, res) => {
     
     // Define os dados da sessão
     req.session.loggedIn = true;
-    req.session.userId = user.id; // ATUALIZADO: user._id -> user.id
+    req.session.userId = user.id; 
     req.session.username = user.username;
     req.session.role = user.role;
-    req.session.organizationId = user.organizationId;
+    
+    // Se for superadmin, organizationId ficará 'null'.
+    // Se for usuário normal, terá o ID. Está correto.
+    req.session.organizationId = user.organizationId; 
     
     // Lógica de salvar sessão (mantida)
     req.session.save((err) => {
@@ -58,7 +55,15 @@ exports.postLogin = async (req, res) => {
         console.error('Erro ao salvar a sessão:', err);
         return res.render('login', { error: 'Erro interno ao salvar sua sessão.', success: null });
       }
-      return res.redirect('/dashboard');
+
+      // --- MUDANÇA AQUI ---
+      // Verifica o 'role' e redireciona para o painel correto
+      if (user.role === 'superadmin') {
+        return res.redirect('/master');
+      } else {
+        return res.redirect('/dashboard');
+      }
+      // --- FIM DA MUDANÇA ---
     });
 
   } catch (err) {
@@ -74,7 +79,7 @@ exports.getRegister = (req, res) => {
 };
 
 // --- Processar o Registro (POST) ---
-// (Totalmente reescrito para Transações do Sequelize)
+// (Sem alterações)
 exports.postRegister = async (req, res) => {
 
   const { salonName, username, email, password, passwordConfirm } = req.body;
@@ -114,22 +119,16 @@ exports.postRegister = async (req, res) => {
   }
 
   // --- ATUALIZADO: Transação do Sequelize ---
-  // Substitui mongoose.startSession(), commitTransaction(), abortTransaction()
   try {
-    // O Sequelize gerencia o 'BEGIN', 'COMMIT' e 'ROLLBACK' automaticamente
     const newUser = await db.sequelize.transaction(async (t) => {
       
       // 1. Criar a Organização
-      // ATUALIZADO: new Organization().save() -> db.Organization.create()
-      // Passamos o 'slug' que já verificamos. O hook do modelo não será executado
-      // se o 'name' não for alterado, mas por segurança, passamos o slug verificado.
       const newOrg = await db.Organization.create({
         name: salonName,
         slug: testSlug
       }, { transaction: t }); // Passa a transação 't'
 
       // 2. Criar o Usuário 'owner'
-      // ATUALIZADO: new User().save() -> db.User.create()
       const user = await db.User.create({
         organizationId: newOrg.id, // ATUALIZADO: newOrg._id -> newOrg.id
         username: username,
@@ -144,12 +143,11 @@ exports.postRegister = async (req, res) => {
     // Se a transação foi bem-sucedida:
     // 3. Loga o novo usuário
     req.session.loggedIn = true;
-    req.session.userId = newUser.id; // ATUALIZADO: newUser._id -> newUser.id
+    req.session.userId = newUser.id; 
     req.session.username = newUser.username;
     req.session.role = newUser.role;
     req.session.organizationId = newUser.organizationId;
     
-    // Lógica de salvar sessão (mantida)
     req.session.save((err) => {
         if (err) {
             console.error('Erro ao salvar a sessão após o registro:', err);
@@ -159,10 +157,8 @@ exports.postRegister = async (req, res) => {
     });
 
   } catch (err) {
-    // Se a transação falhou, o Sequelize já fez o ROLLBACK
     console.error('Erro no registro (transação):', err);
     
-    // ATUALIZADO: Tratamento de erro do Sequelize (err.code === 11000)
     let errorMsg = 'Erro ao criar conta. Tente novamente.';
     if (err.name === 'SequelizeUniqueConstraintError') {
       const errorPath = err.errors[0].path;
@@ -176,7 +172,6 @@ exports.postRegister = async (req, res) => {
     }
     res.render('register', { error: errorMsg });
   } 
-  // ATUALIZADO: session.endSession() não é mais necessário
 };
 
 // --- Logout ---
@@ -199,7 +194,7 @@ exports.getRoot = (req, res) => {
 };
 
 // --- FUNÇÕES DE REDEFINIÇÃO DE SENHA ---
-// (Atualizadas para Sequelize)
+// (Sem alterações)
 exports.getForgotPassword = (req, res) => {
   res.render('forgot-password', { error: null, success: null });
 };
@@ -208,7 +203,6 @@ exports.postForgotPassword = async (req, res) => {
   try {
     const token = crypto.randomBytes(20).toString('hex');
     
-    // ATUALIZADO: User.findOne -> db.User.findOne
     const user = await db.User.findOne({ where: { email: req.body.email.toLowerCase() } });
     
     if (!user) {
@@ -220,7 +214,6 @@ exports.postForgotPassword = async (req, res) => {
     user.resetToken = token;
     user.resetTokenExpires = Date.now() + 3600000;
     
-    // ATUALIZADO: user.save() funciona igual no Sequelize para instâncias
     await user.save();
     
     await mailer.sendPasswordResetEmail(user.email, token, req.headers.host);
@@ -241,11 +234,10 @@ exports.getReset = async (req, res) => {
   try {
     const { token } = req.params;
     
-    // ATUALIZADO: User.findOne com operador '$gt' -> 'Op.gt'
     const user = await db.User.findOne({
       where: {
         resetToken: token,
-        resetTokenExpires: { [Op.gt]: Date.now() } // $gt vira [Op.gt]
+        resetTokenExpires: { [Op.gt]: Date.now() } 
       }
     });
     
@@ -270,7 +262,6 @@ exports.postReset = async (req, res) => {
        return res.render('reset-password', { error: 'A senha deve ter pelo menos 6 caracteres.', token: token });
     }
     
-    // ATUALIZADO: User.findOne com operador '$gt' -> 'Op.gt'
     const user = await db.User.findOne({
       where: {
         resetToken: token,
@@ -282,11 +273,11 @@ exports.postReset = async (req, res) => {
       return res.redirect('/login?error=Token de redefinição inválido ou expirado.');
     }
     
-    user.password = password; // O hook 'beforeUpdate' do modelo vai criptografar
-    user.resetToken = null; // ATUALIZADO: undefined -> null
-    user.resetTokenExpires = null; // ATUALIZADO: undefined -> null
+    user.password = password; 
+    user.resetToken = null; 
+    user.resetTokenExpires = null; 
     
-    await user.save(); // Salva as alterações
+    await user.save(); 
     
     req.session.destroy(() => {
         res.redirect('/login?success=Senha redefinida com sucesso! Você já pode entrar.');

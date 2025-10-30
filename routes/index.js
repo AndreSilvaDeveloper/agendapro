@@ -4,7 +4,12 @@ const express = require('express');
 const router = express.Router();
 
 // --- Middlewares ---
-const authMiddleware = require('../middleware/authMiddleware'); // Admin/Staff
+const { 
+  isAuthenticated, 
+  isSuperAdmin, 
+  isOwnerOrSuperAdmin 
+} = require('../middleware/authMiddleware');
+
 const clientAuthMiddleware = require('../middleware/clientAuthMiddleware'); // Cliente
 const upload = require('../middleware/upload');
 
@@ -17,6 +22,10 @@ const financialController = require('../controllers/financialController');
 const serviceController = require('../controllers/serviceController');
 const staffController = require('../controllers/staffController');
 
+// --- Novos Controladores ---
+const settingsController = require('../controllers/settingsController');
+const masterController = require('../controllers/masterController');
+
 // --- Controladores Cliente ---
 const clientAuthController = require('../controllers/clientAuthController');
 const clientPortalController = require('../controllers/clientPortalController');
@@ -28,9 +37,8 @@ const publicController = require('../controllers/publicController');
 // =========================================================================
 router.get('/salao/:slug', publicController.getSalonBySlug);
 
-
 // =========================================================================
-// === ROTAS PORTAL CLIENTE (PÚBLICAS) =====================================
+/* === ROTAS PORTAL CLIENTE (PÚBLICAS) =================================== */
 // =========================================================================
 router.get('/portal/:orgId/registro', clientAuthController.getRegister);
 router.post('/portal/:orgId/registro', clientAuthController.postRegister);
@@ -38,37 +46,33 @@ router.get('/portal/:orgId/login', clientAuthController.getLogin);
 router.post('/portal/:orgId/login', clientAuthController.postLogin);
 router.get('/portal/logout', clientAuthController.getLogout);
 
-
 // =========================================================================
-// === ROTAS PORTAL CLIENTE (PROTEGIDAS) ===================================
+/* === ROTAS PORTAL CLIENTE (PROTEGIDAS) ================================= */
 // =========================================================================
 router.use('/portal/minha-area', clientAuthMiddleware);
 router.use('/portal/agendar', clientAuthMiddleware);
+
 router.get('/portal/minha-area', clientPortalController.getMinhaArea);
 router.get('/portal/agendar', clientPortalController.getNovoAgendamento);
 router.post('/portal/agendar', clientPortalController.postNovoAgendamento);
 
-
-// --- NOVO: API para agendamento dinâmico (PROTEGIDAS) ---
-// Estas rotas serão chamadas pelo JavaScript do frontend (Etapa 4)
+// --- API do Portal (PROTEGIDAS) ---
 router.get(
-  '/api/portal/staff-by-service/:serviceId', 
-  clientAuthMiddleware, // Protege a rota
+  '/api/portal/staff-by-service/:serviceId',
+  clientAuthMiddleware,
   clientPortalController.getStaffByService
 );
+
 router.get(
-  '/api/portal/available-times', 
-  clientAuthMiddleware, // Protege a rota
+  '/api/portal/available-times',
+  clientAuthMiddleware,
   clientPortalController.getAvailableTimes
 );
-// --- FIM DA ADIÇÃO ---
-
 
 // =========================================================================
-// === ROTAS PAINEL ADMIN (PÚBLICAS) =======================================
+/* === ROTAS PAINEL ADMIN (PÚBLICAS) ===================================== */
 // =========================================================================
 router.get('/login', authController.getLogin);
-// ... (O resto do seu arquivo permanece exatamente igual) ...
 router.post('/login', authController.postLogin);
 router.get('/logout', authController.getLogout);
 router.get('/register', authController.getRegister);
@@ -78,60 +82,101 @@ router.post('/forgot-password', authController.postForgotPassword);
 router.get('/reset/:token', authController.getReset);
 router.post('/reset/:token', authController.postReset);
 
-
 // =========================================================================
-// === ROTAS PAINEL ADMIN (PROTEGIDAS) =====================================
+/* === ROTAS PAINEL ADMIN (PROTEGIDAS) =================================== */
 // =========================================================================
-router.get('/', authMiddleware, authController.getRoot);
-router.get('/dashboard', authMiddleware, dashboardController.getDashboard);
+router.get('/', isAuthenticated, authController.getRoot);
+router.get('/dashboard', isAuthenticated, dashboardController.getDashboard);
 
 // --- Rotas Cliente (Admin) ---
-router.get('/clients', authMiddleware, clientController.getClients);
-router.get('/search', authMiddleware, clientController.searchClients);
-router.post('/client', authMiddleware, clientController.createClient);
-router.get('/client/:id', authMiddleware, clientController.getClientById);
-router.get('/client/:id/historico', authMiddleware, clientController.getClientHistory);
-router.post('/client/:id/delete', authMiddleware, clientController.deleteClient);
-router.post('/client/:id/edit', authMiddleware, clientController.editClient);
-router.post('/client/:id/add-product', authMiddleware, clientController.addProductToClient);
-router.post('/client/:id/product/:pi/edit', authMiddleware, clientController.editClientProduct);
-router.post('/client/:id/product/:pi/delete', authMiddleware, clientController.deleteClientProduct);
-router.post('/client/:id/product/:pi/pay', authMiddleware, clientController.payClientProduct);
-router.post('/client/:id/product/:pi/remove-payment/:pj', authMiddleware, clientController.removeClientProductPayment);
+router.get('/clients', isAuthenticated, clientController.getClients);
+router.get('/search', isAuthenticated, clientController.searchClients);
+router.post('/client', isAuthenticated, clientController.createClient);
+router.get('/client/:id', isAuthenticated, clientController.getClientById);
+router.get('/client/:id/historico', isAuthenticated, clientController.getClientHistory);
+router.post('/client/:id/delete', isAuthenticated, clientController.deleteClient);
+router.post('/client/:id/edit', isAuthenticated, clientController.editClient);
+router.post('/client/:id/add-product', isAuthenticated, clientController.addProductToClient);
+router.post('/client/:id/product/:pi/edit', isAuthenticated, clientController.editClientProduct);
+router.post('/client/:id/product/:pi/delete', isAuthenticated, clientController.deleteClientProduct);
+router.post('/client/:id/product/:pi/pay', isAuthenticated, clientController.payClientProduct);
+router.post('/client/:id/product/:pi/remove-payment/:pj', isAuthenticated, clientController.removeClientProductPayment);
 
 // --- Rotas Agendamento (Admin) ---
-router.post('/appointment', authMiddleware, appointmentController.createAppointment); 
-router.get('/agendamentos-por-dia', authMiddleware, appointmentController.getAgendaPorDia);
-router.post('/appointment/:id/edit-service/:idx', authMiddleware, appointmentController.editAppointmentService);
-router.post('/appointment/:id/edit-datetime', authMiddleware, appointmentController.editAppointmentDateTime);
-router.post('/appointment/:id/pay-service/:idx', authMiddleware, appointmentController.payAppointmentService);
-router.post('/appointment/:id/remove-service/:idx', authMiddleware, appointmentController.removeServiceFromAppointment);
-router.post('/appointment/:id/remove-payment/service/:sIdx/:pIdx', authMiddleware, appointmentController.removeAppointmentPayment);
-router.post('/appointment/:id/cancel', authMiddleware, appointmentController.cancelAppointment); 
-router.post('/admin/appointment/:id/confirm', authMiddleware, appointmentController.confirmAppointment);
-router.post('/admin/appointment/:id/cancel-by-admin', authMiddleware, appointmentController.cancelAppointmentByAdmin);
+router.post('/appointment', isAuthenticated, appointmentController.createAppointment);
+router.get('/agendamentos-por-dia', isAuthenticated, appointmentController.getAgendaPorDia);
+router.post('/appointment/:id/edit-service/:idx', isAuthenticated, appointmentController.editAppointmentService);
+router.post('/appointment/:id/edit-datetime', isAuthenticated, appointmentController.editAppointmentDateTime);
+router.post('/appointment/:id/pay-service/:idx', isAuthenticated, appointmentController.payAppointmentService);
+router.post('/appointment/:id/remove-service/:idx', isAuthenticated, appointmentController.removeServiceFromAppointment);
+router.post('/appointment/:id/remove-payment/service/:sIdx/:pIdx', isAuthenticated, appointmentController.removeAppointmentPayment);
+router.post('/appointment/:id/cancel', isAuthenticated, appointmentController.cancelAppointment);
+router.post('/admin/appointment/:id/confirm', isAuthenticated, appointmentController.confirmAppointment);
+router.post('/admin/appointment/:id/cancel-by-admin', isAuthenticated, appointmentController.cancelAppointmentByAdmin);
 
 // --- Rotas Financeiras (Admin) ---
-router.get('/financeiro', authMiddleware, financialController.getFinanceiro);
-router.get('/expenses', authMiddleware, financialController.getExpenses);
-router.post('/expenses', authMiddleware, financialController.createExpense);
-router.post('/expenses/:id/delete', authMiddleware, financialController.deleteExpense);
-router.get('/balanco', authMiddleware, financialController.getBalanco);
+router.get('/financeiro', isAuthenticated, financialController.getFinanceiro);
+router.get('/expenses', isAuthenticated, financialController.getExpenses);
+router.post('/expenses', isAuthenticated, financialController.createExpense);
+router.post('/expenses/:id/delete', isAuthenticated, financialController.deleteExpense);
+router.get('/balanco', isAuthenticated, financialController.getBalanco);
 
 // --- Rotas Serviços (Admin) ---
-router.get('/admin/servicos', authMiddleware, serviceController.getServices);
-router.get('/admin/servicos/novo', authMiddleware, serviceController.getNewService);
-router.post('/admin/servicos/novo', authMiddleware, serviceController.postNewService);
-router.get('/admin/servicos/:id/editar', authMiddleware, serviceController.getEditService);
-router.post('/admin/servicos/:id/editar', authMiddleware, serviceController.postEditService);
-router.post('/admin/servicos/:id/deletar', authMiddleware, serviceController.postDeleteService);
+router.get('/admin/servicos', isAuthenticated, serviceController.getServices);
+router.get('/admin/servicos/novo', isAuthenticated, serviceController.getNewService);
+router.post('/admin/servicos/novo', isAuthenticated, serviceController.postNewService);
+router.get('/admin/servicos/:id/editar', isAuthenticated, serviceController.getEditService);
+router.post('/admin/servicos/:id/editar', isAuthenticated, serviceController.postEditService);
+router.post('/admin/servicos/:id/deletar', isAuthenticated, serviceController.postDeleteService);
 
 // --- Rotas Equipe (Admin) ---
-router.get('/admin/equipe', authMiddleware, staffController.getStaffList);
-router.get('/admin/equipe/novo', authMiddleware, staffController.getNewStaff);
-router.post('/admin/equipe/novo', authMiddleware, upload.single('staffPhoto'), staffController.postNewStaff);
-router.get('/admin/equipe/:id/editar', authMiddleware, staffController.getEditStaff);
-router.post('/admin/equipe/:id/editar', authMiddleware, upload.single('staffPhoto'), staffController.postEditStaff);
-router.post('/admin/equipe/:id/deletar', authMiddleware, staffController.postDeleteStaff);
+router.get('/admin/equipe', isAuthenticated, staffController.getStaffList);
+router.get('/admin/equipe/novo', isAuthenticated, staffController.getNewStaff);
+router.post('/admin/equipe/novo', isAuthenticated, upload.single('staffPhoto'), staffController.postNewStaff);
+router.get('/admin/equipe/:id/editar', isAuthenticated, staffController.getEditStaff);
+router.post('/admin/equipe/:id/editar', isAuthenticated, upload.single('staffPhoto'), staffController.postEditStaff);
+// ✅ Correção: usar o handler correto de exclusão da equipe
+router.post('/admin/equipe/:id/deletar', isAuthenticated, staffController.postDeleteStaff);
+
+// =========================================================================
+/* === NOVAS ROTAS DE CONFIGURAÇÃO (METAS 1 E 2) ========================= */
+// =========================================================================
+router.get(
+  '/admin/configuracoes',
+  isAuthenticated,
+  isOwnerOrSuperAdmin,
+  settingsController.getSettings
+);
+
+router.post(
+  '/admin/configuracoes',
+  isAuthenticated,
+  isOwnerOrSuperAdmin,
+  settingsController.updateSettings
+);
+
+// =========================================================================
+/* === NOVAS ROTAS DE SUPERADMIN (MASTER) ================================ */
+// =========================================================================
+router.get(
+  '/master',
+  isAuthenticated,
+  isSuperAdmin,
+  masterController.getDashboard
+);
+
+router.get(
+  '/master/impersonate/:orgId',
+  isAuthenticated,
+  isSuperAdmin,
+  masterController.impersonate
+);
+
+// Sair da personificação
+router.get(
+  '/master/stop-impersonation',
+  isAuthenticated,
+  masterController.stopImpersonation
+);
 
 module.exports = router;

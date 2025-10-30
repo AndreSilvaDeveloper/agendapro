@@ -10,9 +10,7 @@ const User = sequelize.define('User', {
   // 1. Vínculo com Organization (Foreign Key)
   organizationId: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    // A associação (belongsTo) será definida em um local central
-    // depois que todos os modelos forem carregados.
+    allowNull: true, 
   },
 
   // 2. Username
@@ -47,7 +45,7 @@ const User = sequelize.define('User', {
 
   // 5. Role (Papel)
   role: {
-    type: DataTypes.ENUM('owner', 'staff'),
+    type: DataTypes.ENUM('owner', 'staff', 'superadmin'), // <-- MUDANÇA AQUI
     allowNull: false,
     defaultValue: 'staff'
   },
