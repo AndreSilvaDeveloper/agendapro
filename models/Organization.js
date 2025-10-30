@@ -74,6 +74,33 @@ const Organization = sequelize.define('Organization', {
     set(value) {
       this.setDataValue('operatingHours', value ? value.trim() : null);
     }
+  },
+
+  // --- MUDANÇA AQUI: NOVO CAMPO DE CONFIGURAÇÕES ---
+  settings: {
+    type: DataTypes.JSONB, // Use JSONB para PostgreSQL (preferível) ou DataTypes.JSON
+    allowNull: false,
+    /**
+     * Define os valores padrão para todas as novas organizações.
+     * Assim, o sistema funciona "de fábrica" e você só altera
+     * as exceções.
+     */
+    defaultValue: {
+      /**
+       * Configuração de tema (light/dark)
+       * (Para a Meta 2)
+       */
+      theme: 'light',
+
+      /**
+       * Configurações de visibilidade da página pública
+       * (Para a Meta 1)
+       */
+      showGallery: true,
+      showOperatingHours: true,
+      showAddress: true
+      // Você pode adicionar mais chaves aqui no futuro (ex: 'enableReviews: false')
+    }
   }
 
   // 'createdAt' e 'updatedAt' são adicionados automaticamente

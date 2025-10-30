@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="<%= (org.settings && org.settings.theme === 'dark') ? 'dark' : '' %>">
 <head>
     <meta charset="UTF-8">
     <title><%= org && org.name ? org.name : 'Salão' %> – Agendamento Online</title>
@@ -13,7 +13,17 @@
             --color-gold-accent: #DAA520;
         }
         
+        /* * MUDANÇA: Tema Light vira o padrão
+         * O 'dark-mode' do Tailwind será ativado pela classe 'dark' no <html>
+         */
         body {
+            background-color: #f3f4f6; /* bg-gray-100 (light mode) */
+        }
+        
+        /* * MUDANÇA: O background escuro só se aplica quando
+         * a classe 'dark' está no <html> E o body tem esta classe
+         */
+        .dark body.bg-dark-image {
             background-image: url('/images/background-login.png'); 
             background-size: cover;       
             background-position: center;  
@@ -36,12 +46,23 @@
         }
     </style>
 </head>
-<body class="">
+<body class="<%= (org.settings && org.settings.theme === 'dark') ? 'bg-dark-image' : '' %>">
     <% 
       // Proteções: garantem que não quebre se o controller não passar os arrays
       const _services = Array.isArray(services) ? services : [];
       const _staff    = Array.isArray(staff)    ? staff    : [];
       const orgIdSafe = (org && (org.id || org._id)) ? (org.id || org._id) : '';
+
+      // --- MUDANÇA AQUI ---
+      // Pega as configurações. Se 'org.settings' for null, usa os
+      // padrões (defaults) que definimos no modelo.
+      // O default é 'light' e 'true' para as seções.
+      const _settings = org.settings || {
+        theme: 'light',
+        showAddress: true,
+        showOperatingHours: true,
+        showGallery: true 
+      };
     %>
 
     <header class="text-white p-8 sm:p-2 rounded-b-3xl shadow-xl
@@ -57,8 +78,9 @@
             <h1 class="text-4xl sm:text-6xl font-bold break-words">
                 <%= org && org.name ? org.name : 'Seu Salão' %>
             </h1>
-            <% if (org && org.address) { %>
-                <p class="text-lg sm:text-xl text-yellow-100 mt-2">
+            
+            <% if (org && org.address && _settings.showAddress) { %>
+                <p class="text-lg sm:text-xl dark:text-yellow-100 text-gray-100 mt-2">
                     <i class="fas fa-map-marker-alt fa-fw mr-1"></i>
                     <%= org.address %>
                 </p>
@@ -68,7 +90,7 @@
 
     <main class="max-w-4xl mx-auto p-4 sm:p-8 -mt-10 sm:-mt-16">
 
-        <div class="bg-black/30 backdrop-blur-lg rounded-2xl shadow-2xl p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="dark:bg-black/30 dark:backdrop-blur-lg bg-white rounded-2xl shadow-2xl p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <a href="/portal/<%= orgIdSafe %>/registro"
                class="w-full bg-gold text-white text-center py-4 px-6 rounded-xl font-bold text-lg hover:opacity-90 transition-all shadow-lg flex items-center justify-center">
                 <i class="fas fa-calendar-plus mr-3"></i>
@@ -81,16 +103,16 @@
             </a>
         </div>
 
-        <div class="mt-8 bg-black/30 backdrop-blur-lg rounded-2xl shadow-xl p-6">
-            <h2 class="text-2xl font-bold text-white mb-6">Informações</h2>
+        <div class="mt-8 dark:bg-black/30 dark:backdrop-blur-lg bg-white rounded-2xl shadow-xl p-6">
+            <h2 class="text-2xl font-bold dark:text-white text-gray-900 mb-6">Informações</h2>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
 
-                <% if (org && org.address) { %>
+                <% if (org && org.address && _settings.showAddress) { %>
                 <div class="flex items-start space-x-4">
                     <i class="fas fa-map-marker-alt fa-2x text-gold-accent mt-1"></i>
                     <div>
-                        <h3 class="font-semibold text-gray-100">Endereço</h3>
-                        <p class="text-gray-200"><%= org.address %></p>
+                        <h3 class="font-semibold dark:text-gray-100 text-gray-800">Endereço</h3>
+                        <p class="dark:text-gray-200 text-gray-600"><%= org.address %></p>
                     </div>
                 </div>
                 <% } %>
@@ -99,8 +121,8 @@
                 <div class="flex items-start space-x-4">
                     <i class="fab fa-whatsapp fa-2x text-green-500 mt-1"></i>
                     <div>
-                        <h3 class="font-semibold text-gray-100">WhatsApp</h3>
-                        <p class="text-gray-200"><%= org.whatsapp %></p>
+                        <h3 class="font-semibold dark:text-gray-100 text-gray-800">WhatsApp</h3>
+                        <p class="dark:text-gray-200 text-gray-600"><%= org.whatsapp %></p>
                         <a href="https://wa.me/<%= String(org.whatsapp).replace(/\D/g, '') %>" target="_blank"
                            class="text-sm text-blue-400 hover:underline">
                            Enviar mensagem
@@ -113,18 +135,18 @@
                 <div class="flex items-start space-x-4">
                     <i class="fas fa-phone fa-2x text-gold-accent mt-1"></i>
                     <div>
-                        <h3 class="font-semibold text-gray-100">Telefone Fixo</h3>
-                        <p class="text-gray-200"><%= org.phone %></p>
+                        <h3 class="font-semibold dark:text-gray-100 text-gray-800">Telefone Fixo</h3>
+                        <p class="dark:text-gray-200 text-gray-600"><%= org.phone %></p>
                     </div>
                 </div>
                 <% } %>
 
-                <% if (org && org.operatingHours) { %>
+                <% if (org && org.operatingHours && _settings.showOperatingHours) { %>
                 <div class="flex items-start space-x-4">
                     <i class="fas fa-clock fa-2x text-gold-accent mt-1"></i>
                     <div>
-                        <h3 class="font-semibold text-gray-100">Horário</h3>
-                        <p class="text-gray-200 whitespace-pre-line"><%= org.operatingHours %></p>
+                        <h3 class="font-semibold dark:text-gray-100 text-gray-800">Horário</h3>
+                        <p class="dark:text-gray-200 text-gray-600 whitespace-pre-line"><%= org.operatingHours %></p>
                     </div>
                 </div>
                 <% } %>
@@ -132,22 +154,22 @@
             </div>
         </div>
 
-        <div class="mt-8 bg-black/30 backdrop-blur-lg rounded-2xl shadow-xl p-6">
-            <h2 class="text-2xl font-bold text-white mb-6">Nossos Serviços</h2>
+        <div class="mt-8 dark:bg-black/30 dark:backdrop-blur-lg bg-white rounded-2xl shadow-xl p-6">
+            <h2 class="text-2xl font-bold dark:text-white text-gray-900 mb-6">Nossos Serviços</h2>
 
             <% if (!Array.isArray(_services) || _services.length === 0) { %>
-                <p class="text-gray-200">O salão ainda não cadastrou seus serviços.</p>
+                <p class="dark:text-gray-200 text-gray-600">O salão ainda não cadastrou seus serviços.</p>
             <% } else { %>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <% _services.forEach(service => { %>
-                        <div class="bg-black/70 backdrop-blur-md p-5 rounded-xl border border-gray-600 shadow-sm">
+                        <div class="dark:bg-black/70 dark:backdrop-blur-md dark:border-gray-600 bg-gray-50 border-gray-200 p-5 rounded-xl border shadow-sm">
                             <h3 class="text-xl font-semibold text-gold-accent"><%= service.name %></h3>
-                            <p class="text-lg font-bold text-white mt-1"> 
+                             <p class="text-lg font-bold dark:text-white text-gray-900 mt-1"> 
                                 R$ <%= Number(service.price || 0).toFixed(2).replace('.', ',') %>
                             </p>
-                            <p class="text-sm text-gray-100"><%= service.duration %> minutos</p> 
+                            <p class="text-sm dark:text-gray-100 text-gray-700"><%= service.duration %> minutos</p> 
                             <% if (service.description) { %>
-                                <p class="text-gray-100 text-sm mt-3"><%= service.description %></p> 
+                                <p class="dark:text-gray-100 text-gray-700 text-sm mt-3"><%= service.description %></p> 
                             <% } %>
                         </div>
                     <% }); %>
@@ -156,19 +178,19 @@
         </div>
 
         <% if (Array.isArray(_staff) && _staff.length > 0) { %>
-        <div class="mt-8 bg-black/30 backdrop-blur-lg rounded-2xl shadow-xl p-6">
-            <h2 class="text-2xl font-bold text-white mb-6">Nossa Equipe</h2>
+        <div class="mt-8 dark:bg-black/30 dark:backdrop-blur-lg bg-white rounded-2xl shadow-xl p-6">
+            <h2 class="text-2xl font-bold dark:text-white text-gray-900 mb-6">Nossa Equipe</h2>
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
                 <% _staff.forEach(member => { %>
                     <div class="text-center">
-                        <div class="w-24 h-24 mx-auto rounded-full bg-black/20 flex items-center justify-center overflow-hidden border border-gray-600">
+                        <div class="w-24 h-24 mx-auto rounded-full dark:bg-black/20 dark:border-gray-600 bg-gray-200 border-gray-300 flex items-center justify-center overflow-hidden border">
                             <% if (member.imageUrl) { %>
                                 <img src="<%= member.imageUrl %>" alt="<%= member.name %>" class="w-full h-full object-cover">
                             <% } else { %>
-                                <i class="fas fa-user fa-3x text-gray-400"></i>
+                                <i class="fas fa-user fa-3x dark:text-gray-400 text-gray-500"></i>
                             <% } %>
                         </div>
-                        <h4 class="mt-3 font-semibold text-gray-100"><%= member.name %></h4>
+                        <h4 class="mt-3 font-semibold dark:text-gray-100 text-gray-800"><%= member.name %></h4>
                     </div>
                 <% }); %>
             </div>
@@ -178,11 +200,11 @@
     </main>
 
     <footer class="text-center py-10">
-        <p class="text-sm text-gray-200">
+        <p class="text-sm dark:text-gray-200 text-gray-600">
             <i class="fas fa-crown mr-1.5 text-gold-accent"></i>
             <%= org && org.name ? org.name : 'Seu Salão' %> © <%= new Date().getFullYear() %>
         </p> 
-        <p class="text-xs text-gray-300 mt-4">
+        <p class="text-xs dark:text-gray-300 text-gray-500 mt-4">
             <a href="/login" class="hover:underline">Acesso do Administrador</a>
         </p>
     </footer>
