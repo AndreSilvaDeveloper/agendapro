@@ -1,7 +1,11 @@
 // controllers/serviceController.js
 
-const Service = require('../models/Service');
-const mongoose = require('mongoose');
+// --- REMOVIDO ---
+// const Service = require('../models/Service');
+// const mongoose = require('mongoose');
+
+// --- ADICIONADO ---
+const db = require('../models');
 
 /**
  * Pega o ID da organização logada a partir da sessão.
@@ -15,10 +19,12 @@ const getOrgId = (req) => req.session.organizationId;
 exports.getServices = async (req, res) => {
   try {
     const organizationId = getOrgId(req);
-    // Busca serviços ATIVOS e INATIVOS, ordenados por nome
-    const services = await Service.find({ organizationId: organizationId }).sort({ name: 1 });
+    // ATUALIZADO: Service.find().sort() -> db.Service.findAll()
+    const services = await db.Service.findAll({ 
+      where: { organizationId: organizationId },
+      order: [['name', 'ASC']] // sort({ name: 1 })
+    });
 
-    // Renderiza uma nova view (que criaremos depois)
     res.render('admin/services-list', {
       services: services,
       pageTitle: 'Serviços',
@@ -41,10 +47,10 @@ exports.getServices = async (req, res) => {
  * Mostra o formulário para adicionar um novo serviço.
  */
 exports.getNewService = (req, res) => {
-  // Renderiza uma nova view (que criaremos depois)
+  // (Sem alterações)
   res.render('admin/service-form', {
     pageTitle: 'Novo Serviço',
-    service: {}, // Objeto vazio para o formulário
+    service: {}, 
     editing: false,
     error: null
   });
@@ -59,29 +65,30 @@ exports.postNewService = async (req, res) => {
     const organizationId = getOrgId(req);
     const { name, description, price, duration, imageUrl, isActive } = req.body;
 
-    // "Etiqueta" o novo serviço com o ID da organização
-    await Service.create({
-      organizationId: organizationId, // <-- Segurança
+    // ATUALIZADO: Service.create() -> db.Service.create()
+    // A sintaxe é idêntica.
+    await db.Service.create({
+      organizationId: organizationId,
       name: name,
       description: description || '',
       price: parseFloat(price),
       duration: parseInt(duration, 10),
       imageUrl: imageUrl || '',
-      isActive: isActive === 'on' // Checkbox retorna 'on' se marcado
+      isActive: isActive === 'on'
     });
 
     res.redirect('/admin/servicos?success=Serviço criado com sucesso!');
   } catch (err) {
     console.error("Erro ao criar serviço:", err);
-    // Trata erros de validação do Mongoose
+    // ATUALIZADO: Trata erro de validação do Sequelize
     let errorMsg = 'Erro ao salvar o serviço. Verifique os dados.';
-    if (err.name === 'ValidationError') {
-      errorMsg = Object.values(err.errors)[0].message;
+    if (err.name === 'SequelizeValidationError') {
+      errorMsg = err.errors[0].message;
     }
-    // Renderiza o formulário novamente com o erro
+    
     res.render('admin/service-form', {
       pageTitle: 'Novo Serviço',
-      service: req.body, // Reenvia os dados digitados
+      service: req.body,
       editing: false,
       error: errorMsg
     });
@@ -97,17 +104,18 @@ exports.getEditService = async (req, res) => {
     const organizationId = getOrgId(req);
     const { id } = req.params;
 
-    // Busca o serviço APENAS se pertencer a esta organização
-    const service = await Service.findOne({ _id: id, organizationId: organizationId });
+    // ATUALIZADO: Service.findOne({ _id: id }) -> db.Service.findOne({ where: { id: id } })
+    const service = await db.Service.findOne({ 
+      where: { id: id, organizationId: organizationId } 
+    });
 
     if (!service) {
       return res.redirect('/admin/servicos?error=Serviço não encontrado.');
     }
 
-    // Renderiza a view do formulário em modo de edição
     res.render('admin/service-form', {
       pageTitle: 'Editar Serviço',
-      service: service, // Envia os dados do serviço encontrado
+      service: service,
       editing: true,
       error: null
     });
@@ -127,9 +135,8 @@ exports.postEditService = async (req, res) => {
   const { name, description, price, duration, imageUrl, isActive } = req.body;
 
   try {
-    // Atualiza o serviço APENAS se pertencer a esta organização
-    const result = await Service.findOneAndUpdate(
-      { _id: id, organizationId: organizationId }, // <-- Segurança
+    // ATUALIZADO: Service.findOneAndUpdate() -> db.Service.update()
+    const [affectedRows] = await db.Service.update(
       {
         name: name,
         description: description || '',
@@ -138,24 +145,28 @@ exports.postEditService = async (req, res) => {
         imageUrl: imageUrl || '',
         isActive: isActive === 'on'
       },
-      { new: true, runValidators: true } // runValidators força as validações do modelo na atualização
+      { 
+        where: { id: id, organizationId: organizationId }
+        // 'runValidators: true' é o comportamento padrão no Sequelize
+      }
     );
 
-    if (!result) {
+    if (affectedRows === 0) {
       return res.redirect('/admin/servicos?error=Serviço não encontrado.');
     }
 
     res.redirect('/admin/servicos?success=Serviço atualizado com sucesso!');
   } catch (err) {
     console.error("Erro ao editar serviço:", err);
+    // ATUALIZADO: Trata erro de validação do Sequelize
     let errorMsg = 'Erro ao atualizar o serviço. Verifique os dados.';
-    if (err.name === 'ValidationError') {
-      errorMsg = Object.values(err.errors)[0].message;
+    if (err.name === 'SequelizeValidationError') {
+      errorMsg = err.errors[0].message;
     }
-    // Re-renderiza o formulário de edição com o erro
+    
     res.render('admin/service-form', {
         pageTitle: 'Editar Serviço',
-        service: { ...req.body, _id: id }, // Usa os dados do form + ID
+        service: { ...req.body, id: id }, // ATUALIZADO: _id -> id
         editing: true,
         error: errorMsg
     });
@@ -171,21 +182,27 @@ exports.postDeleteService = async (req, res) => {
     const organizationId = getOrgId(req);
     const { id } = req.params;
 
-    // Deleta o serviço APENAS se pertencer a esta organização
-    const result = await Service.findOneAndDelete({
-      _id: id,
-      organizationId: organizationId // <-- Segurança
+    // ATUALIZADO: Service.findOneAndDelete() -> db.Service.destroy()
+    const affectedRows = await db.Service.destroy({
+      where: {
+        id: id,
+        organizationId: organizationId
+      }
     });
 
-    if (!result) {
+    if (affectedRows === 0) {
       return res.redirect('/admin/servicos?error=Serviço não encontrado.');
     }
-
-    // TODO Futuro: Verificar se este serviço está sendo usado em agendamentos futuros?
 
     res.redirect('/admin/servicos?success=Serviço excluído com sucesso!');
   } catch (err) {
     console.error("Erro ao deletar serviço:", err);
+    
+    // ATUALIZADO: Tratamento de erro de chave estrangeira
+    if (err.name === 'SequelizeForeignKeyConstraintError') {
+      return res.redirect('/admin/servicos?error=Este serviço não pode ser excluído, pois está sendo usado por um profissional.');
+    }
+    
     res.redirect('/admin/servicos?error=Erro ao excluir o serviço.');
   }
 };

@@ -1,23 +1,23 @@
 // controllers/clientPortalController.js
+// --- REMOVIDO ---
+// const Appointment = require('../models/Appointment');
+// const Client = require('../models/Client');
+// const Organization = require('../models/Organization');
+// const Service = require('../models/Service');
+// const Staff = require('../models/Staff');
 
-const Appointment = require('../models/Appointment');
-const Client = require('../models/Client');
-const Organization = require('../models/Organization');
-const Service = require('../models/Service');
-const Staff = require('../models/Staff');
+// --- ADICIONADO ---
+const db = require('../models');
+const { Op } = require('sequelize');
+
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-// --- NOVO: Fuso horário padrão para ser usado em todo o controller ---
 const tz = 'America/Sao_Paulo';
 
-/**
- * Pega os IDs essenciais da sessão do cliente.
- * O middleware (clientAuthMiddleware) já garantiu que eles existem.
- */
 const getClientSession = (req) => {
   return {
     clientId: req.session.clientId,
@@ -28,21 +28,20 @@ const getClientSession = (req) => {
 
 /**
  * GET /portal/minha-area
- * (Função MODIFICADA para buscar e exibir notificações)
+ * (Função ATUALIZADA para Sequelize)
  */
 exports.getMinhaArea = async (req, res) => {
   try {
     const { clientId, organizationId, clientName } = getClientSession(req);
 
-    // =================================================================
-    // ===       INÍCIO DA NOVA LÓGICA DE NOTIFICAÇÃO (GEMINI)       ===
-    // =================================================================
-
-    // 1. (NOVO) Buscar agendamentos que o cliente ainda não viu
-    const unseenAppts = await Appointment.find({
-      clientId: clientId,
-      organizationId: organizationId,
-      clientNotified: false
+    // --- LÓGICA DE NOTIFICAÇÃO (ATUALIZADA) ---
+    // 1. (ATUALIZADO) Buscar agendamentos que o cliente ainda não viu
+    const unseenAppts = await db.Appointment.findAll({
+      where: {
+        clientId: clientId,
+        organizationId: organizationId,
+        clientNotified: false
+      }
     });
 
     const notifications = [];
@@ -66,47 +65,52 @@ exports.getMinhaArea = async (req, res) => {
         }
       });
 
-      // 2. (NOVO) Marcar notificações como vistas (em segundo plano)
-      const idsToUpdate = unseenAppts.map(a => a._id);
-      Appointment.updateMany(
-        { _id: { $in: idsToUpdate } },
-        { $set: { clientNotified: true } }
-      ).exec(); // .exec() "fire-and-forget"
+      // 2. (ATUALIZADO) Marcar notificações como vistas
+      const idsToUpdate = unseenAppts.map(a => a.id);
+      db.Appointment.update(
+        { clientNotified: true },
+        { where: { id: { [Op.in]: idsToUpdate } } }
+      ); // "fire-and-forget"
     }
-
-    // =================================================================
-    // ===        FIM DA NOVA LÓGICA DE NOTIFICAÇÃO (GEMINI)         ===
-    // =================================================================
+    // --- FIM DA LÓGICA DE NOTIFICAÇÃO ---
 
 
-    // 1. Buscar a organização
-    const organization = await Organization.findById(organizationId);
+    // 1. (ATUALIZADO) Buscar a organização
+    const organization = await db.Organization.findByPk(organizationId);
     if (!organization) {
       return res.redirect('/portal/logout');
     }
 
-    // 2. Buscar todos os agendamentos (lógica original)
-    const todosAgendamentos = await Appointment.find({
-      clientId: clientId,
-      organizationId: organizationId
-    })
-    .sort({ date: -1 })
-    .populate('staffId', 'name');
+    // 2. (ATUALIZADO) Buscar todos os agendamentos (com includes)
+    const todosAgendamentos = await db.Appointment.findAll({
+      where: {
+        clientId: clientId,
+        organizationId: organizationId
+      },
+      order: [['date', 'DESC']],
+      include: [
+        { model: db.Staff, attributes: ['name'] },
+        { model: db.AppointmentService, attributes: ['name', 'price'] }
+      ]
+    });
 
     const agora = dayjs().tz(tz);
     const proximos = [];
     const historico = [];
 
-    // 3. Separar agendamentos (lógica original)
+    // 3. (ATUALIZADO) Separar agendamentos
     todosAgendamentos.forEach(appt => {
       const apptData = {
-        _id: appt._id,
+        _id: appt.id, // ATUALIZADO: _id -> id
         date: dayjs(appt.date).tz(tz).format('DD/MM/YYYY'),
         time: dayjs(appt.date).tz(tz).format('HH:mm'),
         status: appt.status,
-        services: appt.services.map(s => s.name).join(', '),
-        staffName: appt.staffId ? appt.staffId.name : 'Qualquer Profissional',
-        total: appt.services.reduce((sum, s) => sum + s.price, 0),
+        // ATUALIZADO: appt.services -> appt.AppointmentServices
+        services: (appt.AppointmentServices || []).map(s => s.name).join(', '),
+        // ATUALIZADO: appt.staffId -> appt.Staff
+        staffName: appt.Staff ? appt.Staff.name : 'Qualquer Profissional',
+        // ATUALIZADO: appt.services.reduce -> appt.AppointmentServices.reduce
+        total: (appt.AppointmentServices || []).reduce((sum, s) => sum + parseFloat(s.price), 0),
         cancellationReason: null
       };
       if (appt.status === 'cancelado_pelo_salao') {
@@ -123,18 +127,26 @@ exports.getMinhaArea = async (req, res) => {
       }
     });
 
-    // 4. Buscar produtos (lógica original)
-    const clientData = await Client.findById(clientId).select('products');
+    // 4. (ATUALIZADO) Buscar produtos (com includes)
+    const clientData = await db.Client.findByPk(clientId, {
+      include: [{
+        model: db.Product,
+        include: [db.Payment]
+      }]
+    });
+    
     const produtosPendentes = [];
     const historicoProdutos = [];
-    if (clientData.products && clientData.products.length > 0) {
-      clientData.products.forEach(p => {
-        const totalPaid = (p.payments || []).reduce((sum, pay) => sum + pay.amount, 0);
-        const isPending = totalPaid < p.price;
+    // ATUALIZADO: clientData.products -> clientData.Products
+    if (clientData.Products && clientData.Products.length > 0) {
+      clientData.Products.forEach(p => {
+        // ATUALIZADO: p.payments -> p.Payments
+        const totalPaid = (p.Payments || []).reduce((sum, pay) => sum + parseFloat(pay.amount), 0);
+        const isPending = totalPaid < parseFloat(p.price);
         const formattedProduct = {
           name: p.name,
-          price: p.price,
-          addedAt: p.addedAt ? dayjs(p.addedAt).tz(tz).format('DD/MM/YYYY') : dayjs(p._id.getTimestamp()).tz(tz).format('DD/MM/YYYY'), 
+          price: parseFloat(p.price),
+          addedAt: p.addedAt ? dayjs(p.addedAt).tz(tz).format('DD/MM/YYYY') : dayjs(p.createdAt).tz(tz).format('DD/MM/YYYY'), 
           totalPaid: totalPaid
         };
         if (isPending) {
@@ -145,7 +157,7 @@ exports.getMinhaArea = async (req, res) => {
       });
     }
 
-    // 5. Renderizar (MODIFICADO para incluir notifications e req.flash)
+    // 5. Renderizar (sem alteração de lógica)
     res.render('client/dashboard', {
       clientName: clientName,
       orgName: organization.name,
@@ -153,9 +165,9 @@ exports.getMinhaArea = async (req, res) => {
       historicoAgendamentos: historico,
       produtosPendentes: produtosPendentes,     
       historicoProdutos: historicoProdutos,   
-      notifications: notifications, // <-- AQUI! Passa as novas notificações
-      error: req.flash('error')[0] || req.query.error || null, // <-- CORRIGIDO!
-      success: req.flash('success')[0] || req.query.success || null // <-- CORRIGIDO!
+      notifications: notifications,
+      error: req.flash('error')[0] || req.query.error || null,
+      success: req.flash('success')[0] || req.query.success || null
     });
 
   } catch (err) {
@@ -166,34 +178,41 @@ exports.getMinhaArea = async (req, res) => {
 
 /**
  * GET /portal/agendar
- * (Seu código original - Sem alterações)
- * Esta função continua servindo a página estática. O JavaScript que
- * adicionaremos depois irá torná-la dinâmica.
+ * (ATUALIZADO)
  */
 exports.getNovoAgendamento = async (req, res) => {
   try {
     const { organizationId, clientName } = getClientSession(req);
-    const organization = await Organization.findById(organizationId);
+    // ATUALIZADO: Organization.findById -> db.Organization.findByPk
+    const organization = await db.Organization.findByPk(organizationId);
     if (!organization) {
       return res.redirect('/portal/logout');
     }
 
-    const services = await Service.find({
-      organizationId: organizationId,
-      isActive: true
-    }).sort({ name: 1 });
+    // ATUALIZADO: Service.find() -> db.Service.findAll()
+    const services = await db.Service.findAll({
+      where: {
+        organizationId: organizationId,
+        isActive: true
+      },
+      order: [['name', 'ASC']]
+    });
 
-    const staff = await Staff.find({
-      organizationId: organizationId,
-      isActive: true
-    }).sort({ name: 1 });
+    // ATUALIZADO: Staff.find() -> db.Staff.findAll()
+    const staff = await db.Staff.findAll({
+      where: {
+        organizationId: organizationId,
+        isActive: true
+      },
+      order: [['name', 'ASC']]
+    });
 
     res.render('client/agendar', {
       clientName: clientName,
       orgName: organization.name,
       services: services,
       staff: staff,
-      error: req.flash('error')[0] || req.query.error || null, // --- MODIFICADO: Para suportar req.flash
+      error: req.flash('error')[0] || req.query.error || null,
       success: req.flash('success')[0] || req.query.success || null
     });
 
@@ -206,23 +225,24 @@ exports.getNovoAgendamento = async (req, res) => {
 /**
  * POST /portal/agendar
  * Processa a solicitação de um novo agendamento.
- * (Função REFORÇADA com as novas validações de segurança)
+ * (ATUALIZADO)
  */
 exports.postNovoAgendamento = async (req, res) => {
   try {
     const { clientId, organizationId } = getClientSession(req);
     const { serviceId, staffId, date, time } = req.body;
 
-    // 1. Validação básica de entrada
     if (!serviceId || !date || !time) {
       req.flash('error', 'Serviço, data e hora são obrigatórios.');
       return res.redirect('/portal/agendar');
     }
 
-    // 2. Buscar o serviço (para segurança e para pegar duração)
-    const service = await Service.findOne({
-      _id: serviceId,
-      organizationId: organizationId
+    // 2. (ATUALIZADO) Buscar o serviço
+    const service = await db.Service.findOne({
+      where: {
+        id: serviceId,
+        organizationId: organizationId
+      }
     });
 
     if (!service) {
@@ -231,33 +251,36 @@ exports.postNovoAgendamento = async (req, res) => {
     }
     const duration = service.duration;
     
-    // 3. Define as datas e horas exatas
     const start = dayjs.tz(`${date}T${time}`, 'YYYY-MM-DDTHH:mm', tz);
     const end = start.add(duration, 'minute');
 
-    // 4. --- VALIDAÇÃO REFORÇADA (SE UM PROFISSIONAL FOI ESCOLHIDO) ---
     if (staffId) {
-      const staffMember = await Staff.findOne({
-        _id: staffId,
-        organizationId: organizationId,
-        isActive: true
+      // 4a. (ATUALIZADO) Validação de Segurança: O profissional existe?
+      const staffMember = await db.Staff.findOne({
+        where: {
+          id: staffId,
+          organizationId: organizationId,
+          isActive: true
+        }
       });
 
-      // 4a. Validação de Segurança: O profissional existe?
       if (!staffMember) {
         req.flash('error', 'Profissional não encontrado.');
         return res.redirect('/portal/agendar');
       }
 
-      // 4b. REGRA 1: O profissional faz este serviço?
-      if (!staffMember.services.includes(serviceId)) {
+      // 4b. (ATUALIZADO) REGRA 1: O profissional faz este serviço?
+      // Usamos o método M2M do Sequelize para verificar
+      const staffServices = await staffMember.getServices({ where: { id: serviceId } });
+      if (staffServices.length === 0) {
         req.flash('error', 'O profissional selecionado não realiza este serviço.');
         return res.redirect('/portal/agendar');
       }
 
-      // 4c. REGRA 2: O profissional trabalha neste dia e horário?
-      const dayName = start.format('dddd').toLowerCase(); // 'monday', 'tuesday', etc.
-      const workSchedule = staffMember.workingHours.get(dayName);
+      // 4c. (ATUALIZADO) REGRA 2: O profissional trabalha? (JSONB)
+      const dayName = start.format('dddd').toLowerCase();
+      // ATUALIZADO: staffMember.workingHours.get(dayName) -> staffMember.workingHours[dayName]
+      const workSchedule = staffMember.workingHours[dayName]; 
 
       if (!workSchedule || workSchedule.isOff) {
         req.flash('error', 'O profissional não atende neste dia da semana.');
@@ -272,18 +295,16 @@ exports.postNovoAgendamento = async (req, res) => {
         return res.redirect('/portal/agendar');
       }
 
-      // 4d. REGRA 3: Verificação de Conflito (Sua lógica original, que está correta e robusta)
-      const conflict = await Appointment.findOne({
-        organizationId: organizationId,
-        staffId: staffId,
-        status: { $in: ['pendente', 'confirmado'] },
-        date: { $lt: end.toDate() }, // Começa antes do fim do novo
-        $expr: {
-          $gt: [
-            { $add: ['$date', { $multiply: ['$duration', 60000] }] }, // Fim do existente
-            start.toDate() // é depois do início do novo
-          ]
-        }
+      // 4d. (ATUALIZADO) REGRA 3: Verificação de Conflito (SQL)
+      const conflict = await db.Appointment.findOne({
+        where: {
+          organizationId: organizationId,
+          staffId: staffId,
+          status: { [Op.in]: ['pendente', 'confirmado'] },
+          date: { [Op.lt]: end.toDate() },
+          [Op.and]: db.sequelize.literal(`"date" + ("duration" * interval '1 minute') > :start`)
+        },
+        replacements: { start: start.toDate() }
       });
       
       if (conflict) {
@@ -291,37 +312,29 @@ exports.postNovoAgendamento = async (req, res) => {
         return res.redirect('/portal/agendar');
       }
     }
-    // (Se 'staffId' for nulo, as validações 4b, 4c, 4d são puladas
-    // e o agendamento fica pendente para o admin alocar.)
 
-    // 5. Criar o agendamento (Lógica original mantida)
-    const newAppointment = new Appointment({
-      organizationId: organizationId,
-      clientId: clientId,
-      staffId: staffId || null,
-      date: start.toDate(),
-      duration: duration,
-      status: 'pendente', // Sempre 'pendente' quando criado pelo cliente
-      
-      // (NOVA ALTERAÇÃO) - Quando o CLIENTE cria, ele não precisa ser
-      // notificado, então o default 'true' já funciona.
-      // MAS, se o status for 'pendente', vamos garantir que
-      // o cliente não seja notificado sobre "pendente".
-      clientNotified: true, 
+    // 5. (ATUALIZADO) Criar o agendamento (com Transação)
+    await db.sequelize.transaction(async (t) => {
+      // 5a. Cria o Agendamento principal
+      const newAppointment = await db.Appointment.create({
+        organizationId: organizationId,
+        clientId: clientId,
+        staffId: staffId || null,
+        date: start.toDate(),
+        duration: duration,
+        status: 'pendente',
+        clientNotified: true, // Cliente que cria já "viu" (não notificar sobre 'pendente')
+      }, { transaction: t });
 
-      services: [{
-        serviceId: service._id,
+      // 5b. Cria o Serviço do Agendamento
+      await db.AppointmentService.create({
+        appointmentId: newAppointment.id,
+        serviceId: service.id,
         name: service.name,
-        price: service.price,
-        payments: []
-      }],
-      products: []
+        price: service.price
+      }, { transaction: t });
     });
 
-    await newAppointment.save();
-
-    // 6. Redirecionar para o dashboard com sucesso
-    // --- MODIFICADO: Usando req.flash para a msg de sucesso ---
     req.flash('success', 'Agendamento solicitado! Aguarde a confirmação do salão.');
     res.redirect('/portal/minha-area');
 
@@ -332,25 +345,31 @@ exports.postNovoAgendamento = async (req, res) => {
   }
 };
 
-// ===================================================================
-// --- NOVO: API PARA AGENDAMENTO DINÂMICO ---
-// ===================================================================
+// --- API PARA AGENDAMENTO DINÂMICO (ATUALIZADO) ---
 
 /**
  * API GET /api/portal/staff-by-service/:serviceId
- * Rota da API para buscar profissionais que realizam um serviço específico.
- * Chamada pelo JavaScript do frontend.
+ * (ATUALIZADO)
  */
 exports.getStaffByService = async (req, res) => {
   try {
     const { serviceId } = req.params;
     const { organizationId } = getClientSession(req);
 
-    const staffList = await Staff.find({
-      organizationId: organizationId,
-      services: serviceId, // Filtra mágicamente!
-      isActive: true
-    }).select('name _id'); // Envia apenas o necessário
+    // ATUALIZADO: Staff.find({ services: ... }) -> db.Staff.findAll({ include: ... })
+    // Isso busca Staff que TEM um Serviço associado com o ID
+    const staffList = await db.Staff.findAll({
+      where: {
+        organizationId: organizationId,
+        isActive: true
+      },
+      include: [{
+        model: db.Service,
+        where: { id: serviceId },
+        attributes: [] // Não precisamos dos dados do serviço, só da junção
+      }],
+      attributes: ['name', 'id'] // ATUALIZADO: _id -> id
+    });
 
     res.status(200).json(staffList);
 
@@ -362,87 +381,76 @@ exports.getStaffByService = async (req, res) => {
 
 /**
  * API GET /api/portal/available-times
- * Rota da API para buscar horários disponíveis de um profissional em uma data.
- * Query: ?serviceId=...&staffId=...&date=YYYY-MM-DD
- * Chamada pelo JavaScript do frontend.
+ * (ATUALIZADO)
  */
 exports.getAvailableTimes = async (req, res) => {
   try {
     const { serviceId, staffId, date } = req.query;
     const { organizationId } = getClientSession(req);
 
-    // 1. Validação de entrada
     if (!serviceId || !staffId || !date) {
       return res.status(400).json({ error: 'Parâmetros inválidos.' });
     }
 
-    // 2. Busca de dados essenciais em paralelo
+    // 2. (ATUALIZADO) Busca de dados essenciais
     const [service, staffMember] = await Promise.all([
-      Service.findById(serviceId).select('duration'),
-      Staff.findById(staffId).select('workingHours')
+      db.Service.findByPk(serviceId, { attributes: ['duration'] }),
+      db.Staff.findByPk(staffId, { attributes: ['workingHours'] })
     ]);
 
     if (!service || !staffMember) {
       return res.status(404).json({ error: 'Serviço ou profissional não encontrado.' });
     }
 
-    // 3. Verifica o horário de trabalho do profissional
+    // 3. (ATUALIZADO) Verifica o horário de trabalho (JSONB)
     const targetDay = dayjs.tz(date, 'YYYY-MM-DD', tz);
-    const dayName = targetDay.format('dddd').toLowerCase(); // 'monday', 'tuesday'...
-    const workSchedule = staffMember.workingHours.get(dayName);
+    const dayName = targetDay.format('dddd').toLowerCase();
+    // ATUALIZADO: staffMember.workingHours.get(dayName) -> staffMember.workingHours[dayName]
+    const workSchedule = staffMember.workingHours[dayName]; 
 
-    // Se o profissional não trabalha ou está de folga (isOff)
     if (!workSchedule || workSchedule.isOff) {
-      return res.status(200).json([]); // Retorna vazio, não é um erro
+      return res.status(200).json([]);
     }
 
-    // 4. Pega os agendamentos existentes
+    // 4. (ATUALIZADO) Pega os agendamentos existentes
     const startOfDay = targetDay.startOf('day').toDate();
     const endOfDay = targetDay.endOf('day').toDate();
 
-    const existingAppointments = await Appointment.find({
-      organizationId: organizationId,
-      staffId: staffId,
-      status: { $in: ['pendente', 'confirmado'] }, // Conflita com pendentes e confirmados
-      date: { $gte: startOfDay, $lte: endOfDay }
-    }).select('date duration');
+    const existingAppointments = await db.Appointment.findAll({
+      where: {
+        organizationId: organizationId,
+        staffId: staffId,
+        status: { [Op.in]: ['pendente', 'confirmado'] },
+        date: { [Op.between]: [startOfDay, endOfDay] }
+      },
+      attributes: ['date', 'duration']
+    });
 
-    // 5. Gera os "slots" disponíveis
+    // 5. Gera os "slots" disponíveis (Lógica sem alteração)
     const serviceDuration = service.duration;
-    const slotInterval = 30; // O intervalo de início (ex: 08:00, 08:30, 09:00)
+    const slotInterval = 30;
     const availableSlots = [];
-
     const openingTime = dayjs.tz(`${date}T${workSchedule.startTime}`, 'YYYY-MM-DDTHH:mm', tz);
     const closingTime = dayjs.tz(`${date}T${workSchedule.endTime}`, 'YYYY-MM-DDTHH:mm', tz);
-
     let currentSlot = openingTime;
 
     while (currentSlot.isBefore(closingTime)) {
       const slotEnd = currentSlot.add(serviceDuration, 'minute');
-
-      // Não pode terminar o serviço depois do fim do expediente
       if (slotEnd.isAfter(closingTime)) {
         break;
       }
-
-      // Verifica colisão com agendamentos existentes
       let isBooked = false;
       for (const appt of existingAppointments) {
-        const apptStart = dayjs(appt.date); // Já está em UTC, dayjs lida com isso
+        const apptStart = dayjs(appt.date);
         const apptEnd = apptStart.add(appt.duration, 'minute');
-
-        // Lógica de colisão: (StartA < EndB) && (EndA > StartB)
         if (currentSlot.isBefore(apptEnd) && slotEnd.isAfter(apptStart)) {
           isBooked = true;
           break;
         }
       }
-
       if (!isBooked) {
         availableSlots.push(currentSlot.format('HH:mm'));
       }
-
-      // Avança para o próximo slot de *início*
       currentSlot = currentSlot.add(slotInterval, 'minute');
     }
 

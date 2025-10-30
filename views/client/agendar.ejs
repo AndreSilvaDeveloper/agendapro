@@ -18,83 +18,78 @@
         .ring-gold-dark { --tw-ring-color: var(--color-gold-dark); }
         
         /* Foco do ícone dentro do input */
-        .input-group:focus-within .input-icon {
-            color: var(--color-gold-dark);
-        }
-        .form-select, .form-input {
-            transition: all 0.2s ease-in-out;
-        }
+        .input-group:focus-within .input-icon { color: var(--color-gold-dark); }
+        .form-select, .form-input { transition: all 0.2s ease-in-out; }
 
-         /* Melhora a aparência do input de data */
+        /* Melhora a aparência do input de data */
         input[type="date"]::-webkit-calendar-picker-indicator {
-            cursor: pointer;
-            opacity: 0.6;
-            filter: invert(0.6) sepia(1) saturate(5) hue-rotate(10deg); /* Dourado */
+            cursor: pointer; opacity: 0.6;
+            filter: invert(0.6) sepia(1) saturate(5) hue-rotate(10deg);
         }
-        input[type="date"]:hover::-webkit-calendar-picker-indicator {
-            opacity: 0.8;
-        }
-        select:disabled, input:disabled {
-            background-color: #f3f4f6; /* bg-gray-100 */
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
+        input[type="date"]:hover::-webkit-calendar-picker-indicator { opacity: 0.8; }
+        select:disabled, input:disabled { background-color: #f3f4f6; opacity: 0.7; cursor: not-allowed; }
 
         /* Animação de Fade-in */
-        .animate-fade-in {
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* Efeito de Texto Gradiente */
         .text-gradient-gold {
             background: linear-gradient(90deg, #B8860B, #FFD700, #DAA520, #FFD700, #B8860B);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-fill-color: transparent;
-            background-size: 200% auto;
-            animation: text-shine 4s linear infinite;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; text-fill-color: transparent;
+            background-size: 200% auto; animation: text-shine 4s linear infinite;
         }
-        @keyframes text-shine {
-            from { background-position: 200% center; }
-            to { background-position: 0% center; }
-        }
+        @keyframes text-shine { from { background-position: 200% center; } to { background-position: 0% center; } }
 
         /* Efeito de Brilho no Background */
-        .bg-shine-gold {
-            position: relative;
-            overflow: hidden;
-        }
+        .bg-shine-gold { position: relative; overflow: hidden; }
         .bg-shine-gold::after {
             content: ''; position: absolute; top: -10%; left: -75%;
             width: 50%; height: 120%;
-            background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.4) 50%, rgba(255, 255, 255, 0) 100%);
-            transform: skewX(-25deg);
-            animation: bg-shine 5s infinite linear;
+            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+            transform: skewX(-25deg); animation: bg-shine 5s infinite linear;
         }
-        @keyframes bg-shine {
-            0% { left: -75%; }
-            100% { left: 125%; }
-        }
+        @keyframes bg-shine { 0% { left: -75%; } 100% { left: 125%; } }
 
-        /* ============================================= */
-        /* ===          INÍCIO DA NOVA ALTERAÇÃO         === */
-        /* ============================================= */
+        /* Fundo sutil */
         body {
-          background-color: #f3f4f6; /* Cor bg-gray-100 do Tailwind */
+          background-color: #f3f4f6;
           background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiIHZpZXdCb3g9IjAgMCA0IDQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmM2Y0ZjYiPjwvcmVjdD48cmVjdCB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSIjZTJlNThlIj48L3JlY3Q+PC9zdmc+");
         }
-        /* ============================================= */
-        /* ===           FIM DA NOVA ALTERAÇÃO           === */
-        /* ============================================= */
-
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen font-sans">
+
+    <% /* ===== Helpers seguros para preço/ID e guards ===== */ %>
+    <%
+      const toNumber = (v) => {
+        if (v === null || v === undefined) return null;
+        if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+        if (typeof v === 'string') {
+          const cleaned = v.trim().replace(/\s+/g, '').replace(/\./g, '').replace(/,/g, '.');
+          const parsed = parseFloat(cleaned);
+          return Number.isNaN(parsed) ? null : parsed;
+        }
+        return null;
+      };
+      const formatPriceBRL = (v) => {
+        const n = toNumber(v);
+        const safe = (n === null) ? 0 : n;
+        return safe.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      };
+      const safeId = (obj) => {
+        if (!obj) return '';
+        if (typeof obj === 'string') return obj;
+        if (typeof obj === 'object') {
+          if (obj._id) return String(obj._id);
+          if (obj.id)  return String(obj.id);
+          try { return obj.toString ? String(obj.toString()) : ''; } catch(e){ return ''; }
+        }
+        try { return String(obj); } catch(e){ return ''; }
+      };
+      const list = Array.isArray(services) ? services : [];
+    %>
 
     <header class="bg-white shadow-sm border-b border-gray-100">
         <nav class="container mx-auto max-w-2xl px-4 py-4 flex justify-between items-center">
@@ -111,7 +106,8 @@
         </nav>
     </header>
 
-    <main class="container mx-auto max-w-2xl p-4 mt-8 mb-8"> {/* Adicionado mb-8 para espaço inferior */}
+    <!-- Adicionado mb-8 para espaço inferior -->
+    <main class="container mx-auto max-w-2xl p-4 mt-8 mb-8">
 
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden animate-fade-in">
             <div class="p-6 border-b border-gray-200">
@@ -148,9 +144,13 @@
                             <select id="serviceId" name="serviceId" required
                                     class="form-select w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-dark focus:border-gold-dark transition-all bg-white appearance-none">
                                 <option value="" disabled selected>-- Selecione um serviço --</option>
-                                <% services.forEach(service => { %>
-                                    <option value="<%= service._id %>" data-duration="<%= service.duration %>">
-                                        <%= service.name %> (R$ <%= service.price.toFixed(2).replace('.', ',') %>) - <%= service.duration %> min
+                                <% list.forEach(service => { 
+                                     const sid = safeId(service && (service._id || service.id || service));
+                                     const name = service && service.name ? service.name : '—';
+                                     const duration = (service && service.duration != null) ? service.duration : 60;
+                                %>
+                                    <option value="<%= sid %>" data-duration="<%= duration %>">
+                                        <%= name %> (R$ <%= formatPriceBRL(service && service.price) %>) - <%= duration %> min
                                     </option>
                                 <% }); %>
                             </select>
@@ -176,7 +176,7 @@
                         <label for="date" class="block text-sm font-semibold text-gray-700 mb-1">
                             3. Data
                         </label>
-                         <div class="relative input-group">
+                        <div class="relative input-group">
                             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
                                 <i class="fas fa-calendar-alt text-gray-400 input-icon transition-colors"></i>
                             </span>
@@ -190,8 +190,8 @@
                         <label for="time" class="block text-sm font-semibold text-gray-700 mb-1">
                             4. Horário
                         </label>
-                         <div class="relative input-group">
-                             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
+                        <div class="relative input-group">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
                                 <i class="fas fa-clock text-gray-400 input-icon transition-colors"></i>
                             </span>
                             <select id="time" name="time" required disabled
@@ -209,10 +209,10 @@
                             <i class="fas fa-calendar-check mr-3"></i>
                             <span>Solicitar Agendamento</span>
                         </button>
-                         <p class="text-xs text-gray-500 mt-3 text-center">
+                        <p class="text-xs text-gray-500 mt-3 text-center">
                             <i class="fas fa-info-circle mr-1"></i>
                             Seu agendamento ficará pendente até ser confirmado pelo salão.
-                         </p>
+                        </p>
                     </div>
                 </form>
             </div>
@@ -230,7 +230,6 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Script do formulário dinâmico (sem alterações)
             const serviceSelect = document.getElementById('serviceId');
             const staffSelect = document.getElementById('staffId');
             const dateInput = document.getElementById('date');
@@ -246,30 +245,29 @@
             async function handleServiceChange() {
                 const serviceId = serviceSelect.value;
                 const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-                durationInput.value = selectedOption.getAttribute('data-duration') || '60';
+                durationInput.value = (selectedOption && selectedOption.getAttribute('data-duration')) || '60';
 
                 resetSelect(staffSelect, '-- Carregando profissionais... --');
                 resetSelect(timeSelect, '-- Selecione profissional e data --');
                 dateInput.disabled = true;
-                dateInput.value = ''; 
+                dateInput.value = '';
 
                 if (!serviceId) {
                     resetSelect(staffSelect, '-- Selecione um serviço primeiro --');
-                    return; 
+                    return;
                 }
 
                 try {
                     const response = await fetch(`/api/portal/staff-by-service/${serviceId}`);
                     if (!response.ok) throw new Error('Erro ao buscar profissionais.');
-                    
                     const staffList = await response.json();
-                    
+
                     resetSelect(staffSelect, '-- Escolha um profissional --');
                     staffList.forEach(staff => {
-                        staffSelect.add(new Option(staff.name, staff._id));
+                        const opt = new Option(staff.name, staff.id);
+                        staffSelect.add(opt);
                     });
                     staffSelect.disabled = false;
-
                 } catch (error) {
                     console.error('Erro em handleServiceChange:', error);
                     resetSelect(staffSelect, '-- Erro ao carregar --');
@@ -281,32 +279,22 @@
                 const staffId = staffSelect.value;
                 const date = dateInput.value;
 
-                if (staffId) {
-                    dateInput.disabled = false;
-                }
-
+                if (staffId) { dateInput.disabled = false; }
                 resetSelect(timeSelect, '-- Selecione profissional e data --');
 
-                if (!serviceId || !staffId || !date) {
-                    return;
-                }
+                if (!serviceId || !staffId || !date) return;
 
                 resetSelect(timeSelect, '-- Carregando horários... --');
-                
                 try {
                     const params = new URLSearchParams({ serviceId, staffId, date });
                     const response = await fetch(`/api/portal/available-times?${params}`);
-                    
                     if (!response.ok) throw new Error('Erro ao buscar horários.');
 
                     const availableSlots = await response.json();
-
-                    if (availableSlots.length > 0) {
+                    if (Array.isArray(availableSlots) && availableSlots.length > 0) {
                         resetSelect(timeSelect, '-- Escolha um horário --');
-                        availableSlots.forEach(slot => {
-                            timeSelect.add(new Option(slot, slot));
-                        });
-                        timeSelect.disabled = false; 
+                        availableSlots.forEach(slot => timeSelect.add(new Option(slot, slot)));
+                        timeSelect.disabled = false;
                     } else {
                         resetSelect(timeSelect, '-- Nenhum horário disponível --');
                     }
@@ -317,21 +305,17 @@
             }
             
             function handleTimeChange() {
-                if (timeSelect.value) {
-                    submitButton.disabled = false;
-                } else {
-                    submitButton.disabled = true;
-                }
+                submitButton.disabled = !timeSelect.value;
             }
 
             function resetSelect(selectElement, defaultText) {
-                selectElement.innerHTML = ''; 
+                selectElement.innerHTML = '';
                 const defaultOption = new Option(defaultText, '');
                 defaultOption.disabled = true;
                 defaultOption.selected = true;
                 selectElement.add(defaultOption);
-                selectElement.disabled = true; 
-                submitButton.disabled = true; 
+                selectElement.disabled = true;
+                submitButton.disabled = true;
             }
         });
     </script>

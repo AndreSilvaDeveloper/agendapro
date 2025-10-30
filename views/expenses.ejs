@@ -2,7 +2,8 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Despesas <%= (typeof org !== 'undefined') ? org.name : 'AgendaPro' %></title>    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Despesas <%= (typeof org !== 'undefined') ? org.name : 'AgendaPro' %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -13,39 +14,19 @@
             --color-gold-accent: #DAA520;
         }
 
-        .text-gold {
-            color: var(--color-gold-dark);
-        }
-        .bg-gold {
-            background-color: var(--color-gold-accent);
-        }
-        .bg-gold-light {
-            background-color: #FFFBEB; 
-        }
-        .border-gold {
-            border-color: var(--color-gold-light);
-        }
-        .hover\:text-gold:hover {
-            color: var(--color-gold-dark);
-        }
-        .hover\:bg-gold-light:hover {
-            background-color: #FFF8DC; 
-        }
+        .text-gold { color: var(--color-gold-dark); }
+        .bg-gold { background-color: var(--color-gold-accent); }
+        .bg-gold-light { background-color: #FFFBEB; }
+        .border-gold { border-color: var(--color-gold-light); }
+        .hover\:text-gold:hover { color: var(--color-gold-dark); }
+        .hover\:bg-gold-light:hover { background-color: #FFF8DC; }
 
-        .animate-fade-in {
-            animation: fadeIn 0.5s ease-in;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        .animate-fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         
         /* --- ESTILOS PARA BRILHO --- */
         .text-gradient-gold {
-            background: linear-gradient(
-                90deg, 
-                #B8860B, #FFD700, #DAA520, #FFD700, #B8860B
-            );
+            background: linear-gradient(90deg, #B8860B, #FFD700, #DAA520, #FFD700, #B8860B);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -53,16 +34,8 @@
             background-size: 200% auto;
             animation: text-shine 4s linear infinite;
         }
-
-        @keyframes text-shine {
-            from { background-position: 200% center; }
-            to { background-position: 0% center; }
-        }
-
-        .bg-shine-gold {
-            position: relative;
-            overflow: hidden;
-        }
+        @keyframes text-shine { from { background-position: 200% center; } to { background-position: 0% center; } }
+        .bg-shine-gold { position: relative; overflow: hidden; }
         .bg-shine-gold::after {
             content: '';
             position: absolute;
@@ -70,87 +43,77 @@
             left: -75%;
             width: 50%;
             height: 120%;
-            background: linear-gradient(
-                90deg, 
-                rgba(255, 255, 255, 0) 0%, 
-                rgba(255, 255, 255, 0.4) 50%,
-                rgba(255, 255, 255, 0) 100%
-            );
+            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
             transform: skewX(-25deg);
             animation: bg-shine 5s infinite linear;
         }
-
-        @keyframes bg-shine {
-            0% { left: -75%; }
-            100% { left: 125%; }
-        }
+        @keyframes bg-shine { 0% { left: -75%; } 100% { left: 125%; } }
         /* --- FIM ESTILOS BRILHO --- */
         
-        .card-hover {
-            transition: all 0.3s ease;
-        }
-        .card-hover:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
+        .card-hover { transition: all 0.3s ease; }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
         
-        .expense-card {
-            transition: all 0.3s ease;
-            border-left: 4px solid transparent;
-        }
-        .expense-card:hover {
-            border-left-color: #ef4444; /* Vermelho mantido */
-            background: #fef2f2; /* Vermelho claro mantido */
-        }
-        .form-input {
-            transition: all 0.3s ease;
-        }
-        .form-input:focus {
-            transform: translateY(-1px);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }
+        .expense-card { transition: all 0.3s ease; border-left: 4px solid transparent; }
+        .expense-card:hover { border-left-color: #ef4444; background: #fef2f2; }
+        .form-input { transition: all 0.3s ease; }
+        .form-input:focus { transform: translateY(-1px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
     </style>
 </head>
 <body class="min-h-screen bg-gray-50 font-sans antialiased">
+
+    <!-- Helpers EJS para moeda/numero/data -->
+    <%
+      function toNumber(v) {
+        if (v == null) return 0;
+        if (typeof v === 'number') return v;
+        if (typeof v === 'string') {
+          // aceita "1.234,56" ou "1234.56"
+          const normalized = v.replace(/\./g, '').replace(',', '.');
+          const n = parseFloat(normalized);
+          if (!isNaN(n)) return n;
+          const n2 = Number(v.replace(/[^\d.-]/g, ''));
+          return isFinite(n2) ? n2 : 0;
+        }
+        const n3 = Number(v);
+        return isFinite(n3) ? n3 : 0;
+      }
+      function money(v) {
+        const n = toNumber(v);
+        return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+      function formatDateBR(d) {
+        try {
+          if (typeof dayjs !== 'undefined' && dayjs) {
+            const base = dayjs(d);
+            if (base && typeof base.tz === 'function') return base.tz('America/Sao_Paulo').format('DD/MM/YYYY');
+            if (typeof base.format === 'function') return base.format('DD/MM/YYYY');
+          }
+        } catch (e) {}
+        try { return new Date(d).toLocaleDateString('pt-BR'); } catch (e) { return ''; }
+      }
+    %>
+
     <header class="bg-white sticky top-0 z-50 shadow-sm border-b border-gray-100">
         <div class="max-w-7xl mx-auto px-4 py-4">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-4">
                     <div class="flex items-center space-x-4">
-                    <h1 class="flex items-center">
-                        <p> Agenda Pro</p>
-                                        </h1>
-                    <div class="h-6 w-px bg-gray-200 hidden sm:block"></div>
-                  
-                </div>
+                        <h1 class="flex items-center"><p> Agenda Pro</p></h1>
+                        <div class="h-6 w-px bg-gray-200 hidden sm:block"></div>
+                    </div>
                     <span class="text-lg font-semibold text-gray-700 flex items-center">
-                        <i class="fas fa-receipt mr-2 text-gold"></i>
-                        Despesas
+                        <i class="fas fa-receipt mr-2 text-gold"></i>Despesas
                     </span>
                 </div>
                 
                 <nav class="hidden lg:flex items-center space-x-6">
-                    <a href="/dashboard" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-home mr-2"></i>Dashboard
-                    </a>
-                    <a href="/agendamentos-por-dia" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-calendar-alt mr-2"></i>Agendamentos
-                    </a>
-                    <a href="/clients" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-users mr-2"></i>Clientes
-                    </a>
-                    <a href="/financeiro" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-dollar-sign mr-2"></i>Financeiro
-                    </a>
-                    <a href="/balanco" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-balance-scale mr-2"></i>Balanço
-                    </a>
-                    <a href="/expenses" class="text-gradient-gold font-semibold">
-                        <i class="fas fa-receipt mr-2"></i>Despesas
-                    </a>
-                    <a href="/logout" class="text-red-600 hover:text-red-700 transition-colors">
-                        <i class="fas fa-sign-out-alt mr-2"></i>Sair
-                    </a>
+                    <a href="/dashboard" class="text-gray-600 hover:text-gold transition-colors"><i class="fas fa-home mr-2"></i>Dashboard</a>
+                    <a href="/agendamentos-por-dia" class="text-gray-600 hover:text-gold transition-colors"><i class="fas fa-calendar-alt mr-2"></i>Agendamentos</a>
+                    <a href="/clients" class="text-gray-600 hover:text-gold transition-colors"><i class="fas fa-users mr-2"></i>Clientes</a>
+                    <a href="/financeiro" class="text-gray-600 hover:text-gold transition-colors"><i class="fas fa-dollar-sign mr-2"></i>Financeiro</a>
+                    <a href="/balanco" class="text-gray-600 hover:text-gold transition-colors"><i class="fas fa-balance-scale mr-2"></i>Balanço</a>
+                    <a href="/expenses" class="text-gradient-gold font-semibold"><i class="fas fa-receipt mr-2"></i>Despesas</a>
+                    <a href="/logout" class="text-red-600 hover:text-red-700 transition-colors"><i class="fas fa-sign-out-alt mr-2"></i>Sair</a>
                 </nav>
 
                 <button id="menu-button" class="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
@@ -159,34 +122,13 @@
             </div>
 
             <div id="mobile-menu" class="hidden lg:hidden mt-4 space-y-2">
-                <a href="/dashboard" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-home"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="/agendamentos-por-dia" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>Agendamentos</span>
-                </a>
-                <a href="/clients" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-users"></i>
-                    <span>Clientes</span>
-                </a>
-                <a href="/financeiro" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-dollar-sign"></i>
-                    <span>Financeiro</span>
-                </a>
-                <a href="/balanco" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-balance-scale"></i>
-                    <span>Balanço</span>
-                </a>
-                <a href="/expenses" class="flex items-center space-x-3 p-3 rounded-lg bg-gold-light text-gold font-semibold">
-                    <i class="fas fa-receipt"></i>
-                    <span>Despesas</span>
-                </a>
-                <a href="/logout" class="flex items-center space-x-3 p-3 rounded-lg text-red-600 hover:bg-red-100">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Sair</span>
-                </a>
+                <a href="/dashboard" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold"><i class="fas fa-home"></i><span>Dashboard</span></a>
+                <a href="/agendamentos-por-dia" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold"><i class="fas fa-calendar-alt"></i><span>Agendamentos</span></a>
+                <a href="/clients" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold"><i class="fas fa-users"></i><span>Clientes</span></a>
+                <a href="/financeiro" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold"><i class="fas fa-dollar-sign"></i><span>Financeiro</span></a>
+                <a href="/balanco" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold"><i class="fas fa-balance-scale"></i><span>Balanço</span></a>
+                <a href="/expenses" class="flex items-center space-x-3 p-3 rounded-lg bg-gold-light text-gold font-semibold"><i class="fas fa-receipt"></i><span>Despesas</span></a>
+                <a href="/logout" class="flex items-center space-x-3 p-3 rounded-lg text-red-600 hover:bg-red-100"><i class="fas fa-sign-out-alt"></i><span>Sair</span></a>
             </div>
         </div>
     </header>
@@ -195,8 +137,7 @@
         <section class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
             <div class="bg-gold p-6 bg-shine-gold">
                 <h2 class="text-xl font-bold text-white flex items-center">
-                    <i class="fas fa-plus-circle mr-3"></i>
-                    Registrar Nova Despesa
+                    <i class="fas fa-plus-circle mr-3"></i>Registrar Nova Despesa
                 </h2>
             </div>
             <div class="p-6">
@@ -204,22 +145,17 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                <i class="fas fa-calendar mr-2 text-gold"></i>
-                                Data da Despesa
+                                <i class="fas fa-calendar mr-2 text-gold"></i>Data da Despesa
                             </label>
-                            <input type="date" 
-                                   name="date" 
-                                   required
+                            <input type="date" name="date" required
                                    class="form-input w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all">
                         </div>
 
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                <i class="fas fa-tag mr-2 text-gold"></i>
-                                Categoria
+                                <i class="fas fa-tag mr-2 text-gold"></i>Categoria
                             </label>
-                            <select name="category" 
-                                    required
+                            <select name="category" required
                                     class="form-input w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all">
                                 <option value="">Selecione uma categoria...</option>
                                 <option value="Luz">💡 Luz</option>
@@ -235,33 +171,23 @@
 
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            <i class="fas fa-edit mr-2 text-gold"></i>
-                            Descrição (opcional)
+                            <i class="fas fa-edit mr-2 text-gold"></i>Descrição (opcional)
                         </label>
-                        <input type="text" 
-                               name="description" 
-                               placeholder="Ex: Conta de energia elétrica de dezembro"
+                        <input type="text" name="description" placeholder="Ex: Conta de energia elétrica de dezembro"
                                class="form-input w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all">
                     </div>
 
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            <i class="fas fa-dollar-sign mr-2 text-gold"></i>
-                            Valor (R$)
+                            <i class="fas fa-dollar-sign mr-2 text-gold"></i>Valor (R$)
                         </label>
-                        <input type="number" 
-                               name="amount" 
-                               step="0.01" 
-                               min="0" 
-                               required
-                               placeholder="0,00"
+                        <input type="number" name="amount" step="0.01" min="0" required placeholder="0,00"
                                class="form-input w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all">
                     </div>
 
                     <div class="flex justify-end">
                         <button type="submit" class="bg-gold text-white px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity flex items-center bg-shine-gold">
-                            <i class="fas fa-plus mr-2"></i>
-                            Registrar Despesa
+                            <i class="fas fa-plus mr-2"></i>Registrar Despesa
                         </button>
                     </div>
                 </form>
@@ -269,95 +195,91 @@
         </section>
 
         <section class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
-            <div class="bg-red-600 p-6"> <div class="flex items-center justify-between">
+            <div class="bg-red-600 p-6">
+                <div class="flex items-center justify-between">
                     <h2 class="text-xl font-bold text-white flex items-center">
-                        <i class="fas fa-list mr-3"></i>
-                        Lista de Despesas
+                        <i class="fas fa-list mr-3"></i>Lista de Despesas
                     </h2>
                     <% if (expenses && expenses.length > 0) { %>
-                    <span class="bg-white bg-opacity-20 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                        <%= expenses.length %> despesa<%= expenses.length !== 1 ? 's' : '' %>
-                    </span>
+                        <span class="bg-white bg-opacity-20 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                            <%= expenses.length %> despesa<%= expenses.length !== 1 ? 's' : '' %>
+                        </span>
                     <% } %>
                 </div>
             </div>
             <div class="p-6">
                 <% if (!expenses || expenses.length === 0) { %>
-                <div class="text-center py-12">
-                    <div class="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
-                        <i class="fas fa-receipt text-4xl text-gray-400"></i>
+                    <div class="text-center py-12">
+                        <div class="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-receipt text-4xl text-gray-400"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Nenhuma despesa registrada</h3>
+                        <p class="text-gray-600 mb-6">Comece registrando sua primeira despesa usando o formulário acima.</p>
+                        <button onclick="document.querySelector('input[name=date]').focus()" class="bg-gold text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity bg-shine-gold">
+                            <i class="fas fa-plus mr-2"></i>Registrar Primeira Despesa
+                        </button>
                     </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Nenhuma despesa registrada</h3>
-                    <p class="text-gray-600 mb-6">Comece registrando sua primeira despesa usando o formulário acima.</p>
-                    <button onclick="document.querySelector('input[name=date]').focus()" class="bg-gold text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity bg-shine-gold">
-                        <i class="fas fa-plus mr-2"></i>
-                        Registrar Primeira Despesa
-                    </button>
-                </div>
                 <% } else { %>
-                <div class="space-y-4">
-                    <% expenses.forEach((e, index) => { %>
-                    <div class="expense-card bg-white p-6 rounded-xl border border-gray-200">
-                        <div class="flex items-center justify-between">
-                            <div class="flex-1">
-                                <div class="flex items-center space-x-4 mb-3">
-                                    <div class="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center">
-                                        <i class="fas fa-receipt text-white"></i>
-                                    </div>
-                                    <div>
-                                        <div class="flex items-center space-x-3 mb-1">
-                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                                <i class="fas fa-tag mr-1"></i>
-                                                <%= e.category %>
-                                            </span>
-                                            <span class="text-sm text-gray-500">
-                                                <i class="fas fa-calendar mr-1"></i>
-                                                <%= dayjs(e.date).tz('America/Sao_Paulo').format('DD/MM/YYYY') %>
-                                            </span>
+                    <div class="space-y-4">
+                        <% expenses.forEach((e, index) => { %>
+                        <div class="expense-card bg-white p-6 rounded-xl border border-gray-200">
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-4 mb-3">
+                                        <div class="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center">
+                                            <i class="fas fa-receipt text-white"></i>
                                         </div>
-                                        <% if (e.description) { %>
-                                        <p class="text-sm text-gray-600 flex items-center">
-                                            <i class="fas fa-comment mr-2 text-gray-400"></i>
-                                            <%= e.description %>
-                                        </p>
-                                        <% } %>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="flex items-center space-x-4">
-                                <div class="text-right">
-                                    <div class="text-2xl font-bold text-red-600">
-                                        R$ <%= e.amount.toFixed(2) %>
-                                    </div>
-                                    <div class="text-xs text-gray-500">
-                                        #<%= String(index + 1).padStart(3, '0') %>
+                                        <div>
+                                            <div class="flex items-center space-x-3 mb-1">
+                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                    <i class="fas fa-tag mr-1"></i><%= e.category %>
+                                                </span>
+                                                <span class="text-sm text-gray-500">
+                                                    <i class="fas fa-calendar mr-1"></i>
+                                                    <%= formatDateBR(e.date) %>
+                                                </span>
+                                            </div>
+                                            <% if (e.description) { %>
+                                            <p class="text-sm text-gray-600 flex items-center">
+                                                <i class="fas fa-comment mr-2 text-gray-400"></i><%= e.description %>
+                                            </p>
+                                            <% } %>
+                                        </div>
                                     </div>
                                 </div>
                                 
-                              <form action="/expenses/<%= e._id %>/delete" method="POST" 
-      onsubmit="return confirm('Excluir esta despesa?')">
-    <button type="submit" class="p-3 text-red-500 hover:bg-red-100 rounded-lg transition-all hover:scale-110">
-        <i class="fas fa-trash-alt"></i>
-    </button>
-</form>
+                                <div class="flex items-center space-x-4">
+                                    <div class="text-right">
+                                        <div class="text-2xl font-bold text-red-600">
+                                            R$ <%= money(e.amount) %>
+                                        </div>
+                                        <div class="text-xs text-gray-500">
+                                            #<%= String(index + 1).padStart(3, '0') %>
+                                        </div>
+                                    </div>
+                                    
+                                    <form action="/expenses/<%= e.id %>/delete" method="POST" onsubmit="return confirm('Excluir esta despesa?')">
+                                        <button type="submit" class="p-3 text-red-500 hover:bg-red-100 rounded-lg transition-all hover:scale-110" title="Excluir despesa">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <% }); %>
+                    </div>
+
+                    <div class="mt-8 pt-6 border-t border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <div class="text-sm text-gray-600">
+                                <i class="fas fa-info-circle mr-2"></i>
+                                Mostrando <%= expenses.length %> despesa<%= expenses.length !== 1 ? 's' : '' %>
+                            </div>
+                            <div class="text-lg font-bold text-red-600">
+                                Total: R$ <%= money((expenses || []).reduce((sum, e) => sum + toNumber(e.amount), 0)) %>
                             </div>
                         </div>
                     </div>
-                    <% }); %>
-                </div>
-
-                <div class="mt-8 pt-6 border-t border-gray-200">
-                    <div class="flex items-center justify-between">
-                        <div class="text-sm text-gray-600">
-                            <i class="fas fa-info-circle mr-2"></i>
-                            Mostrando <%= expenses.length %> despesa<%= expenses.length !== 1 ? 's' : '' %>
-                        </div>
-                        <div class="text-lg font-bold text-red-600">
-                            Total: R$ <%= expenses.reduce((sum, e) => sum + e.amount, 0).toFixed(2) %>
-                        </div>
-                    </div>
-                </div>
                 <% } %>
             </div>
         </section>
@@ -379,7 +301,6 @@
         // Mobile menu toggle
         const menuButton = document.getElementById('menu-button');
         const mobileMenu = document.getElementById('mobile-menu');
-        
         if (menuButton && mobileMenu) {
             menuButton.addEventListener('click', () => {
                 mobileMenu.classList.toggle('hidden');
@@ -388,11 +309,7 @@
 
         // Inicialização das animações
         document.addEventListener('DOMContentLoaded', function() {
-            const observerOptions = {
-                threshold: 0.1,
-                rootMargin: '0px 0px -50px 0px'
-            };
-
+            const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -50px 0px' };
             const observer = new IntersectionObserver(function(entries) {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {

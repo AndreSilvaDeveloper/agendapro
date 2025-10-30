@@ -1,122 +1,90 @@
 // models/Client.js
-const mongoose = require('mongoose');
-// NOVO: Importa o bcrypt para criptografar a senha do cliente
+const { Sequelize, DataTypes } = require('sequelize');
+const sequelize = require('../db');
 const bcrypt = require('bcrypt');
-const SALT_ROUNDS = 10; // Fator de "custo" do hash
+const SALT_ROUNDS = 10;
 
-// --- Esquema de Pagamento ---
-// (Sem alterações)
-const PaymentSchema = new mongoose.Schema({
-  amount: {
-    type: Number,
-    required: [true, 'O valor do pagamento é obrigatório.'],
-    default: 0
-  },
-  paidAt: {
-    type: Date,
-    required: [true, 'A data do pagamento é obrigatória.'],
-    default: Date.now
-  },
-  description: String,
-  method: {
-    type: String,
-    enum: ['pix', 'dinheiro', 'cartao'],
-    required: [true, 'O método de pagamento é obrigatório.']
-  }
-}, { _id: true, timestamps: true });
-
-// --- Esquema de Produto (comprado pelo cliente) ---
-// (Sem alterações)
-const ProductSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, 'O nome do produto é obrigatório.'],
-    trim: true
-  },
-  price: {
-    type: Number,
-    required: [true, 'O preço do produto é obrigatório.'],
-    default: 0
-  },
-  addedAt: {
-    type: Date,
-    default: Date.now
-  },
-  payments: [PaymentSchema]
-}, { _id: true, timestamps: true });
-
-// --- Esquema Principal do Cliente ---
-// (MODIFICADO: Adicionado 'email' e 'password')
-const ClientSchema = new mongoose.Schema({
+const Client = sequelize.define('Client', {
+  // O 'id' (PK) é criado automaticamente
+  
   organizationId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Organization',
-    required: [true, 'A organização (salão) é obrigatória.'],
-    index: true
-  },
-  name: {
-    type: String,
-    required: [true, 'O nome do cliente é obrigatório.'],
-    trim: true
-  },
-  phone: {
-    type: String,
-    trim: true
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    // A associação (belongsTo Organization) será definida depois
   },
   
-  // --- NOVOS CAMPOS PARA LOGIN DO CLIENTE ---
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    set(value) {
+      this.setDataValue('name', value.trim());
+    }
+  },
+  
+  phone: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    set(value) {
+      this.setDataValue('phone', value ? value.trim() : null);
+    }
+  },
+  
+  // --- CAMPOS DE LOGIN ---
   email: {
-    type: String,
-    lowercase: true,
-    trim: true,
-    // Não é globalmente único, mas será único DENTRO da organização (ver índice abaixo)
+    type: DataTypes.STRING,
+    allowNull: true, // Permite nulo (para clientes cadastrados pelo admin)
+    set(value) {
+      this.setDataValue('email', value ? value.toLowerCase().trim() : null);
+    }
   },
+  
   password: {
-    type: String,
-    // Não é 'required' para permitir que o admin crie clientes sem login.
-  },
-  // --- FIM DOS NOVOS CAMPOS ---
-
-  products: [ProductSchema]
-}, { timestamps: true });
-
-// --- NOVOS ÍNDICES ---
-// Garante que o email do cliente seja único DENTRO de um mesmo salão.
-// 'sparse: true' permite que haja múltiplos clientes sem email (null)
-ClientSchema.index({ organizationId: 1, email: 1 }, { unique: true, sparse: true });
-ClientSchema.index({ organizationId: 1, name: 1 });
-ClientSchema.index({ organizationId: 1, phone: 1 });
-
-
-// --- NOVOS MÉTODOS DE BCRYPT (iguais ao User.js) ---
-
-// Hook 'pre-save' para criptografar a senha do cliente
-ClientSchema.pre('save', async function(next) {
-  // 'this' se refere ao cliente que está sendo salvo
-  if (!this.isModified('password')) {
-    return next();
+    type: DataTypes.STRING,
+    allowNull: true, // Permite nulo
   }
-  // Se a senha for nula ou vazia (admin não definiu), não faz nada
-  if (!this.password) {
-      return next();
-  }
-
-  try {
-    const hash = await bcrypt.hash(this.password, SALT_ROUNDS);
-    this.password = hash;
-    next();
-  } catch (err) {
-    next(err);
+  
+  // O array 'products' foi removido.
+  // A associação (Client.hasMany(Product)) será definida depois.
+  
+}, {
+  // Opções
+  timestamps: true,
+  indexes: [
+    {
+      // Substitui o 'index({ organizationId: 1, email: 1 }, { unique: true, sparse: true })'
+      // No SQL, um índice único já permite múltiplos valores nulos (comportamento 'sparse').
+      unique: true,
+      fields: ['organizationId', 'email']
+    },
+    {
+      fields: ['organizationId', 'name']
+    },
+    {
+      fields: ['organizationId', 'phone']
+    }
+  ],
+  
+  // --- Hooks para senha (idênticos ao User.js) ---
+  hooks: {
+    beforeSave: async (client) => {
+      // 'beforeSave' roda no create e no update
+      if (client.changed('password')) {
+        // Só faz o hash se a senha existir (não for nula)
+        if (client.password) {
+          const hash = await bcrypt.hash(client.password, SALT_ROUNDS);
+          client.password = hash;
+        }
+      }
+    }
   }
 });
 
-// Método auxiliar para comparar a senha
-ClientSchema.methods.comparePassword = function(candidatePassword) {
+// --- Método para comparar senha (idêntico ao User.js) ---
+Client.prototype.comparePassword = function(candidatePassword) {
   if (!this.password) {
-    return false; // Se o cliente não tem senha, não pode logar
+    return false; // Cliente não tem senha cadastrada
   }
   return bcrypt.compare(candidatePassword, this.password);
 };
-// --- FIM DOS NOVOS MÉTODOS ---
 
-module.exports = mongoose.model('Client', ClientSchema);
+module.exports = Client;

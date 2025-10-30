@@ -40,6 +40,34 @@
 </head>
 <body class="min-h-screen bg-gray-50 font-sans antialiased">
 
+    <% /* ============================
+       =  HELPERS DE FORMATAÇÃO E SAFE GUARDS
+       ============================ */ %>
+    <% 
+      const toNumber = (v) => {
+        if (v === null || v === undefined) return null;
+        if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+        if (typeof v === 'string') {
+          // Remove espaços, milhares e converte vírgula decimal para ponto
+          const cleaned = v.trim().replace(/\s+/g, '')
+                                 .replace(/\./g, '')
+                                 .replace(/,/g, '.');
+          const parsed = parseFloat(cleaned);
+          return Number.isNaN(parsed) ? null : parsed;
+        }
+        return null;
+      };
+
+      const formatPriceBRL = (v) => {
+        const n = toNumber(v);
+        // Se vier null/NaN, exibe 0,00 para evitar quebra visual
+        const safe = (n === null) ? 0 : n;
+        return safe.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      };
+
+      const hasServices = Array.isArray(services) && services.length > 0;
+    %>
+
     <header class="bg-white sticky top-0 z-50 shadow-sm border-b border-gray-100">
         <div class="max-w-7xl mx-auto px-4 py-4">
             <div class="flex items-center justify-between">
@@ -122,7 +150,7 @@
                     <i class="fas fa-receipt"></i>
                     <span>Despesas</span>
                 </a>
-                <a href="/logout" class="flex items-center space-x-3 p-3 rounded-lg text-red-600 hover:bg-red-100">
+                <a href="/logout" class="flex items-center space-x-3 p-3 rounded-lg text-red-600 hover:text-red-100">
                     <i class="fas fa-sign-out-alt"></i>
                     <span>Sair</span>
                 </a>
@@ -164,27 +192,32 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <% if (services.length === 0) { %>
+                    <% if (!hasServices) { %>
                         <tr>
                             <td colspan="5" class="px-6 py-10 text-center text-gray-500">Nenhum serviço cadastrado ainda.</td>
                         </tr>
                     <% } else { %>
-                        <% services.forEach(service => { %>
+                        <% services.forEach(service => { 
+                             const desc = (service && typeof service.description === 'string') ? service.description : '';
+                        %>
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-gray-900"><%= service.name %></div>
-                                    <% if (service.description) { %>
-                                        <div class="text-xs text-gray-500"><%= service.description.substring(0, 50) %><% if (service.description.length > 50) { %>...<% } %></div>
+                                    <div class="text-sm font-medium text-gray-900"><%= service && service.name ? service.name : '—' %></div>
+                                    <% if (desc) { %>
+                                        <div class="text-xs text-gray-500">
+                                            <%= desc.substring(0, 50) %><% if (desc.length > 50) { %>...<% } %>
+                                        </div>
                                     <% } %>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                    R$ <%= service.price.toFixed(2).replace('.', ',') %>
+                                    R$ <%= formatPriceBRL(service && service.price / 1) %>
+
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                    <%= service.duration %> min
+                                    <%= (service && service.duration !== undefined && service.duration !== null) ? service.duration : '—' %> min
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <% if (service.isActive) { %>
+                                    <% if (service && service.isActive) { %>
                                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                             Ativo
                                         </span>
@@ -195,10 +228,10 @@
                                     <% } %>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
-                                    <a href="/admin/servicos/<%= service._id %>/editar" class="text-gold-dark hover:text-gold-accent transition-colors" title="Editar">
+                                    <a href="/admin/servicos/<%= service && service._id ? service._id : '' %>/editar" class="text-gold-dark hover:text-gold-accent transition-colors" title="Editar">
                                         <i class="fas fa-pencil-alt"></i>
                                     </a>
-                                    <form action="/admin/servicos/<%= service._id %>/deletar" method="POST" class="inline" onsubmit="return confirm('Tem certeza que deseja excluir este serviço?');">
+                                    <form action="/admin/servicos/<%= service && service._id ? service._id : '' %>/deletar" method="POST" class="inline" onsubmit="return confirm('Tem certeza que deseja excluir este serviço?');">
                                         <button type="submit" class="text-red-600 hover:text-red-800 transition-colors" title="Excluir">
                                             <i class="fas fa-trash-alt"></i>
                                         </button>

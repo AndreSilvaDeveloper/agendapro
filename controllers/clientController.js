@@ -1,6 +1,12 @@
 // controllers/clientController.js
-const Client = require('../models/Client');
-const Appointment = require('../models/Appointment');
+// --- REMOVIDO ---
+// const Client = require('../models/Client');
+// const Appointment = require('../models/Appointment');
+
+// --- ADICIONADO ---
+const db = require('../models');
+const { Op } = require('sequelize'); // Para $or, $regex (iLike)
+
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
@@ -8,22 +14,21 @@ const timezone = require('dayjs/plugin/timezone');
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-/**
- * Pega o ID da organização logada a partir da sessão.
- * Esta é a chave de segurança para o multi-salão.
- */
 const getOrgId = (req) => req.session.organizationId;
 
 // --- Home e Busca de Clientes ---
 exports.getClients = async (req, res) => {
   try {
     const organizationId = getOrgId(req);
-    // Filtra clientes APENAS desta organização
-    const clients = await Client.find({ organizationId: organizationId }).sort({ name: 1 });
+    // ATUALIZADO: Client.find().sort() -> db.Client.findAll({ order: ... })
+    const clients = await db.Client.findAll({ 
+      where: { organizationId: organizationId },
+      order: [['name', 'ASC']] 
+    });
     res.render('home', {
         clients,
         error: req.query.error || null,
-        success: req.query.success || null // Passa success para home.ejs também
+        success: req.query.success || null
     });
   } catch (err) {
     console.error(err);
@@ -35,12 +40,17 @@ exports.searchClients = async (req, res) => {
   try {
     const organizationId = getOrgId(req);
     const q = req.query.q?.trim() || '';
-    const regex = new RegExp(q, 'i');
-
-    // Busca APENAS dentro da organização
-    const clients = await Client.find({
-      organizationId: organizationId, // <-- FILTRO DE SEGURANÇA
-      $or: [{ name: regex }, { phone: regex }]
+    
+    // ATUALIZADO: new RegExp(q, 'i') -> { [Op.iLike]: ... }
+    // ATUALIZADO: $or -> [Op.or]
+    const clients = await db.Client.findAll({
+      where: {
+        organizationId: organizationId,
+        [Op.or]: [
+          { name: { [Op.iLike]: `%${q}%` } }, // 'iLike' é case-insensitive
+          { phone: { [Op.iLike]: `%${q}%` } }
+        ]
+      }
     });
     res.render('home', { clients, error: null, success: null });
   } catch (err) {
@@ -51,41 +61,41 @@ exports.searchClients = async (req, res) => {
 
 // --- Criar Cliente (com validação de duplicata) ---
 exports.createClient = async (req, res) => {
-  const organizationId = getOrgId(req); // Pega o ID do salão
+  const organizationId = getOrgId(req);
   try {
     const { name, phone } = req.body;
     const trimmedName = name.trim();
     const normalizedPhone = phone.replace(/\D/g, '');
 
-    // Procura duplicatas APENAS dentro da organização
-    const existing = await Client.findOne({
-      organizationId: organizationId, // <-- FILTRO DE SEGURANÇA
-      $or: [
-        { name: trimmedName },
-        { phone: { $regex: normalizedPhone + '$' } }
-      ]
+    // ATUALIZADO: Client.findOne({ $or: ... })
+    const existing = await db.Client.findOne({
+      where: {
+        organizationId: organizationId,
+        [Op.or]: [
+          { name: trimmedName },
+          { phone: normalizedPhone } // $regex ...$ vira uma busca exata
+        ]
+      }
     });
 
     if (existing) {
       const errorMsg = existing.name === trimmedName
         ? 'Já existe um cliente cadastrado com esse nome.'
         : 'Já existe um cliente cadastrado com esse telefone.';
-      // Busca clientes APENAS desta organização para renderizar o erro
-      const clients = await Client.find({ organizationId: organizationId }).sort({ name: 1 });
+      const clients = await db.Client.findAll({ where: { organizationId: organizationId }, order: [['name', 'ASC']] });
       return res.render('home', { clients, error: errorMsg, success: null });
     }
 
-    // "Etiqueta" o novo cliente com o ID da organização
-    await Client.create({
+    // ATUALIZADO: Client.create() -> db.Client.create()
+    await db.Client.create({
       name: trimmedName,
       phone: normalizedPhone,
-      organizationId: organizationId // <-- ETIQUETA DE SEGURANÇA
+      organizationId: organizationId
     });
     res.redirect('/clients?success=Cliente criado com sucesso!');
   } catch (err) {
     console.error(err);
-    // Em caso de erro, recarrega a página com a mensagem
-    const clients = await Client.find({ organizationId: organizationId }).sort({ name: 1 });
+    const clients = await db.Client.findAll({ where: { organizationId: organizationId }, order: [['name', 'ASC']] });
     res.render('home', { clients, error: 'Erro ao criar cliente.', success: null });
   }
 };
@@ -95,79 +105,89 @@ exports.getClientById = async (req, res) => {
   try {
     const organizationId = getOrgId(req);
     const { id } = req.params;
-    // <<< CORREÇÃO AQUI (Problema 2: Pega success/error da URL)
     const { success, error } = req.query;
 
-    // Busca o cliente APENAS se ele pertencer a esta organização
-    const client = await Client.findOne({ _id: id, organizationId: organizationId });
+    // ATUALIZADO: Client.findOne() -> db.Client.findOne() com 'include'
+    // Inclui os Produtos (de varejo) e seus Pagamentos
+    const client = await db.Client.findOne({ 
+      where: { id: id, organizationId: organizationId },
+      include: [
+        { 
+          model: db.Product, 
+          include: [db.Payment] 
+        }
+      ]
+    });
 
-    // Se não encontrar (ou se pertencer a outro salão), redireciona
     if (!client) {
       return res.redirect('/clients?error=Cliente não encontrado');
     }
 
-    // Busca agendamentos APENAS desta organização
-    const allAppts = await Appointment.find({
-      clientId: client._id,
-      organizationId: organizationId // <-- FILTRO DE SEGURANÇA
+    // ATUALIZADO: Appointment.find() -> db.Appointment.findAll() com 'include'
+    // Inclui os Serviços/Produtos do agendamento e seus Pagamentos
+    const allAppts = await db.Appointment.findAll({
+      where: {
+        clientId: client.id, // ATUALIZADO: client._id -> client.id
+        organizationId: organizationId
+      },
+      include: [
+        { model: db.AppointmentService, include: [db.AppointmentPayment] },
+        { model: db.AppointmentProduct, include: [db.AppointmentPayment] }
+      ]
     });
 
     const midnight = dayjs().tz('America/Sao_Paulo').startOf('day').toDate();
 
     let display = allAppts
       .map(a => ({
-        ...a.toObject(),
+        ...a.get({ plain: true }), // .get({ plain: true }) é o .toObject()
         formatted: dayjs(a.date).tz('America/Sao_Paulo')
           .format('DD/MM/YYYY [às] HH:mm')
       }))
       .filter(a => {
-        // <<< CORREÇÃO AQUI (Problema 1: Exclui cancelados pelo salão)
         if (a.status === 'cancelado_pelo_salao') {
             return false;
         }
-
-        // Mostrar se for futuro (ou hoje)
         if (a.date >= midnight) return true;
 
-        // Ou mostrar se for passado MAS tiver pendências financeiras
-        const svcPending = (a.services || []).some(s => (s.payments || []).reduce((sum, p) => sum + p.amount, 0) < s.price);
+        // ATUALIZADO: a.services -> a.AppointmentServices, etc.
+        const svcPending = (a.AppointmentServices || []).some(s => (s.AppointmentPayments || []).reduce((sum, p) => sum + parseFloat(p.amount), 0) < parseFloat(s.price));
         if (svcPending) return true;
 
-        const prodPending = (a.products || []).some(p => (p.payments || []).reduce((sum, q) => sum + q.amount, 0) < p.price);
+        const prodPending = (a.AppointmentProducts || []).some(p => (p.AppointmentPayments || []).reduce((sum, q) => sum + parseFloat(q.amount), 0) < parseFloat(p.price));
         if (prodPending) return true;
 
-        // Se for passado e sem pendências (e não cancelado pelo salão), não mostra
         return false;
       });
 
-
     display.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // Cálculos (sem alteração significativa, apenas segurança com || [])
+    // Cálculos (ATUALIZADO para novos nomes de modelo)
     let totalService = 0, totalPaidService = 0, totalProduct = 0, totalPaidProduct = 0;
     display.forEach(a => {
-        (a.services || []).forEach(s => {
-            totalService += s.price || 0;
-            totalPaidService += (s.payments || []).reduce((sum, p) => sum + (p.amount || 0), 0);
+        (a.AppointmentServices || []).forEach(s => {
+            totalService += parseFloat(s.price || 0);
+            totalPaidService += (s.AppointmentPayments || []).reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
         });
-        (a.products || []).forEach(p => {
-             totalProduct += p.price || 0;
-             totalPaidProduct += (p.payments || []).reduce((sum, pay) => sum + (pay.amount || 0), 0);
+        (a.AppointmentProducts || []).forEach(p => {
+             totalProduct += parseFloat(p.price || 0);
+             totalPaidProduct += (p.AppointmentPayments || []).reduce((sum, pay) => sum + (parseFloat(pay.amount) || 0), 0);
         });
     });
-    (client.products || []).forEach(p => {
-      totalProduct += p.price || 0;
-      totalPaidProduct += (p.payments || []).reduce((sum, pay) => sum + (pay.amount || 0), 0);
+    // ATUALIZADO: client.products -> client.Products
+    (client.Products || []).forEach(p => {
+      totalProduct += parseFloat(p.price || 0);
+      // ATUALIZADO: p.payments -> p.Payments
+      totalPaidProduct += (p.Payments || []).reduce((sum, pay) => sum + (parseFloat(pay.amount) || 0), 0);
     });
 
     res.render('client', {
-      client,
+      client, // O client já contém client.Products
       appointments: display,
       totalService, totalPaidService,
       totalProduct, totalPaidProduct,
       isHistory: false,
       paidProducts: [],
-      // <<< CORREÇÃO AQUI (Problema 2: Passa success/error para o EJS)
       error: error || null,
       success: success || null
     });
@@ -179,29 +199,42 @@ exports.getClientById = async (req, res) => {
 };
 
 // --- Histórico (Passados) ---
-// (Esta função já estava correta em relação a mostrar cancelados e não precisa passar success/error diretamente)
 exports.getClientHistory = async (req, res) => {
   try {
     const organizationId = getOrgId(req);
     const { id } = req.params;
 
-    // Busca o cliente APENAS se ele pertencer a esta organização
-    const client = await Client.findOne({ _id: id, organizationId: organizationId });
+    // ATUALIZADO: Busca o cliente com seus produtos/pagamentos de varejo
+    const client = await db.Client.findOne({ 
+      where: { id: id, organizationId: organizationId },
+      include: [
+        { 
+          model: db.Product, 
+          include: [db.Payment] 
+        }
+      ]
+    });
     if (!client) {
       return res.redirect('/clients?error=Cliente não encontrado');
     }
 
-    // Busca agendamentos APENAS desta organização
-    const all = await Appointment.find({
-      clientId: client._id,
-      organizationId: organizationId // <-- FILTRO DE SEGURANÇA
+    // ATUALIZADO: Busca agendamentos com seus itens/pagamentos
+    const all = await db.Appointment.findAll({
+      where: {
+        clientId: client.id,
+        organizationId: organizationId
+      },
+      include: [
+        { model: db.AppointmentService, include: [db.AppointmentPayment] },
+        { model: db.AppointmentProduct, include: [db.AppointmentPayment] }
+      ]
     });
 
     const midnight = dayjs().tz('America/Sao_Paulo').startOf('day').toDate();
 
     const past = all
       .map(a => ({
-        ...a.toObject(),
+        ...a.get({ plain: true }), // .toObject()
         formatted: dayjs(a.date).tz('America/Sao_Paulo').format('DD/MM/YYYY [às] HH:mm')
       }))
       .filter(a => {
@@ -209,8 +242,9 @@ exports.getClientHistory = async (req, res) => {
           if (['concluido', 'cancelado_pelo_cliente', 'cancelado_pelo_salao'].includes(a.status)) return true;
           
           const isFuture = a.date >= midnight;
-          const hasPendingPayments = (a.services || []).some(s => (s.payments || []).reduce((sum, p) => sum + p.amount, 0) < s.price) ||
-                                     (a.products || []).some(p => (p.payments || []).reduce((sum, q) => sum + q.amount, 0) < p.price);
+          // ATUALIZADO: a.services -> a.AppointmentServices, etc.
+          const hasPendingPayments = (a.AppointmentServices || []).some(s => (s.AppointmentPayments || []).reduce((sum, p) => sum + parseFloat(p.amount), 0) < parseFloat(s.price)) ||
+                                     (a.AppointmentProducts || []).some(p => (p.AppointmentPayments || []).reduce((sum, q) => sum + parseFloat(q.amount), 0) < parseFloat(q.price));
 
           if (isFuture || hasPendingPayments) return false;
 
@@ -219,25 +253,25 @@ exports.getClientHistory = async (req, res) => {
 
     past.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    // Cálculos (sem alteração significativa)
+    // Cálculos (ATUALIZADO)
     let totalService = 0, totalPaidService = 0, totalProduct = 0, totalPaidProduct = 0;
     past.forEach(a => {
-        (a.services || []).forEach(s => {
-            totalService += s.price || 0;
-            totalPaidService += (s.payments || []).reduce((sum, p) => sum + (p.amount || 0), 0);
+        (a.AppointmentServices || []).forEach(s => {
+            totalService += parseFloat(s.price || 0);
+            totalPaidService += (s.AppointmentPayments || []).reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
         });
-        (a.products || []).forEach(p => {
-             totalProduct += p.price || 0;
-             totalPaidProduct += (p.payments || []).reduce((sum, pay) => sum + (pay.amount || 0), 0);
+        (a.AppointmentProducts || []).forEach(p => {
+             totalProduct += parseFloat(p.price || 0);
+             totalPaidProduct += (p.AppointmentPayments || []).reduce((sum, pay) => sum + (parseFloat(pay.amount) || 0), 0);
         });
     });
-    const paidProducts = (client.products || [])
-      .filter(prod => (prod.payments || []).reduce((sum, pay) => sum + pay.amount, 0) >= prod.price)
+    // ATUALIZADO: client.products -> client.Products
+    const paidProducts = (client.Products || [])
+      .filter(prod => (prod.Payments || []).reduce((sum, pay) => sum + parseFloat(pay.amount), 0) >= parseFloat(prod.price))
       .map(prod => ({
-        name: prod.name,
-        price: prod.price,
-        payments: (prod.payments || []).map(p => ({
-          ...p.toObject(),
+        ...prod.get({ plain: true }), // .toObject()
+        payments: (prod.Payments || []).map(p => ({
+          ...p.get({ plain: true }),
           formattedDate: dayjs(p.paidAt).tz('America/Sao_Paulo').format('DD/MM/YYYY')
         }))
       }));
@@ -249,7 +283,7 @@ exports.getClientHistory = async (req, res) => {
       totalService, totalPaidService,
       totalProduct, totalPaidProduct,
       paidProducts,
-      error: null, // Histórico não recebe erros/sucessos via query params normalmente
+      error: null,
       success: null
     });
   } catch (err) {
@@ -264,15 +298,19 @@ exports.deleteClient = async (req, res) => {
     const organizationId = getOrgId(req);
     const { id } = req.params;
 
-    // Deleta o cliente APENAS se pertencer a esta organização
-    const deletedClient = await Client.findOneAndDelete({ _id: id, organizationId: organizationId });
+    // ATUALIZADO: findOneAndDelete -> destroy
+    // Graças ao 'onDelete: CASCADE' que definimos no models/index.js,
+    // o PostgreSQL irá deletar automaticamente todos os Appointments,
+    // Products e Payments ligados a este cliente.
+    const deletedCount = await db.Client.destroy({ 
+      where: { id: id, organizationId: organizationId } 
+    });
 
-    if (!deletedClient) {
+    if (deletedCount === 0) {
         return res.redirect('/clients?error=Cliente não encontrado para exclusão.');
     }
 
-    // Deleta os agendamentos APENAS desta organização
-    await Appointment.deleteMany({ clientId: id, organizationId: organizationId });
+    // REMOVIDO: Appointment.deleteMany() não é mais necessário.
 
     res.redirect('/clients?success=Cliente excluído com sucesso!');
   } catch (err) {
@@ -288,13 +326,13 @@ exports.editClient = async (req, res) => {
     const { id } = req.params;
     const { name, phone } = req.body;
 
-    // Atualiza o cliente APENAS se pertencer a esta organização
-    const updatedClient = await Client.findOneAndUpdate(
-      { _id: id, organizationId: organizationId }, // <-- FILTRO DE SEGURANÇA
-      { name, phone }
+    // ATUALIZADO: findOneAndUpdate -> update
+    const [affectedRows] = await db.Client.update(
+      { name, phone },
+      { where: { id: id, organizationId: organizationId } }
     );
 
-    if (!updatedClient) {
+    if (affectedRows === 0) {
         return res.redirect('/clients?error=Cliente não encontrado para edição.');
     }
 
@@ -306,24 +344,30 @@ exports.editClient = async (req, res) => {
 };
 
 
-// ─── Produtos do Cliente ────────────────────────────────────
-// (Sem alterações nestas funções)
+// ─── Produtos do Cliente (Varejo) - TOTALMENTE REESCRITO ───
+
 exports.addProductToClient = async (req, res) => {
   try {
     const organizationId = getOrgId(req);
-    const { id } = req.params;
+    const { id } = req.params; // id do Cliente
     const { name, price } = req.body;
 
-    // Atualiza o cliente (adiciona produto) APENAS se pertencer a esta organização
-    const updatedClient = await Client.findOneAndUpdate(
-      { _id: id, organizationId: organizationId }, // <-- FILTRO DE SEGURANÇA
-      { $push: { products: { name, price: parseFloat(price), payments: [] } } }
-    );
-     // Se não encontrou o cliente
-    if (!updatedClient) {
-        return res.redirect('/clients?error=Cliente não encontrado.');
+    // 1. Verifica se o cliente existe e pertence à organização
+    const client = await db.Client.findOne({ where: { id, organizationId } });
+    if (!client) {
+      return res.redirect('/clients?error=Cliente não encontrado.');
     }
-    res.redirect(`/client/${id}?success=Produto adicionado com sucesso!`); // Redireciona com sucesso
+
+    // 2. Cria o Produto (varejo) associado a este cliente
+    // ATUALIZADO: $push -> db.Product.create
+    await db.Product.create({
+      name,
+      price: parseFloat(price),
+      clientId: id,
+      organizationId: organizationId // Garante a etiqueta da organização
+    });
+
+    res.redirect(`/client/${id}?success=Produto adicionado com sucesso!`);
   } catch (err) {
     console.error(err);
     res.redirect(`/client/${req.params.id}?error=Erro ao adicionar produto.`);
@@ -333,24 +377,22 @@ exports.addProductToClient = async (req, res) => {
 exports.editClientProduct = async (req, res) => {
   try {
     const organizationId = getOrgId(req);
-    const { id, pi } = req.params;
+    const { id, pi } = req.params; // id = Cliente, pi = ID do Produto
     const { name, price } = req.body;
 
-    // Busca o cliente APENAS se pertencer a esta organização
-    const client = await Client.findOne({ _id: id, organizationId: organizationId });
-    if (!client) {
-      return res.redirect('/clients?error=Cliente não encontrado');
-    }
+    // ATUALIZADO: client.save() -> db.Product.update
+    // Atualiza o produto DIRETAMENTE, mas com uma cláusula 'where'
+    // que garante que ele pertence ao cliente E à organização.
+    const [affectedRows] = await db.Product.update(
+      { name, price: parseFloat(price) },
+      { where: { id: pi, clientId: id, organizationId: organizationId } }
+    );
 
-    const prod = client.products[pi];
-    if (prod) {
-      prod.name = name;
-      prod.price = parseFloat(price);
-      await client.save();
-      res.redirect(`/client/${id}?success=Produto editado com sucesso!`); // Redireciona com sucesso
-    } else {
-        res.redirect(`/client/${id}?error=Produto não encontrado para edição.`);
+    if (affectedRows === 0) {
+      return res.redirect(`/client/${id}?error=Produto não encontrado para edição.`);
     }
+    
+    res.redirect(`/client/${id}?success=Produto editado com sucesso!`);
   } catch (err) {
     console.error(err);
     res.redirect(`/client/${req.params.id}?error=Erro ao editar produto.`);
@@ -360,21 +402,22 @@ exports.editClientProduct = async (req, res) => {
 exports.deleteClientProduct = async (req, res) => {
   try {
     const organizationId = getOrgId(req);
-    const { id, pi } = req.params;
+    const { id, pi } = req.params; // id = Cliente, pi = ID do Produto
 
-    const client = await Client.findOne({ _id: id, organizationId: organizationId });
-    if (!client) {
-      return res.redirect('/clients?error=Cliente não encontrado');
+    // ATUALIZADO: client.products.splice -> db.Product.destroy
+    // Graças ao 'onDelete: CASCADE' no modelo Product -> Payment,
+    // todos os pagamentos associados a este produto serão excluídos.
+    const affectedRows = await db.Product.destroy({
+      where: { id: pi, clientId: id, organizationId: organizationId }
+    });
+
+    if (affectedRows === 0) {
+      return res.redirect(`/client/${id}?error=Produto não encontrado para exclusão.`);
     }
 
-    if (client.products[pi]) {
-      client.products.splice(pi, 1);
-      await client.save();
-      res.redirect(`/client/${id}?success=Produto excluído com sucesso!`); // Redireciona com sucesso
-    } else {
-        res.redirect(`/client/${id}?error=Produto não encontrado para exclusão.`);
-    }
-  } catch (err) {
+    res.redirect(`/client/${id}?success=Produto excluído com sucesso!`);
+  } catch (err)
+ {
     console.error(err);
     res.redirect(`/client/${req.params.id}?error=Erro ao excluir produto.`);
   }
@@ -383,38 +426,40 @@ exports.deleteClientProduct = async (req, res) => {
 exports.payClientProduct = async (req, res) => {
   try {
     const organizationId = getOrgId(req);
-    const { id, pi } = req.params;
+    const { id, pi } = req.params; // id = Cliente, pi = ID do Produto
     const { amount, method, description, paidAt } = req.body;
 
-    const client = await Client.findOne({ _id: id, organizationId: organizationId });
-    if (!client) {
-      return res.redirect('/clients?error=Cliente não encontrado');
+    // 1. Verifica se o produto existe e pertence ao cliente/org
+    const product = await db.Product.findOne({
+      where: { id: pi, clientId: id, organizationId: organizationId }
+    });
+
+    if (!product) {
+      return res.redirect(`/client/${id}?error=Produto não encontrado para pagamento.`);
     }
 
-    const prod = client.products[pi];
-    if (prod) {
-      const val = parseFloat(amount);
-      const when = paidAt ? dayjs.tz(paidAt, dayjs.ISO_8601, 'America/Sao_Paulo').toDate() : new Date();
-
-      // Validação básica do pagamento
-      if (isNaN(val) || val <= 0) {
-          return res.redirect(`/client/${id}?error=Valor de pagamento inválido.`);
-      }
-      if (!['pix', 'dinheiro', 'cartao'].includes(method.toLowerCase())) {
-          return res.redirect(`/client/${id}?error=Método de pagamento inválido.`);
-      }
-
-      prod.payments.push({
-        amount: val,
-        paidAt: when,
-        method: method.toLowerCase(), // Padronizando
-        description: description || ''
-      });
-      await client.save();
-      res.redirect(`/client/${id}?success=Pagamento registrado com sucesso!`); // Redireciona com sucesso
-    } else {
-        res.redirect(`/client/${id}?error=Produto não encontrado para pagamento.`);
+    // Validações
+    const val = parseFloat(amount);
+    const when = paidAt ? dayjs.tz(paidAt, dayjs.ISO_8601, 'America/Sao_Paulo').toDate() : new Date();
+    if (isNaN(val) || val <= 0) {
+      return res.redirect(`/client/${id}?error=Valor de pagamento inválido.`);
     }
+    if (!['pix', 'dinheiro', 'cartao'].includes(method.toLowerCase())) {
+      return res.redirect(`/client/${id}?error=Método de pagamento inválido.`);
+    }
+
+    // 2. Cria o Pagamento (varejo) associado a este produto
+    // ATUALIZADO: prod.payments.push -> db.Payment.create
+    await db.Payment.create({
+      amount: val,
+      paidAt: when,
+      method: method.toLowerCase(),
+      description: description || '',
+      productId: pi, // Associa ao produto
+      organizationId: organizationId // Garante a etiqueta da organização
+    });
+
+    res.redirect(`/client/${id}?success=Pagamento registrado com sucesso!`);
   } catch (err) {
     console.error(err);
     res.redirect(`/client/${req.params.id}?error=Erro ao salvar pagamento.`);
@@ -424,23 +469,31 @@ exports.payClientProduct = async (req, res) => {
 exports.removeClientProductPayment = async (req, res) => {
   try {
     const organizationId = getOrgId(req);
-    const { id, pi, pj } = req.params;
+    const { id, pi, pj } = req.params; // id=Cliente, pi=Produto, pj=Pagamento
 
-    const client = await Client.findOne({ _id: id, organizationId: organizationId });
-    if (!client) {
-      return res.redirect('/clients?error=Cliente não encontrado');
-    }
+    // ATUALIZADO: client.products[...].payments.splice -> db.Payment.destroy
+    // Para segurança, encontramos o pagamento E verificamos se ele
+    // pertence ao produto e organização corretos antes de deletar.
+    const payment = await db.Payment.findByPk(pj, {
+      include: { 
+        model: db.Product, 
+        attributes: ['clientId', 'organizationId'] 
+      }
+    });
 
-    if (client.products[pi] && client.products[pi].payments[pj]) {
-      client.products[pi].payments.splice(pj, 1);
-      await client.save();
-      res.redirect(`/client/${id}?success=Pagamento removido com sucesso!`); // Redireciona com sucesso
-    } else {
-        res.redirect(`/client/${id}?error=Pagamento não encontrado para remoção.`);
+    if (!payment || 
+        !payment.Product || 
+        payment.Product.clientId != id || 
+        payment.Product.organizationId != organizationId ||
+        payment.productId != pi) {
+      return res.redirect(`/client/${id}?error=Pagamento não encontrado para remoção.`);
     }
+    
+    await payment.destroy(); // Deleta o pagamento
+
+    res.redirect(`/client/${id}?success=Pagamento removido com sucesso!`);
   } catch (err) {
     console.error(err);
     res.redirect(`/client/${req.params.id}?error=Erro ao remover pagamento.`);
   }
 };
-

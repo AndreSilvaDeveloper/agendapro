@@ -1,82 +1,108 @@
-// app.j
+// app.js
+'use strict';
 
 require('dotenv').config();
 
 const express = require('express');
-const mongoose = require('mongoose');
 const session = require('express-session');
-const MongoStore = require('connect-mongo');
-const bcrypt = require('bcrypt');
 const bodyParser = require('body-parser');
 const path = require('path');
-const flash = require('connect-flash'); 
+const flash = require('connect-flash');
 
-// Carrega o arquivo principal de rotas
+// --- Sequelize / Store de sessão ---
+const sequelize = require('./db'); // deve exportar a instância do Sequelize
+const SequelizeStore = require('connect-session-sequelize')(session.Store);
+
+// Rotas
 const routes = require('./routes/index');
 
 const app = express();
 
-// --- Conexão com MongoDB ---
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log('🟢 Conectado ao MongoDB'))
-  .catch(err => console.error('🔴 Erro ao conectar MongoDB:', err));
-
-// --- Configuração de Proxy (Vercel, Heroku, etc.) ---
+// Proxy (Vercel/Heroku/etc.)
 app.set('trust proxy', 1);
 
-// --- Detecta ambiente ---
+// Ambiente
 const isProd = process.env.NODE_ENV === 'production';
 
-// --- Sessão com persistência no MongoDB ---
+// Store de sessão no PostgreSQL
+// IMPORTANTE: use `tableName` (string) ou passe um Model em `table`.
+// Como string: `tableName: 'Session'`
+const sessionStore = new SequelizeStore({
+  db: sequelize,
+  tableName: 'Session',                     // ✅ CORRIGIDO (antes estava `table: 'Session'`)
+  checkExpirationInterval: 15 * 60 * 1000,  // limpa sessões expiradas a cada 15 min
+  expiration: 14 * 24 * 60 * 60 * 1000      // 14 dias
+});
+
+// Sessão
 app.use(session({
   secret: process.env.SESSION_SECRET || 'salao-kadosh-segredo',
   resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: process.env.MONGO_URI,
-    ttl: 14 * 24 * 60 * 60,   // 14 dias em segundos
-    autoRemove: 'native'
-  }),
+  store: sessionStore,
   cookie: {
-    maxAge: 14 * 24 * 60 * 60 * 1000, // 14 dias em ms
-    secure:  isProd,
-    sameSite: isProd ? 'none' : 'lax'
+    maxAge: 14 * 24 * 60 * 60 * 1000, // 14 dias
+    secure: isProd,                   // em produção exige HTTPS
+    sameSite: isProd ? 'none' : 'lax' // 'none' exige secure:true
   }
 }));
 
-// --- Middleware de Flash (para mensagens de erro/sucesso) ---
-// (Deve vir DEPOIS da sessão)
+// Flash messages
 app.use(flash());
 
-// --- [NOVO] Middleware global para passar msgs flash para as Views ---
-// (Disponibiliza as variáveis 'success_msg' e 'error_msg' em todos os .ejs)
+// Middleware global para expor flash nas views
 app.use((req, res, next) => {
   res.locals.success_msg = req.flash('success_msg');
   res.locals.error_msg = req.flash('error_msg');
-  res.locals.error = req.flash('error'); // Para compatibilidade com passport.js
+  res.locals.error = req.flash('error');
   next();
 });
 
-// --- Configurações de View Engine (EJS) e Pasta Estática (public) ---
+// View engine e estáticos
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
-// Middlewares para processar formulários e arquivos estáticos
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- Rotas da aplicação ---
+// Rotas
+// (carregadas ANTES de sync para que models usados nos controllers já estejam importados)
 app.use('/', routes);
 
-// --- Middleware de tratamento de erro ---
+// Tratamento de erro
 app.use((err, req, res, next) => {
-  console.error('⛔️ ERRO:', err.stack);
+  console.error('⛔️ ERRO:', err.stack || err);
   res.status(err.status || 500).send('Erro interno no servidor');
 });
 
-// --- Inicialização do servidor ---
-const PORT = process.env.PORT || 3008;
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando na porta ${PORT}`);
-});
+// Inicialização
+const PORT = process.env.PORT || 3000;
+
+// Sobe tudo em sequência segura
+(async () => {
+  try {
+    // 1) Testa conexão com o banco
+    await sequelize.authenticate();
+    console.log('🟢 Conexão com o PostgreSQL OK.');
+
+    // 2) Sincroniza a tabela de sessão
+    await sessionStore.sync();
+    console.log('🟢 Tabela de Sessão sincronizada.');
+
+    // 3) Sincroniza seus models (User, Client, etc.)
+    await sequelize.sync();
+    console.log('🟢 Tabelas principais do PostgreSQL sincronizadas.');
+
+    // 4) Sobe o servidor
+    app.listen(PORT, () => {
+  console.log(`🚀 Servidor rodando em: \x1b[36mhttp://localhost:${PORT}\x1b[0m`);
+  });
+
+  } catch (err) {
+    console.error('🔴 Erro ao iniciar a aplicação:', err);
+    process.exit(1);
+  }
+})();
+
+module.exports = app;

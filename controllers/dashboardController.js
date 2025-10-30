@@ -1,7 +1,14 @@
 // controllers/dashboardController.js
-const Client = require('../models/Client');
-const Appointment = require('../models/Appointment');
-const Organization = require('../models/Organization');
+
+// --- REMOVIDO ---
+// const Client = require('../models/Client');
+// const Appointment = require('../models/Appointment');
+// const Organization = require('../models/Organization');
+
+// --- ADICIONADO ---
+const db = require('../models');
+const { Op } = require('sequelize'); // Importa os Operadores
+
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
 const timezone = require('dayjs/plugin/timezone');
@@ -31,39 +38,82 @@ exports.getDashboard = async (req, res) => {
       rawAmanha,
       todosAgendamentos,
       todosClientes,
-      // Busca de agendamentos pendentes
       pendingAppointments
     ] = await Promise.all([
-      // 1. Busca a organização
-      Organization.findById(organizationId).lean(),
+      // 1. Busca a organização (ATUALIZADO)
+      db.Organization.findByPk(organizationId, { raw: true }), // raw: true equivale ao lean()
 
-      // 2. Busca agendamentos de HOJE
-      Appointment.find({
-        organizationId: organizationId,
-        date: { $gte: hojeStart, $lte: hojeEnd }
-      }).populate('clientId').sort('date'),
+      // 2. Busca agendamentos de HOJE (ATUALIZADO)
+      db.Appointment.findAll({
+        where: {
+          organizationId: organizationId,
+          date: { [Op.between]: [hojeStart, hojeEnd] } // $gte/$lte -> Op.between
+        },
+        // ATUALIZADO: populate('clientId') -> include
+        include: [
+          { model: db.Client, attributes: ['id', 'name'] },
+          { model: db.AppointmentService, attributes: ['name'] }, // P/ "service: ..."
+          { model: db.AppointmentProduct, attributes: ['name'] } // P/ "service: ..."
+        ],
+        order: [['date', 'ASC']] // sort('date') -> order
+      }),
 
-      // 3. Busca agendamentos de AMANHÃ
-      Appointment.find({
-        organizationId: organizationId,
-        date: { $gte: amanhaStart, $lte: amanhaEnd }
-      }).populate('clientId').sort('date'),
+      // 3. Busca agendamentos de AMANHÃ (ATUALIZADO)
+      db.Appointment.findAll({
+        where: {
+          organizationId: organizationId,
+          date: { [Op.between]: [amanhaStart, amanhaEnd] }
+        },
+        include: [
+          { model: db.Client, attributes: ['id', 'name'] },
+          { model: db.AppointmentService, attributes: ['name'] },
+          { model: db.AppointmentProduct, attributes: ['name'] }
+        ],
+        order: [['date', 'ASC']]
+      }),
 
-      // 4. Busca TODOS os agendamentos (para receita)
-      Appointment.find({ organizationId: organizationId }),
+      // 4. Busca TODOS os agendamentos (para receita) (ATUALIZADO)
+      db.Appointment.findAll({ 
+        where: { organizationId: organizationId },
+        // Inclui os serviços/produtos E seus respectivos pagamentos
+        include: [
+          { 
+            model: db.AppointmentService, 
+            include: [db.AppointmentPayment] // Aninhado
+          },
+          { 
+            model: db.AppointmentProduct, 
+            include: [db.AppointmentPayment] // Aninhado
+          }
+        ]
+      }),
 
-      // 5. Busca TODOS os clientes (para receita)
-      Client.find({ organizationId: organizationId }),
+      // 5. Busca TODOS os clientes (para receita) (ATUALIZADO)
+      db.Client.findAll({ 
+        where: { organizationId: organizationId },
+        // Inclui os produtos de varejo E seus respectivos pagamentos
+        include: [
+          { 
+            model: db.Product, 
+            include: [db.Payment] // Aninhado
+          }
+        ]
+      }),
 
-      // 6. Busca todos os pendentes para o alerta
-      Appointment.find({
-        organizationId: organizationId,
-        status: 'pendente' // A chave da sua solicitação
+      // 6. Busca todos os pendentes para o alerta (ATUALIZADO)
+      db.Appointment.findAll({
+        where: {
+          organizationId: organizationId,
+          status: 'pendente'
+        },
+        // ATUALIZADO: populate('clientId', 'name') / populate('staffId', 'name')
+        include: [
+          { model: db.Client, attributes: ['id', 'name'] },
+          { model: db.Staff, attributes: ['id', 'name'] }
+        ],
+        order: [['date', 'ASC']]
+        // Não usamos raw: true aqui, passamos as instâncias do Sequelize
       })
-      .populate('clientId', 'name')  // Pega o nome do cliente
-      .populate('staffId', 'name')   // Pega o nome do profissional
-      .sort({ date: 1 })             // Mostra os mais antigos primeiro
-      .lean() // .lean() para performance
     ]);
 
     if (!organization) {
@@ -72,55 +122,79 @@ exports.getDashboard = async (req, res) => {
       return res.redirect('/login');
     }
 
-    // Processa agendamentos de HOJE
+    // Processa agendamentos de HOJE (ATUALIZADO)
     const proximosHoje = [...new Map(
       rawHoje
-        .filter(a => a.clientId && ((a.services || []).length || (a.products || []).length))
+        // ATUALIZADO: a.clientId -> a.Client
+        // ATUALIZADO: a.services -> a.AppointmentServices
+        // ATUALIZADO: a.products -> a.AppointmentProducts
+        .filter(a => a.Client && ((a.AppointmentServices || []).length || (a.AppointmentProducts || []).length))
         .map(a => {
           const time = dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm');
-          return [`${a.clientId._id}|${time}`, {
-            name: a.clientId.name,
-            clientId: a.clientId._id.toString(),
+          // ATUALIZADO: a.clientId._id -> a.Client.id
+          // ATUALIZADO: a.clientId.name -> a.Client.name
+          // ATUALIZADO: a.services[0]?.name -> a.AppointmentServices[0]?.name
+          const serviceName = (a.AppointmentServices && a.AppointmentServices[0]?.name) || 
+                              (a.AppointmentProducts && a.AppointmentProducts[0]?.name) || 
+                              '—';
+          return [`${a.Client.id}|${time}`, {
+            name: a.Client.name,
+            clientId: a.Client.id.toString(),
             time,
-            service: a.services[0]?.name || '—'
+            service: serviceName
           }];
         })
     ).values()];
 
-    // Processa agendamentos de AMANHÃ
+    // Processa agendamentos de AMANHÃ (ATUALIZADO - lógica idêntica)
     const proximosAmanha = [...new Map(
       rawAmanha
-        .filter(a => a.clientId && ((a.services || []).length || (a.products || []).length))
+        .filter(a => a.Client && ((a.AppointmentServices || []).length || (a.AppointmentProducts || []).length))
         .map(a => {
           const time = dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm');
-          return [`${a.clientId._id}|${time}`, {
-            name: a.clientId.name,
-            clientId: a.clientId._id.toString(),
+          const serviceName = (a.AppointmentServices && a.AppointmentServices[0]?.name) || 
+                              (a.AppointmentProducts && a.AppointmentProducts[0]?.name) || 
+                              '—';
+          return [`${a.Client.id}|${time}`, {
+            name: a.Client.name,
+            clientId: a.Client.id.toString(),
             time,
-            service: a.services[0]?.name || '—'
+            service: serviceName
           }];
         })
     ).values()];
 
-    // Calcula Receitas
+    // Calcula Receitas (ATUALIZADO)
     let receitaHoje = 0, receitaSemana = 0, receitaMes = 0;
+    
+    // Itera sobre agendamentos
     todosAgendamentos.forEach(a => {
-      [...(a.services || []), ...(a.products || [])].forEach(item => {
-        (item.payments || []).forEach(p => {
+      // ATUALIZADO: a.services -> a.AppointmentServices, a.products -> a.AppointmentProducts
+      const items = [
+        ...(a.AppointmentServices || []), 
+        ...(a.AppointmentProducts || [])
+      ];
+      items.forEach(item => {
+        // ATUALIZADO: item.payments -> item.AppointmentPayments
+        (item.AppointmentPayments || []).forEach(p => {
           const pago = dayjs(p.paidAt).tz('America/Sao_Paulo');
-          if (pago.isSame(ref, 'day')) receitaHoje += p.amount;
-          if (pago.isSame(ref, 'week')) receitaSemana += p.amount;
-          if (pago.isSame(ref, 'month')) receitaMes += p.amount;
+          if (pago.isSame(ref, 'day')) receitaHoje += parseFloat(p.amount);
+          if (pago.isSame(ref, 'week')) receitaSemana += parseFloat(p.amount);
+          if (pago.isSame(ref, 'month')) receitaMes += parseFloat(p.amount);
         });
       });
     });
+
+    // Itera sobre clientes (para vendas de varejo)
     todosClientes.forEach(c => {
-      (c.products || []).forEach(prod => {
-        (prod.payments || []).forEach(p => {
+      // ATUALIZADO: c.products -> c.Products
+      (c.Products || []).forEach(prod => {
+        // ATUALIZADO: prod.payments -> prod.Payments
+        (prod.Payments || []).forEach(p => {
           const pago = dayjs(p.paidAt).tz('America/Sao_Paulo');
-          if (pago.isSame(ref, 'day')) receitaHoje += p.amount;
-          if (pago.isSame(ref, 'week')) receitaSemana += p.amount;
-          if (pago.isSame(ref, 'month')) receitaMes += p.amount;
+          if (pago.isSame(ref, 'day')) receitaHoje += parseFloat(p.amount);
+          if (pago.isSame(ref, 'week')) receitaSemana += parseFloat(p.amount);
+          if (pago.isSame(ref, 'month')) receitaMes += parseFloat(p.amount);
         });
       });
     });
@@ -132,7 +206,7 @@ exports.getDashboard = async (req, res) => {
       receitaHoje,
       receitaSemana,
       receitaMes,
-      pendingAppointments: pendingAppointments, // Envia os pendentes para o EJS
+      pendingAppointments: pendingAppointments, // Passa as instâncias direto
       error: null
     });
 
@@ -145,7 +219,7 @@ exports.getDashboard = async (req, res) => {
       receitaHoje: 0,
       receitaSemana: 0,
       receitaMes: 0,
-      pendingAppointments: [], // Envia array vazio em caso de erro
+      pendingAppointments: [],
       error: 'Erro ao carregar o dashboard. Tente novamente.'
     });
   }
