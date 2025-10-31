@@ -17,7 +17,8 @@ exports.getDashboard = async (req, res) => {
         model: db.User,
         as: 'Users',
         where: { role: 'owner' },
-        attributes: ['username', 'email'], // Pega só o que precisa
+        // --- MUDANÇA: Puxa o ID e o status de bloqueio para a view ---
+        attributes: ['id', 'username', 'email', 'isBlocked'],
         required: false // Usa LEFT JOIN para não quebrar se uma org não tiver owner
       }]
     });
@@ -55,6 +56,13 @@ exports.impersonate = async (req, res) => {
       // req.flash('error', 'Organização não encontrada ou não possui um "owner".');
       return res.redirect('/master');
     }
+
+    // --- MUDANÇA: Impede personificação de conta bloqueada ---
+    if (owner.isBlocked) {
+      // req.flash('error', 'Não é possível personificar um usuário bloqueado. Desbloqueie-o primeiro.');
+      return res.redirect('/master');
+    }
+    // --- FIM DA MUDANÇA ---
 
     // 2. Salva a sessão ATUAL (superadmin) em um backup
     // Isso é o "pulo do gato" para poder voltar depois
@@ -128,5 +136,72 @@ exports.stopImpersonation = (req, res) => {
   } catch (err) {
     console.error('Erro ao parar personificação:', err);
     res.redirect('/login');
+  }
+};
+
+// ===============================================
+// === NOVAS FUNÇÕES DE BLOQUEIO / DESBLOQUEIO ===
+// ===============================================
+
+/**
+ * POST /master/user/:userId/block
+ * Bloqueia um usuário específico.
+ * (Rota a ser criada em /routes/master.js)
+ */
+exports.blockUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await db.User.findByPk(userId);
+    
+    if (!user) {
+      // req.flash('error', 'Usuário não encontrado.');
+      return res.redirect('/master');
+    }
+    
+    // Medida de segurança: Impede que o superadmin se bloqueie
+    // ou que outros superadmins sejam bloqueados por esta rota.
+    if (user.role === 'superadmin') {
+      // req.flash('error', 'Super-administradores não podem ser bloqueados.');
+      return res.redirect('/master');
+    }
+
+    user.isBlocked = true;
+    await user.save();
+    
+    // req.flash('success', `Usuário ${user.username} bloqueado com sucesso.`);
+    res.redirect('/master');
+
+  } catch (err) {
+    console.error('Erro ao bloquear usuário:', err);
+    // req.flash('error', 'Erro interno ao tentar bloquear usuário.');
+    res.redirect('/master');
+  }
+};
+
+/**
+ * POST /master/user/:userId/unblock
+ * Desbloqueia um usuário específico.
+ * (Rota a ser criada em /routes/master.js)
+ */
+exports.unblockUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await db.User.findByPk(userId);
+    
+    if (!user) {
+      // req.flash('error', 'Usuário não encontrado.');
+      return res.redirect('/master');
+    }
+
+    user.isBlocked = false;
+    await user.save();
+    
+    // req.flash('success', `Usuário ${user.username} desbloqueado com sucesso.`);
+    res.redirect('/master');
+
+  } catch (err) {
+    console.error('Erro ao desbloquear usuário:', err);
+    // req.flash('error', 'Erro interno ao tentar desbloquear usuário.');
+    res.redirect('/master');
   }
 };

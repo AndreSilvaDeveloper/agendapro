@@ -143,8 +143,16 @@
     </style>
 </head>
 <body class="min-h-screen font-sans antialiased bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-    
-    <header class="bg-white dark:bg-gray-800 sticky top-0 z-50 shadow-sm border-b border-gray-100 dark:border-gray-700">
+    <% if (locals.originalAdminSession) { %>
+      <div class="fixed top-0 left-0 right-0 z-[60] bg-yellow-400 text-yellow-900 text-center p-3 shadow-lg">
+        <i class="fas fa-user-secret"></i>
+        <strong>Aviso:</strong> Você está personificando esta organização.
+        <a href="/master/stop-impersonation" class="font-bold underline hover:text-yellow-700 ml-2">
+          Voltar para SuperAdmin
+        </a>
+      </div>
+    <% } %>
+    <header class="bg-white dark:bg-gray-800 sticky top-0 z-50 shadow-sm border-b border-gray-100 dark:border-gray-700 <% if (locals.originalAdminSession) { %> mt-12 <% } %>">
         <div class="max-w-7xl mx-auto px-4 py-4">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-4">
