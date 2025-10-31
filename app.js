@@ -78,6 +78,11 @@ app.use((err, req, res, next) => {
 
 // Inicialização
 const PORT = process.env.PORT || 3000;
+// --- MUDANÇA 1: Definir o HOST ---
+// '0.0.0.0' é necessário para a nuvem; 'localhost' é para desenvolvimento local
+const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
+// --- FIM DA MUDANÇA 1 ---
+
 
 // Sobe tudo em sequência segura
 (async () => {
@@ -91,15 +96,16 @@ const PORT = process.env.PORT || 3000;
     console.log('🟢 Tabela de Sessão sincronizada.');
 
     // 3) Sincroniza seus models (User, Client, etc.)
-    // --- MUDANÇA AQUI ---
     await sequelize.sync({ alter: true }); // Adiciona colunas faltantes
-    // --- FIM DA MUDANÇA ---
     console.log('🟢 Tabelas principais do PostgreSQL sincronizadas.');
 
     // 4) Sobe o servidor
-    app.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando em: \x1b[36mhttp://localhost:${PORT}\x1b[0m`);
-  });
+    // --- MUDANÇA 2: Adiciona o HOST ao app.listen ---
+    app.listen(PORT, HOST, () => {
+      // O log agora mostra o endereço correto
+      console.log(`🚀 Servidor rodando em: \x1b[36mhttp://${HOST}:${PORT}\x1b[0m`);
+    });
+    // --- FIM DA MUDANÇA 2 ---
 
   } catch (err) {
     console.error('🔴 Erro ao iniciar a aplicação:', err);
