@@ -1,10 +1,5 @@
 // controllers/dashboardController.js
 
-// --- REMOVIDO ---
-// const Client = require('../models/Client');
-// const Appointment = require('../models/Appointment');
-// const Organization = require('../models/Organization');
-
 // --- ADICIONADO ---
 const db = require('../models');
 const { Op } = require('sequelize'); // Importa os Operadores
@@ -109,7 +104,11 @@ exports.getDashboard = async (req, res) => {
         // ATUALIZADO: populate('clientId', 'name') / populate('staffId', 'name')
         include: [
           { model: db.Client, attributes: ['id', 'name'] },
-          { model: db.Staff, attributes: ['id', 'name'] }
+          { model: db.Staff, attributes: ['id', 'name'] },
+          // --- MUDANÇA AQUI: Adicionado include de serviços ---
+          { model: db.AppointmentService, attributes: ['name'] },
+          { model: db.AppointmentProduct, attributes: ['name'] }
+          // --- FIM DA MUDANÇA ---
         ],
         order: [['date', 'ASC']]
         // Não usamos raw: true aqui, passamos as instâncias do Sequelize

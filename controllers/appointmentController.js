@@ -330,7 +330,8 @@ exports.getAgendaPorDia = async (req, res) => {
     // Fim da lógica inalterada
 
     // ATUALIZADO: Busca de dados com 'include'
-    const [appts, clients, dbServices, staff] = await Promise.all([
+    // --- MUDANÇA 1: Adicionado 'pendingAppointments' à desestruturação ---
+    const [appts, clients, dbServices, staff, pendingAppointments] = await Promise.all([
       db.Appointment.findAll({
         where: {
           organizationId: organizationId,
@@ -356,7 +357,23 @@ exports.getAgendaPorDia = async (req, res) => {
       db.Staff.findAll({
         where: { organizationId: organizationId, isActive: true },
         attributes: ['id', 'name']
+      }),
+
+      // --- MUDANÇA 2: Adicionada a query para o alerta de pendentes ---
+      db.Appointment.findAll({
+        where: {
+          organizationId: organizationId,
+          status: 'pendente'
+        },
+        include: [
+          { model: db.Client, attributes: ['id', 'name'] },
+          { model: db.Staff, attributes: ['id', 'name'] }, // <-- A CHAVE DO PROBLEMA
+          { model: db.AppointmentService, attributes: ['name'] },
+          { model: db.AppointmentProduct, attributes: ['name'] }
+        ],
+        order: [['date', 'ASC']]
       })
+      // --- FIM DA MUDANÇA 2 ---
     ]);
     
     // Processamento dos agendamentos (ATUALIZADO)
@@ -373,7 +390,7 @@ exports.getAgendaPorDia = async (req, res) => {
       if (!(key in resultsByDay)) return;
 
       resultsByDay[key].push({
-        _id: a.id, // ATUALIZADO: _id -> id
+        id: a.id, // ATUALIZADO: _id -> id
         clientId: a.Client.id, // ATUALIZADO
         clientName: a.Client.name, // ATUALIZADO
         staffName: a.Staff ? a.Staff.name : 'N/D', // ATUALIZADO
@@ -404,6 +421,9 @@ exports.getAgendaPorDia = async (req, res) => {
       clients,
       services: dbServices, // ATUALIZADO: Passa serviços do DB
       staff: staff, // Passa equipe do DB
+      // --- MUDANÇA 3: Passa a variável para a view ---
+      pendingAppointments: pendingAppointments,
+      // --- FIM DA MUDANÇA 3 ---
       success,
       error
     });
@@ -411,6 +431,9 @@ exports.getAgendaPorDia = async (req, res) => {
     console.error("Erro ao buscar agenda:", err);
     res.render('agenda-dia', {
       days: [], resultsByDay: {}, availableByDay: {}, clients: [], services: [], staff: [],
+      // --- MUDANÇA 4: Adiciona a variável no erro ---
+      pendingAppointments: [],
+      // --- FIM DA MUDANÇA 4 ---
       error: 'Erro ao carregar a agenda.',
       success: null, date: dayjs().tz('America/Sao_Paulo').format('YYYY-MM-DD')
     });
@@ -473,7 +496,8 @@ exports.editAppointmentDateTime = async (req, res) => {
     await a.update({ date: newDate });
 
     res.redirect(`/client/${a.clientId}?success=${encodeURIComponent('Data/Hora atualizada.')}`);
-  } catch (err) {
+  } catch (err)
+ {
     console.error("Erro ao editar data/hora:", err);
     res.redirect(`/client/${a.clientId}?error=${encodeURIComponent('Erro ao editar data/hora.')}`);
   }
