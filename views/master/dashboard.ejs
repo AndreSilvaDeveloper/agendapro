@@ -25,10 +25,13 @@
             <h4 class="mb-0">Painel Master - Organizações</h4>
             
             <% if (locals.originalAdminSession) { %>
-              <a href="/master/stop-impersonation" class="btn btn-warning">
-                <i class="fas fa-user-secret me-2"></i>
-                Parar Personificação (Voltar para SuperAdmin)
-              </a>
+              <div class="bg-yellow-400 text-yellow-900 text-center p-3 w-full fixed z-20" style="top: 0;">
+                <i class="fas fa-user-secret"></i>
+                <strong>Aviso:</strong> Você está personificando esta organização.
+                <a href="/master/stop-impersonation" class="font-bold underline hover:text-yellow-700 ml-2">
+                  Voltar para SuperAdmin
+                </a>
+              </div>
             <% } %>
           </div>
           <div class="card-body">
@@ -44,32 +47,73 @@
                       <th scope="col">Nome da Organização</th>
                       <th scope="col">Dono (Owner)</th>
                       <th scope="col">Email do Dono</th>
+                      <th scope="col">Status</th>
                       <th scope="col">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
                     <% organizations.forEach(org => { %>
-                      <tr>
+                      <% 
+                      // Variável auxiliar para facilitar a leitura
+                      const owner = (org.Users && org.Users.length > 0) ? org.Users[0] : null; 
+                      %>
+
+                      <tr class="<%= (owner && owner.isBlocked) ? 'table-danger' : '' %>">
                         <th scope="row"><%= org.id %></th>
                         <td><%= org.name %></td>
                         
-                        <% if (org.Users && org.Users.length > 0) { %>
-                          <td><%= org.Users[0].username %></td>
-                          <td><%= org.Users[0].email %></td>
+                        <% if (owner) { %>
+                          <td><%= owner.username %></td>
+                          <td><%= owner.email %></td>
+                          <td>
+                            <% if (owner.isBlocked) { %>
+                              <span class="badge bg-danger">Bloqueado</span>
+                            <% } else { %>
+                              <span class="badge bg-success">Ativo</span>
+                            <% } %>
+                          </td>
                         <% } else { %>
                           <td class="text-muted"><em>Sem Dono</em></td>
                           <td class="text-muted"><em>N/A</em></td>
+                          <td><span class="badge bg-secondary">N/A</span></td>
                         <% } %>
 
-                        <td>
-                          <a 
-                            href="/master/impersonate/<%= org.id %>" 
-                            class="btn btn-primary btn-sm"
-                            title="Logar como esta organização"
-                          >
-                            <i class="fas fa-sign-in-alt"></i>
-                            Logar
-                          </a>
+                        <td class="d-flex" style="gap: 0.5rem;">
+                          <% if (owner) { %>
+                            <a 
+                              href="/master/impersonate/<%= org.id %>" 
+                              class="btn btn-primary btn-sm <%= (owner.isBlocked) ? 'disabled' : '' %>"
+                              title="<%= (owner.isBlocked) ? 'Usuário bloqueado. Desbloqueie para logar.' : 'Logar como esta organização' %>"
+                              <%= (owner.isBlocked) ? 'aria-disabled="true" tabindex="-1"' : '' %>
+                            >
+                              <i class="fas fa-sign-in-alt"></i>
+                            </a>
+                            
+                            <% if (owner.isBlocked) { %>
+                              <form action="/master/user/<%= owner.id %>/unblock" method="POST" class="d-inline">
+                                <button 
+                                  type="submit" 
+                                  class="btn btn-success btn-sm"
+                                  title="Desbloquear este usuário"
+                                >
+                                  <i class="fas fa-check-circle"></i>
+                                </button>
+                              </form>
+                            <% } else { %>
+                              <form action="/master/user/<%= owner.id %>/block" method="POST" class="d-inline">
+                                <button 
+                                  type="submit" 
+                                  class="btn btn-danger btn-sm"
+                                  title="Bloquear este usuário"
+                                >
+                                  <i class="fas fa-ban"></i>
+                                </button>
+                              </form>
+                            <% } %>
+                            
+                          <% } else { %>
+                            <span class="text-muted">N/A</span>
+                          <% } %>
                         </td>
                       </tr>
                     <% }) %>

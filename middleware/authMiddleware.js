@@ -12,13 +12,11 @@ function isAuthenticated(req, res, next) {
     return failAuth(req, res, 'Sua sessão expirou. Por favor, entre novamente.');
   }
 
-  // --- MUDANÇA ESSENCIAL AQUI ---
-  // Se for superadmin, ele está autenticado e pode prosseguir
-  // IMEDIATAMENTE, sem verificar organizationId.
+res.locals.originalAdminSession = req.session.originalAdminSession || null;
+
+
   if (req.session.role === 'superadmin') {
     res.locals.isSuperAdmin = true; // Disponibiliza para as views
-    // Passa a sessão original do superadmin, se ela existir
-    res.locals.originalAdminSession = req.session.originalAdminSession || null;
     return next();
   }
   // --- FIM DA MUDANÇA ---

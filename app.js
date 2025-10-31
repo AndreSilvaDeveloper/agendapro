@@ -91,7 +91,9 @@ const PORT = process.env.PORT || 3000;
     console.log('🟢 Tabela de Sessão sincronizada.');
 
     // 3) Sincroniza seus models (User, Client, etc.)
-    await sequelize.sync();
+    // --- MUDANÇA AQUI ---
+    await sequelize.sync({ alter: true }); // Adiciona colunas faltantes
+    // --- FIM DA MUDANÇA ---
     console.log('🟢 Tabelas principais do PostgreSQL sincronizadas.');
 
     // 4) Sobe o servidor

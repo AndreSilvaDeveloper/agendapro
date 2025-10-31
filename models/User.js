@@ -7,6 +7,12 @@ const SALT_ROUNDS = 10;
 const User = sequelize.define('User', {
   // O Sequelize cria um 'id' (INTEGER, PRIMARY KEY, AUTO_INCREMENT) por padrão
   
+
+  isBlocked: {
+  type: DataTypes.BOOLEAN,
+  allowNull: false,
+  defaultValue: false
+},
   // 1. Vínculo com Organization (Foreign Key)
   organizationId: {
     type: DataTypes.INTEGER,

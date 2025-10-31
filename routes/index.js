@@ -20,11 +20,12 @@ const clientController = require('../controllers/clientController');
 const appointmentController = require('../controllers/appointmentController');
 const financialController = require('../controllers/financialController');
 const serviceController = require('../controllers/serviceController');
-const staffController = require('../controllers/staffController');
+const staffController =require('../controllers/staffController');
 
 // --- Novos Controladores ---
 const settingsController = require('../controllers/settingsController');
 const masterController = require('../controllers/masterController');
+// const { isSuperAdmin } = require('../middleware/authMiddleware'); // Removido, já importado acima
 
 // --- Controladores Cliente ---
 const clientAuthController = require('../controllers/clientAuthController');
@@ -178,5 +179,21 @@ router.get(
   isAuthenticated,
   masterController.stopImpersonation
 );
+
+// --- MUDANÇA AQUI: Rotas de Bloqueio Corrigidas ---
+router.post(
+  '/master/user/:userId/block', // Caminho corrigido
+  isAuthenticated,             // Middleware adicionado
+  isSuperAdmin,                // Apenas o superadmin pode bloquear
+  masterController.blockUser
+);
+
+router.post(
+  '/master/user/:userId/unblock', // Caminho corrigido
+  isAuthenticated,              // Middleware adicionado
+  isSuperAdmin,                 // Apenas o superadmin pode desbloquear
+  masterController.unblockUser
+);
+// --- FIM DA MUDANÇA ---
 
 module.exports = router;
