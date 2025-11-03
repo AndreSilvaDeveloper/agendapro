@@ -77,7 +77,7 @@ app.use((err, req, res, next) => {
 });
 
 // Inicialização
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3003;
 // --- MUDANÇA 1: Definir o HOST ---
 // '0.0.0.0' é necessário para a nuvem; 'localhost' é para desenvolvimento local
 const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';

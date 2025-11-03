@@ -233,20 +233,40 @@ exports.postLogin = async (req, res) => {
  * Processa o logout do cliente.
  * (Sem alterações, não acessa o banco de dados)
  */
-exports.getLogout = (req, res) => {
-  const orgId = req.session.clientOrgId; 
-  
-  req.session.destroy((err) => {
-    if (err) {
-      console.error('Erro ao fazer logout do cliente:', err);
-      return res.redirect('/');
-    }
-    
-    res.clearCookie('connect.sid');
+exports.getLogout = async (req, res) => {
+  try {
+    const orgId = req.session.clientOrgId;
+    let redirectUrl = '/'; // URL de fallback padrão
+
     if (orgId) {
-      res.redirect(`/portal/${orgId}/login`);
-    } else {
-      res.redirect('/');
+      // 1. Buscar a organização no banco ANTES de destruir a sessão
+      const organization = await db.Organization.findByPk(orgId, {
+        attributes: ['slug'] // Só precisamos da coluna 'slug'
+      });
+
+      if (organization && organization.slug) {
+        // 2. Montar a URL de redirecionamento correta
+        redirectUrl = `/salao/${organization.slug}`;
+      } else {
+        // 3. Se não achar o slug, mantém o comportamento antigo
+        redirectUrl = `/portal/${orgId}/login`;
+      }
     }
-  });
+
+    // 4. Agora, destruir a sessão e redirecionar para a URL que definimos
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Erro ao fazer logout do cliente:', err);
+        // Mesmo com erro, tenta redirecionar
+        return res.redirect(redirectUrl);
+      }
+      
+      res.clearCookie('connect.sid');
+      res.redirect(redirectUrl);
+    });
+
+  } catch (error) {
+    console.error('Erro grave no logout do cliente:', error);
+    res.redirect('/'); // Redireciona para a home em caso de erro na busca do BD
+  }
 };
