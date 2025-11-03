@@ -259,7 +259,7 @@ exports.postForgotPassword = async (req, res) => {
       return res.render("forgot-password", {
         error: null,
         success:
-          "Se um e-mail válido foi fornecido, um link de redefinição foi enviado.",
+          "Se um e-mail válido foi fornecido, um link de redefinição foi enviado. Verifique sua caixa de spam.",
       });
     }
     user.resetToken = token;
@@ -271,7 +271,7 @@ exports.postForgotPassword = async (req, res) => {
     return res.render("forgot-password", {
       error: null,
       success:
-        "Se um e-mail válido foi fornecido, um link de redefinição foi enviado.",
+        "Se um e-mail válido foi fornecido, um link de redefinição foi enviado. Verifique sua caixa de spam.",
     });
   } catch (err) {
     console.error("Erro em postForgotPassword:", err);
