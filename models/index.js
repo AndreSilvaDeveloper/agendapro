@@ -54,7 +54,7 @@ db.Payment.belongsTo(db.Organization, { foreignKey: 'organizationId' });
 // === Relações do AGENDAMENTO ===================
 // ===============================================
 // Um Agendamento (Appointment) PERTENCE A UM Cliente
-db.Appointment.belongsTo(db.Client, { foreignKey: 'clientId' });
+db.Appointment.belongsTo(db.Client, { foreignKey: 'clientId',onDelete: 'CASCADE' });
 db.Client.hasMany(db.Appointment, { foreignKey: 'clientId', onDelete: 'CASCADE' });
 
 // Um Agendamento (Appointment) PERTENCE A UM Profissional (Staff)
@@ -93,11 +93,11 @@ db.Service.belongsToMany(db.Staff, {
 // ===============================================
 // Um Cliente pode ter comprado Muitos Produtos
 db.Client.hasMany(db.Product, { foreignKey: 'clientId', onDelete: 'CASCADE' });
-db.Product.belongsTo(db.Client, { foreignKey: 'clientId' });
+db.Product.belongsTo(db.Client, { foreignKey: 'clientId', onDelete: 'CASCADE' });
 
 // Um Produto pode ter Muitos Pagamentos
 db.Product.hasMany(db.Payment, { foreignKey: 'productId', onDelete: 'CASCADE' });
-db.Payment.belongsTo(db.Product, { foreignKey: 'productId' });
+db.Payment.belongsTo(db.Product, { foreignKey: 'productId', onDelete: 'CASCADE' });
 
 
 // ===============================================

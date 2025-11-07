@@ -228,10 +228,10 @@
                                     <% } %>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
-                                    <a href="/admin/servicos/<%= service && service._id ? service._id : '' %>/editar" class="text-gold-dark hover:text-gold-accent transition-colors" title="Editar">
+                                    <a href="/admin/servicos/<%= service && service.id ? service.id : '' %>/editar" class="text-gold-dark hover:text-gold-accent transition-colors" title="Editar">
                                         <i class="fas fa-pencil-alt"></i>
                                     </a>
-                                    <form action="/admin/servicos/<%= service && service._id ? service._id : '' %>/deletar" method="POST" class="inline" onsubmit="return confirm('Tem certeza que deseja excluir este serviço?');">
+                                    <form action="/admin/servicos/<%= service && service.id ? service.id : '' %>/deletar" method="POST" class="inline" onsubmit="return confirm('Tem certeza que deseja excluir este serviço?');">
                                         <button type="submit" class="text-red-600 hover:text-red-800 transition-colors" title="Excluir">
                                             <i class="fas fa-trash-alt"></i>
                                         </button>
