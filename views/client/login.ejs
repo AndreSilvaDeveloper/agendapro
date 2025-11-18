@@ -32,8 +32,8 @@
             --color-gold-light: #FFD700;
             --color-gold-dark: #B8860B;
             --color-gold-accent: #DAA520;
-            --color-bg-primary: #f3f4f6;
-            --color-bg-secondary: #ffffff;
+            --color-bg-primary: #f3f4f6; /* Cor de fundo fallback */
+            --color-bg-secondary: #ffffff; /* Fundo do cartão */
             --color-bg-muted: #f9fafb;     
             --color-bg-accent-light: #FFFBEB;
             --color-bg-accent-dark: #fefce8;
@@ -43,6 +43,7 @@
             --color-text-accent-muted: #b45309;
             --color-border: #e5e7eb;
             --color-input-bg: #ffffff;
+            --color-footer-bg: rgba(255, 255, 255, 0.8); /* Fundo do footer para legibilidade */
         }
 
         /* --- TEMA 2: MEDIUM DARK --- */
@@ -51,7 +52,7 @@
             --color-gold-dark: #e0aa1f;
             --color-gold-accent: #DAA520;
             --color-bg-primary: #1f2937;
-            --color-bg-secondary: #374151;
+            --color-bg-secondary: #374151; /* Fundo do cartão escuro */
             --color-bg-muted: #4b5563;     
             --color-bg-accent-light: #422c01;
             --color-bg-accent-dark: #423001;
@@ -61,6 +62,7 @@
             --color-text-accent-muted: #fde047;
             --color-border: #4b5563;
             --color-input-bg: #374151;
+            --color-footer-bg: rgba(31, 41, 55, 0.8);
         }
 
         /* --- TEMA 3: DEEP DARK --- */
@@ -69,7 +71,7 @@
             --color-gold-dark: #e0aa1f;
             --color-gold-accent: #DAA520;
             --color-bg-primary: #0a0e14;
-            --color-bg-secondary: #1f2937;
+            --color-bg-secondary: #1f2937; /* Fundo do cartão escuro */
             --color-bg-muted: #374151;
             --color-bg-accent-light: #422c01;
             --color-bg-accent-dark: #423001;
@@ -79,6 +81,7 @@
             --color-text-accent-muted: #fde047;
             --color-border: #4b5563;
             --color-input-bg: #1f2937;
+            --color-footer-bg: rgba(0, 0, 0, 0.8);
         }
 
         /* ================================================= */
@@ -91,12 +94,19 @@
             display: flex; 
             align-items: center;
             justify-content: center;
-            background-color: var(--color-bg-primary); 
+            background-color: var(--color-bg-primary); /* Cor de fundo se a imagem falhar */
             color: var(--color-text-primary);
+            
+            /* --- IMAGEM DE FUNDO ADICIONADA AQUI --- */
+            background-image: url('/images/background-login.png'); 
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
         } 
         
         /* Mapeamento */
-        .bg-white { background-color: var(--color-bg-secondary); }
+        .bg-white { background-color: var(--color-bg-secondary); } /* O cartão mudará de cor conforme o tema */
         .bg-gray-100 { background-color: var(--color-bg-primary); }
         .bg-gold { background-color: var(--color-gold-accent); }
         
@@ -139,6 +149,13 @@
         /* Link hover */
         a.text-gold:hover { color: var(--color-gold-light); }
 
+        /* Fundo do footer/botão tema para legibilidade sobre a imagem */
+        .backdrop-element {
+            background-color: var(--color-footer-bg);
+            backdrop-filter: blur(4px);
+            border: 1px solid var(--color-border);
+        }
+
     </style>
 </head>
 <body class="p-4">
@@ -146,7 +163,7 @@
     <div class="relative z-10 w-full max-w-md">
         
         <div class="absolute top-0 right-0 -mt-12 md:-mt-0 md:relative md:mb-4 flex justify-end">
-             <button id="theme-toggle-btn" class="p-2 rounded-full bg-white shadow-md text-gray-600 hover:text-gold transition-colors border border-gray-200">
+             <button id="theme-toggle-btn" class="p-2 rounded-full backdrop-element shadow-md text-gray-600 hover:text-gold transition-colors">
                 <i id="theme-icon-sun" class="fas fa-sun"></i> 
                 <i id="theme-icon-moon" class="fas fa-moon hidden"></i> 
             </button>
@@ -240,8 +257,8 @@
             </div>
         </div> 
 
-        <div class="mt-8 text-center text-sm text-gray-500 adaptive-text">
-             <p>
+        <div class="mt-8 text-center text-sm text-gray-500 adaptive-text backdrop-element p-2 rounded-lg inline-block mx-auto w-full">
+             <p class="flex items-center justify-center">
                 <i class="fas fa-crown mr-2 text-gold"></i>
                 <%= (typeof orgName !== 'undefined') ? orgName : 'AgendaPro' %> © <%= new Date().getFullYear() %>
             </p>
