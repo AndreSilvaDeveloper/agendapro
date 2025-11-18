@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="pt-BR"> <head>
+<html lang="pt-BR" class="h-full" data-theme="light">
+<head>
     <meta charset="UTF-8">
     <title>Dashboard – <%= (typeof org !== 'undefined') ? org.name : 'AgendaPro' %></title>    
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,62 +8,113 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+    <script>
+        (function() {
+            const THEMES = ["light", "medium-dark", "deep-dark"];
+            const savedTheme = localStorage.getItem('theme');
+            let initialTheme = 'light';
+
+            if (savedTheme && THEMES.includes(savedTheme)) {
+                initialTheme = savedTheme;
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                initialTheme = 'deep-dark';
+            }
+            document.documentElement.setAttribute('data-theme', initialTheme);
+        })();
+    </script>
+
     <style>
-        :root {
-            /* --- TEMA CLARO --- */
+        /* ================================================= */
+        /* === 1. DEFINIÇÃO DAS CORES PARA TRÊS TEMAS === */
+        /* ================================================= */
+
+        /* --- TEMA 1: LIGHT --- */
+        :root, [data-theme="light"] {
             --color-gold-light: #FFD700;
             --color-gold-dark: #B8860B;
             --color-gold-accent: #DAA520;
-            --color-bg-primary: #f3f4f6;   /* bg-gray-100 */
-            --color-bg-secondary: #ffffff; /* bg-white */
-            --color-bg-muted: #f9fafb;     /* bg-gray-50 */
-            --color-bg-accent-light: #FFFBEB; /* bg-gold-light */
-            --color-bg-accent-dark: #fefce8;  /* time-badge bg */
-            --color-text-primary: #1f2937;   /* text-gray-800 / 900 */
-            --color-text-secondary: #4b5563; /* text-gray-600 */
-            --color-text-accent: #B8860B;    /* text-gold-dark */
-            --color-text-accent-muted: #b45309; /* time-badge text */
-            --color-border: #e5e7eb;       /* border-gray-200 */
+            --color-bg-primary: #f3f4f6;   /* Fundo Geral */
+            --color-bg-secondary: #ffffff; /* Fundo Cards */
+            --color-bg-muted: #f9fafb;     
+            --color-bg-accent-light: #FFFBEB;
+            --color-bg-accent-dark: #fefce8;
+            --color-text-primary: #1f2937; /* Texto Escuro */
+            --color-text-secondary: #4b5563;
+            --color-text-accent: #B8860B;
+            --color-text-accent-muted: #b45309;
+            --color-border: #e5e7eb;
         }
 
-        .dark {
-             /* --- TEMA ESCURO --- */
+        /* --- TEMA 2: MEDIUM DARK --- */
+        [data-theme="medium-dark"] {
             --color-gold-light: #FFD700;
-            --color-gold-dark: #e0aa1f; /* Ouro mais claro */
+            --color-gold-dark: #e0aa1f;
             --color-gold-accent: #DAA520;
-            --color-bg-primary: #111827;   /* bg-gray-900 */
-            --color-bg-secondary: #1f2937; /* bg-gray-800 */
-            --color-bg-muted: #374151;     /* bg-gray-700 */
-            --color-bg-accent-light: #422c01; /* bg-gold-light (dark) */
-            --color-bg-accent-dark: #423001;  /* time-badge bg (dark) */
-            --color-text-primary: #f9fafb;   /* text-gray-100 */
-            --color-text-secondary: #d1d5db; /* text-gray-300 */
-            --color-text-accent: #e0aa1f;    /* text-gold-dark (dark) */
-            --color-text-accent-muted: #fde047; /* time-badge text (dark) */
-            --color-border: #4b5563;       /* border-gray-600 */
+            --color-bg-primary: #1f2937;   /* Cinza Escuro */
+            --color-bg-secondary: #374151; /* Cinza Médio */
+            --color-bg-muted: #4b5563;     
+            --color-bg-accent-light: #422c01;
+            --color-bg-accent-dark: #423001;
+            --color-text-primary: #f9fafb; /* Texto Claro */
+            --color-text-secondary: #d1d5db;
+            --color-text-accent: #e0aa1f;
+            --color-text-accent-muted: #fde047;
+            --color-border: #4b5563;
         }
 
-        /* (O resto do seu <style> ... ) */
-        .text-gold {
-            color: var(--color-text-accent);
-        }
-        .bg-gold {
-            background-color: var(--color-gold-accent);
-        }
-        .bg-gold-light {
-            background-color: var(--color-bg-accent-light);
-        }
-        .border-gold {
-            border-color: var(--color-gold-light);
-        }
-        .hover\:text-gold:hover {
-            color: var(--color-text-accent);
-        }
-        .hover\:bg-gold-light:hover {
-            background-color: var(--color-bg-accent-light);
-            opacity: 0.9;
+        /* --- TEMA 3: DEEP DARK --- */
+        [data-theme="deep-dark"] {
+            --color-gold-light: #FFD700;
+            --color-gold-dark: #e0aa1f;
+            --color-gold-accent: #DAA520;
+            --color-bg-primary: #0a0e14;   /* Quase Preto */
+            --color-bg-secondary: #1f2937; /* Cinza Escuro */
+            --color-bg-muted: #374151;
+            --color-bg-accent-light: #422c01;
+            --color-bg-accent-dark: #423001;
+            --color-text-primary: #f9fafb;
+            --color-text-secondary: #d1d5db;
+            --color-text-accent: #e0aa1f;
+            --color-text-accent-muted: #fde047;
+            --color-border: #4b5563;
         }
 
+        /* ================================================= */
+        /* === 2. ESTILOS BASE === */
+        /* ================================================= */
+        
+        body { 
+            height: 100%; 
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column; 
+            background-color: var(--color-bg-primary); 
+            color: var(--color-text-primary);
+        } 
+        
+        /* Mapeamento */
+        .bg-white, .bg-gray-800 { background-color: var(--color-bg-secondary); }
+        .bg-gray-100, .bg-gray-900 { background-color: var(--color-bg-primary); }
+        .bg-gray-50, .bg-gray-700\/50, .bg-gray-700\/30 { background-color: var(--color-bg-muted); }
+        .bg-gold-light { background-color: var(--color-bg-accent-light); }
+        
+        .border-gray-200, .border-gray-700 { border-color: var(--color-border); }
+        .border-gray-300, .border-gray-600 { border-color: var(--color-border); }
+        
+        .text-gray-900, .text-gray-800 { color: var(--color-text-primary); }
+        .text-gray-600, .text-gray-700 { color: var(--color-text-secondary); }
+        .text-gray-500 { color: var(--color-text-secondary); }
+        
+        /* --- CORREÇÃO MENU MOBILE --- */
+        .mobile-nav-link { 
+            color: var(--color-text-primary);
+            transition: color 0.2s ease;
+        }
+        .mobile-nav-link:hover {
+            color: var(--color-text-accent);
+        }
+
+        /* Utilitários */
         .time-badge {
             background-color: var(--color-bg-accent-dark);
             color: var(--color-text-accent-muted);
@@ -71,659 +123,386 @@
             font-size: 0.75rem;
             font-weight: 600;
         }
-        
-        .appointment-card:hover {
-            border-left-color: var(--color-gold-dark);
-            background-color: var(--color-bg-muted);
-        }
 
-        /* --- ESTILOS PARA BRILHO (Mantidos) --- */
+        /* Scrollbar */
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background-color: var(--color-border); border-radius: 20px; }
+        .custom-scroll:hover::-webkit-scrollbar-thumb { background-color: var(--color-gold-accent); }
+        
+        .text-gold { color: var(--color-text-accent); }
+        .bg-gold { background-color: var(--color-gold-accent); }
+        .border-gold { border-color: var(--color-gold-light); }
+        
         .text-gradient-gold {
-            background: linear-gradient(
-                90deg,
-                #B8860B, #FFD700, #DAA520, #FFD700, #B8860B
-            );
+            background: linear-gradient(90deg, #B8860B, #FFD700, #DAA520, #FFD700, #B8860B);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            text-fill-color: transparent;
             background-size: 200% auto;
             animation: text-shine 4s linear infinite;
         }
-        @keyframes text-shine {
-            from { background-position: 200% center; }
-            to { background-position: 0% center; }
-        }
-        .bg-shine-gold {
-            position: relative;
-            overflow: hidden;
-        }
+        @keyframes text-shine { from { background-position: 200% center; } to { background-position: 0% center; } }
+        
+        .bg-shine-gold { position: relative; overflow: hidden; }
         .bg-shine-gold::after {
-            content: '';
-            position: absolute;
-            top: -10%; left: -75%;
-            width: 50%; height: 120%;
-            background: linear-gradient(
-                90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.4) 50%, rgba(255, 255, 255, 0) 100%
-            );
-            transform: skewX(-25deg);
-            animation: bg-shine 5s infinite linear;
+            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: bg-shine 4s infinite linear;
         }
-        @keyframes bg-shine {
-            0% { left: -75%; }
-            100% { left: 125%; }
-        }
-        /* --- FIM DOS ESTILOS --- */
+        @keyframes bg-shine { 0% { left: -100%; } 100% { left: 200%; } }
+        
+        .appointment-card { transition: all 0.2s ease; border-left: 3px solid transparent; }
+        .appointment-card:hover { border-left-color: var(--color-gold-dark); background-color: var(--color-bg-muted); }
 
-        /* Animação */
-        .animate-fade-in {
-            animation: fadeIn 0.5s ease-in;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .appointment-card {
-            transition: all 0.3s ease;
-            border-left: 4px solid transparent;
-        }
+        .compact-card { display: flex; flex-direction: column; height: 100%; }
+        .compact-header { flex-shrink: 0; }
+        .compact-body { flex-grow: 1; overflow-y: auto; }
     </style>
 </head>
-<body class="min-h-screen font-sans antialiased bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+<body class="flex flex-col h-full">
     
     <% if (locals.originalAdminSession) { %>
-      <div class="fixed top-0 left-0 right-0 z-[60] bg-yellow-400 text-yellow-900 text-center p-3 shadow-lg">
-        <i class="fas fa-user-secret"></i>
-        <strong>Aviso:</strong> Você está personificando esta organização.
-        <a href="/master/stop-impersonation" class="font-bold underline hover:text-yellow-700 ml-2">
-          Voltar para SuperAdmin
-        </a>
+      <div class="bg-yellow-400 text-yellow-900 text-center text-xs py-1 font-bold z-[60]">
+        <i class="fas fa-user-secret"></i> Personificando Organização
+        <a href="/master/stop-impersonation" class="underline ml-2">Sair</a>
       </div>
     <% } %>
-    <header class="bg-white dark:bg-gray-800 sticky top-0 z-50 shadow-sm border-b border-gray-100 dark:border-gray-700 <% if (locals.originalAdminSession) { %> mt-12 <% } %>">
-        <div class="max-w-7xl mx-auto px-4 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                    <h1 class="flex items-center text-gray-800 dark:text-gray-200">
-                        <p> Agenda Pro</p>
-                    </h1>
-                    <div class="h-6 w-px bg-gray-200 dark:bg-gray-600 hidden sm:block"></div>
-                </div>
 
-                <nav class="hidden lg:flex items-center space-x-6">
-                    <a href="/dashboard" class="text-gradient-gold font-semibold">
-                        <i class="fas fa-home mr-2"></i>Dashboard
-                    </a>
-                    <a href="/agendamentos-por-dia" class="text-gray-600 dark:text-gray-300 hover:text-gold transition-colors">
-                        <i class="fas fa-calendar-alt mr-2"></i>Agendamentos
-                    </a>
-                    <a href="/clients" class="text-gray-600 dark:text-gray-300 hover:text-gold transition-colors">
-                        <i class="fas fa-users mr-2"></i>Clientes
-                    </a>
-                    <a href="/admin/servicos" class="text-gray-600 dark:text-gray-300 hover:text-gold transition-colors">
-                        <i class="fas fa-cut mr-2"></i>Serviços
-                    </a>
-                    <a href="/admin/equipe" class="text-gray-600 dark:text-gray-300 hover:text-gold transition-colors">
-                        <i class="fas fa-users-cog mr-2"></i>Equipe
-                    </a>
-                    <a href="/financeiro" class="text-gray-600 dark:text-gray-300 hover:text-gold transition-colors">
-                        <i class="fas fa-dollar-sign mr-2"></i>Financeiro
-                    </a>
-                    <a href="/balanco" class="text-gray-600 dark:text-gray-300 hover:text-gold transition-colors">
-                        <i class="fas fa-balance-scale mr-2"></i>Balanço
-                    </a>
-                    <a href="/expenses" class="text-gray-600 dark:text-gray-300 hover:text-gold transition-colors">
-                        <i class="fas fa-receipt mr-2"></i>Despesas
-                    </a>
-                    <a href="/logout" class="text-red-600 hover:text-red-700 transition-colors">
-                        <i class="fas fa-sign-out-alt mr-2"></i>Sair
-                    </a>
-                    
-                    <button id="theme-toggle-btn" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-300">
-                        <i id="theme-icon-sun" class="fas fa-sun"></i> <i id="theme-icon-moon" class="fas fa-moon hidden"></i> </button>
-                </nav>
+    <header class="bg-white shadow-sm border-b border-gray-200 shrink-0 h-16 flex items-center z-50">
+        <div class="w-full max-w-full px-4 flex items-center justify-between">
+            <div class="flex items-center shrink-0 mr-4">
+                <h1 class="flex items-center text-gray-800 text-lg font-bold">
+                   Agenda Pro
+                </h1>
+                <div class="h-6 w-px bg-gray-200 hidden sm:block ml-4"></div>
+            </div>
 
-                <button id="menu-button" class="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                    <i class="fas fa-bars text-gradient-gold"></i>
+            <nav class="hidden xl:flex items-center space-x-4 text-sm whitespace-nowrap overflow-x-auto custom-scroll pb-1 lg:pb-0">
+                <a href="/dashboard" class="text-gradient-gold font-semibold">
+                    <i class="fas fa-home mr-1"></i>Dash
+                </a>
+                <a href="/agendamentos-por-dia" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-calendar-alt mr-1"></i>Agenda
+                </a>
+                <a href="/clients" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-users mr-1"></i>Clientes
+                </a>
+                <a href="/admin/servicos" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-cut mr-1"></i>Serviços
+                </a>
+                <a href="/admin/equipe" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-users-cog mr-1"></i>Equipe
+                </a>
+                <a href="/financeiro" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-dollar-sign mr-1"></i>Financeiro
+                </a>
+                <a href="/balanco" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-balance-scale mr-1"></i>Balanço
+                </a>
+                <a href="/expenses" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-receipt mr-1"></i>Despesas
+                </a>
+                
+                <div class="h-4 w-px bg-gray-300 mx-2"></div>
+
+                <button id="theme-toggle-btn" class="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600">
+                    <i id="theme-icon-sun" class="fas fa-sun"></i> <i id="theme-icon-moon" class="fas fa-moon hidden"></i> 
                 </button>
-            </div>
+                
+                <a href="/logout" class="text-red-600 hover:text-red-700 transition-colors font-semibold">
+                    <i class="fas fa-sign-out-alt mr-1"></i>Sair
+                </a>
+            </nav>
 
-            <div id="mobile-menu" class="hidden lg:hidden mt-4 space-y-2 border-t dark:border-gray-700 pt-4">
-                <a href="/dashboard" class="flex items-center space-x-3 p-3 rounded-lg bg-gold-light text-gold font-semibold">
-                    <i class="fas fa-home w-5 text-center"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="/agendamentos-por-dia" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gold">
-                    <i class="fas fa-calendar-alt w-5 text-center"></i>
-                    <span>Agendamentos</span>
-                </a>
-                <a href="/clients" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gold">
-                    <i class="fas fa-users w-5 text-center"></i>
-                    <span>Clientes</span>
-                </a>
-                 <a href="/admin/servicos" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gold">
-                    <i class="fas fa-cut w-5 text-center"></i>
-                    <span>Serviços</span>
-                </a>
-                 <a href="/admin/equipe" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gold">
-                    <i class="fas fa-users-cog w-5 text-center"></i>
-                    <span>Equipe</span>
-                </a>
-                <a href="/financeiro" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gold">
-                    <i class="fas fa-dollar-sign w-5 text-center"></i>
-                    <span>Financeiro</span>
-                </a>
-                <a href="/balanco" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gold">
-                    <i class="fas fa-balance-scale w-5 text-center"></i>
-                    <span>Balanço</span>
-                </a>
-                <a href="/expenses" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gold">
-                    <i class="fas fa-receipt w-5 text-center"></i>
-                    <span>Despesas</span>
-                </a>
-                <a href="/logout" class="flex items-center space-x-3 p-3 rounded-lg text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20">
-                    <i class="fas fa-sign-out-alt w-5 text-center"></i>
-                    <span>Sair</span>
-                </a>
-                <div class="border-t dark:border-gray-700 pt-4">
-                     <button id="theme-toggle-btn-mobile" class="w-full flex items-center space-x-3 p-3 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gold">
-                        <i id="theme-icon-sun-mobile" class="fas fa-sun w-5 text-center"></i>
-                        <i id="theme-icon-moon-mobile" class="fas fa-moon w-5 text-center hidden"></i>
-                        <span>Alternar Tema</span>
-                    </button>
-                </div>
-            </div>
+            <button id="menu-button" class="xl:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                <i class="fas fa-bars text-gold"></i>
+            </button>
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
-        <section class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden animate-fade-in">
-            <div class="bg-gold p-3 bg-shine-gold">
-                <div class="flex items-center justify-between">
+    <div id="mobile-menu" class="hidden fixed inset-0 z-50 flex flex-col p-6 space-y-4 overflow-y-auto xl:hidden" style="background-color: var(--color-bg-primary);">
+        <div class="flex justify-end">
+            <button id="close-menu" class="text-2xl" style="color: var(--color-text-primary);">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="flex flex-col space-y-3 text-center">
+            <a href="/dashboard" class="mobile-nav-link text-lg font-bold py-2 border-b border-gray-700" style="color: var(--color-text-accent);">Dashboard</a>
+            <a href="/agendamentos-por-dia" class="mobile-nav-link text-lg py-2">Agendamentos</a>
+            <a href="/clients" class="mobile-nav-link text-lg py-2">Clientes</a>
+            <a href="/admin/servicos" class="mobile-nav-link text-lg py-2">Serviços</a>
+            <a href="/admin/equipe" class="mobile-nav-link text-lg py-2">Equipe</a>
+            <a href="/financeiro" class="mobile-nav-link text-lg py-2">Financeiro</a>
+            <a href="/balanco" class="mobile-nav-link text-lg py-2">Balanço</a>
+            <a href="/expenses" class="mobile-nav-link text-lg py-2">Despesas</a>
+            
+            <button id="theme-toggle-btn-mobile" class="w-full flex items-center justify-center space-x-3 p-3 rounded-lg mobile-nav-link hover:bg-gray-700 hover:text-gold border border-gray-500 mt-4">
+                <i id="theme-icon-sun-mobile" class="fas fa-sun w-5 text-center"></i>
+                <i id="theme-icon-moon-mobile" class="fas fa-moon w-5 text-center hidden"></i>
+                <span>Alternar Tema</span>
+            </button>
+
+            <a href="/logout" class="text-red-500 text-lg py-2 font-bold mt-4">Sair do Sistema</a>
+        </div>
+    </div>
+
+    <main class="flex-1 p-3 overflow-hidden flex flex-col gap-3 max-w-full mx-auto w-full">
+        
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 shrink-0">
+            <div class="bg-gold bg-shine-gold rounded-lg p-3 text-white flex flex-col justify-center shadow-sm">
+                <div class="flex justify-between items-start">
                     <div>
-                        <h1 class="text-2xl font-bold text-white">
-                            Bem-vindo(a) ao <%= (typeof org !== 'undefined') ? org.name : 'seu Painel' %>!
-                            <span>👋</span>
-                        </h1>
-                        <p class="text-gray-100 mt-2">
-                            <i class="fas fa-calendar mr-2"></i>
-                            <%= new Date().toLocaleDateString('pt-BR', {
-                                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-                            }) %>
-                        </p>
+                        <h2 class="text-md font-bold leading-tight">Olá, <%= (typeof org !== 'undefined') ? org.name : 'Admin' %>!</h2>
+                        <p class="text-xs opacity-90 mt-1"><%= new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' }) %></p>
                     </div>
-                     <div class="hidden md:block">
-                        <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                            <i class="fas fa-crown text-2xl text-white"></i>
+                    <i class="fas fa-crown opacity-30 text-2xl"></i>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-gray-500 font-semibold uppercase">Receita Hoje</p>
+                    <p class="text-lg font-bold text-emerald-600">R$ <%= (receitaHoje || 0).toFixed(2).replace('.', ',') %></p>
+                </div>
+                <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600"><i class="fas fa-coins"></i></div>
+            </div>
+
+            <div class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm flex items-center justify-between hidden md:flex">
+                <div>
+                    <p class="text-xs text-gray-500 font-semibold uppercase">Semana</p>
+                    <p class="text-lg font-bold text-yellow-600">R$ <%= (receitaSemana || 0).toFixed(2).replace('.', ',') %></p>
+                </div>
+                <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-600"><i class="fas fa-chart-line"></i></div>
+            </div>
+
+            <div class="bg-white rounded-lg p-3 border border-gray-200 shadow-sm flex items-center justify-between hidden md:flex">
+                <div>
+                    <p class="text-xs text-gray-500 font-semibold uppercase">Mês Atual</p>
+                    <p class="text-lg font-bold text-blue-600">R$ <%= (receitaMes || 0).toFixed(2).replace('.', ',') %></p>
+                </div>
+                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600"><i class="fas fa-calendar"></i></div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 min-h-0">
+            
+            <div class="lg:col-span-2 flex flex-col gap-3 overflow-y-auto custom-scroll">
+                <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-3">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase mb-3 text-center">Ações</h3>
+                    <div class="grid grid-cols-2 lg:grid-cols-1 gap-2">
+                        <a href="/agendamentos-por-dia" class="flex flex-col items-center p-2 rounded-md bg-gray-50 hover:bg-gold-light hover:text-gold-dark transition text-xs font-medium text-center">
+                            <i class="fas fa-plus-circle text-gold text-lg mb-1"></i> Novo Agend.
+                        </a>
+                        <a href="/clients" class="flex flex-col items-center p-2 rounded-md bg-gray-50 hover:bg-gold-light hover:text-gold-dark transition text-xs font-medium text-center">
+                            <i class="fas fa-user-plus text-blue-500 text-lg mb-1"></i> Novo Cliente
+                        </a>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-3 flex-1">
+                    <h3 class="text-xs font-bold text-gray-500 uppercase mb-2 text-center">Status</h3>
+                    <div class="flex flex-col items-center justify-center h-full">
+                        <div class="flex items-center space-x-2 text-xs text-green-600 mb-2">
+                            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                            <span>Sistema Online</span>
                         </div>
+                         <div class="text-xs text-gray-400 text-center">Atualizado<br>Agora mesmo</div>
                     </div>
                 </div>
             </div>
-        </section>
 
-        <section class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden animate-fade-in">
-             <div class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 p-4">
-                <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center">
-                    <i class="fas fa-bolt mr-3 text-gray-600 dark:text-gray-400"></i>
-                    Ações Rápidas
-                </h3>
-            </div>
-            <div class="p-4">
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <a href="/agendamentos-por-dia" class="flex flex-col items-center p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gold-light dark:hover:bg-gray-700 hover:shadow-md transition-all">
-                        <i class="fas fa-calendar-plus text-gradient-gold text-2xl mb-2"></i>
-                        <span class="text-sm font-semibold text-center text-gray-700 dark:text-gray-300">Novo Agendamento</span>
-                    </a>
-                    <a href="/clients" class="flex flex-col items-center p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gold-light dark:hover:bg-gray-700 hover:shadow-md transition-all">
-                        <i class="fas fa-user-plus text-gradient-gold text-2xl mb-2"></i>
-                        <span class="text-sm font-semibold text-center text-gray-700 dark:text-gray-300">Novo Cliente</span>
-                    </a>
-                    <a href="/financeiro" class="flex flex-col items-center p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gold-light dark:hover:bg-gray-700 hover:shadow-md transition-all">
-                        <i class="fas fa-dollar-sign text-green-600 text-2xl mb-2"></i>
-                        <span class="text-sm font-semibold text-center text-gray-700 dark:text-gray-300">Financeiro</span>
-                    </a>
-                     <a href="/balanco" class="flex flex-col items-center p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gold-light dark:hover:bg-gray-700 hover:shadow-md transition-all">
-                        <i class="fas fa-chart-bar text-blue-600 text-2xl mb-2"></i>
-                        <span class="text-sm font-semibold text-center text-gray-700 dark:text-gray-300">Relatórios</span>
-                    </a>
+            <div class="lg:col-span-5 bg-white rounded-lg border border-gray-200 shadow-sm compact-card">
+                <div class="compact-header p-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                    <h3 class="font-bold text-gray-800 text-sm flex items-center">
+                        <i class="fas fa-calendar-day text-gold mr-2"></i>Hoje
+                    </h3>
+                    <% if (proximosHoje && proximosHoje.length > 0) { %>
+                        <span class="text-xs font-bold bg-gold text-white px-2 py-0.5 rounded-full"><%= proximosHoje.length %></span>
+                    <% } %>
                 </div>
-            </div>
-        </section>
-
-         <section class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden animate-fade-in">
-                <div class="bg-gold p-6 bg-shine-gold">
-                    <div class="flex items-center justify-between">
-                        <h2 class="text-xl font-bold text-white flex items-center">
-                            <i class="fas fa-clock mr-3"></i>
-                            Agendamentos Hoje
-                        </h2>
-                        <% if (proximosHoje && proximosHoje.length > 0) { %>
-                        <span class="bg-white bg-opacity-20 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                            <%= proximosHoje.length %>
-                        </span>
-                        <% } %>
-                    </div>
-                </div>
-                <div class="p-6">
+                
+                <div class="compact-body p-2 custom-scroll space-y-2">
                     <% if (!proximosHoje || proximosHoje.length === 0) { %>
-                     <div class="text-center py-8">
-                        <div class="w-20 h-20 mx-auto mb-4 bg-gold-light rounded-full flex items-center justify-center">
-                            <i class="fas fa-calendar-check text-3xl text-gold"></i>
+                        <div class="h-full flex flex-col items-center justify-center text-gray-400 py-10">
+                            <i class="fas fa-check-circle text-3xl mb-2 opacity-50 text-green-400"></i>
+                            <p class="text-sm">Agenda livre hoje!</p>
                         </div>
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Nenhum agendamento hoje</h3>
-                        <p class="text-gray-600 dark:text-gray-400 mb-4">Aproveite para organizar ou descansar!</p>
-                        <a href="/agendamentos-por-dia" class="inline-flex items-center px-4 py-2 bg-gold text-white rounded-lg hover:opacity-90 transition-opacity bg-shine-gold">
-                            <i class="fas fa-plus mr-2"></i>
-                            Criar Agendamento
-                        </a>
-                    </div>
                     <% } else { %>
-                    <div class="space-y-4">
-                        <% proximosHoje.forEach((item, index) => { %>
-                         <div class="appointment-card bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-                            <div class="flex items-center justify-between">
-                                <div class="flex-1">
-                                    <div class="flex items-center space-x-3 mb-2">
-                                        <div class="w-10 h-10 bg-gold-light rounded-full flex items-center justify-center">
-                                            <i class="fas fa-user text-gold text-sm"></i>
-                                        </div>
-                                        <div>
-                                            <h4 class="font-semibold text-gray-900 dark:text-gray-100">
-                                                <a href="/client/<%= item.clientId %>" class="text-gradient-gold hover:opacity-80 transition-opacity">
-                                                    <%= item.name %>
-                                                </a>
-                                            </h4>
-                                            <div class="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-                                                <span class="time-badge"> <i class="fas fa-clock mr-1"></i>
-                                                    <%= item.time %>
-                                                </span>
-                                                <span>•</span>
-                                                <span><%= item.service %></span>
-                                            </div>
+                        <% proximosHoje.forEach((item) => { %>
+                            <div class="appointment-card bg-gray-50 p-2 rounded border border-gray-100 flex justify-between items-center group relative overflow-hidden">
+                                <div class="w-1 bg-gold absolute left-0 top-0 bottom-0"></div>
+                                <div class="flex items-center gap-3 pl-2 overflow-hidden w-full">
+                                    <div class="flex flex-col items-center justify-center min-w-[50px] border-r border-gray-200 pr-2">
+                                        <span class="font-bold text-gray-800 text-sm"><%= item.time %></span>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="font-semibold text-sm truncate text-gray-800"><a href="/client/<%= item.clientId %>" class="hover:text-gold"><%= item.name %></a></div>
+                                        <div class="text-xs text-gray-500 truncate flex items-center">
+                                            <i class="fas fa-cut text-[10px] mr-1"></i> <%= item.service %>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <a href="/client/<%= item.clientId %>" class="p-2 text-gradient-gold hover:bg-gold-light rounded-lg transition-colors">
+                                    <a href="/client/<%= item.clientId %>" class="text-gray-400 hover:text-gold p-2 transition-colors">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <div class="w-2 h-2 bg-gold rounded-full"></div>
                                 </div>
                             </div>
-                        </div>
                         <% }); %>
-                    </div>
-                     <div class="mt-6 text-center">
-                        <a href="/agendamentos-por-dia" class="inline-flex items-center px-4 py-2 bg-gold-light text-gold-dark dark:text-gold-dark rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-800/30 transition-colors">
-                            <i class="fas fa-calendar-alt mr-2"></i>
-                            Ver Todos os Agendamentos
-                        </a>
-                    </div>
                     <% } %>
                 </div>
             </div>
 
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden animate-fade-in">
-                 <div class="bg-gray-700 dark:bg-gray-700 p-6">
-                    <div class="flex items-center justify-between">
-                        <h2 class="text-xl font-bold text-white flex items-center">
-                            <i class="fas fa-calendar-day mr-3"></i>
-                            Agendamentos Amanhã
-                        </h2>
-                        <% if (proximosAmanha && proximosAmanha.length > 0) { %>
-                        <span class="bg-gray-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
-                            <%= proximosAmanha.length %>
-                        </span>
-                        <% } %>
-                    </div>
+            <div class="lg:col-span-5 bg-white rounded-lg border border-gray-200 shadow-sm compact-card">
+                <div class="compact-header p-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                    <h3 class="font-bold text-gray-800 text-sm flex items-center">
+                        <i class="fas fa-sun text-gray-400 mr-2"></i>Amanhã
+                    </h3>
+                    <% if (proximosAmanha && proximosAmanha.length > 0) { %>
+                        <span class="text-xs font-bold bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full"><%= proximosAmanha.length %></span>
+                    <% } %>
                 </div>
-                <div class="p-6">
-                     <% if (!proximosAmanha || proximosAmanha.length === 0) { %>
-                     <div class="text-center py-8">
-                        <div class="w-20 h-20 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                            <i class="fas fa-calendar-times text-3xl text-gray-400 dark:text-gray-500"></i>
+
+                <div class="compact-body p-2 custom-scroll space-y-2">
+                    <% if (!proximosAmanha || proximosAmanha.length === 0) { %>
+                        <div class="h-full flex flex-col items-center justify-center text-gray-400 py-10">
+                            <i class="far fa-calendar text-3xl mb-2 opacity-50"></i>
+                            <p class="text-sm">Nada agendado.</p>
                         </div>
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Nenhum agendamento amanhã</h3>
-                        <p class="text-gray-600 dark:text-gray-400 mb-4">Que tal agendar alguns clientes?</p>
-                        <a href="/agendamentos-por-dia" class="inline-flex items-center px-4 py-2 bg-gray-700 dark:bg-gray-600 text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-500 transition-opacity">
-                            <i class="fas fa-plus mr-2"></i>
-                            Criar Agendamento
-                        </a>
-                    </div>
                     <% } else { %>
-                    <div class="space-y-4">
-                        <% proximosAmanha.forEach((item, index) => { %>
-                        <div class="appointment-card bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
-                            <div class="flex items-center justify-between">
-                                <div class="flex-1">
-                                    <div class="flex items-center space-x-3 mb-2">
-                                        <div class="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                                            <i class="fas fa-user text-gray-500 text-sm"></i>
-                                        </div>
-                                        <div>
-                                            <h4 class="font-semibold text-gray-900 dark:text-gray-100">
-                                                <a href="/client/<%= item.clientId %>" class="text-gray-700 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors">
-                                                    <%= item.name %>
-                                                </a>
-                                            </h4>
-                                            <div class="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-                                                <span class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-full text-xs font-medium">
-                                                    <i class="fas fa-clock mr-1"></i>
-                                                    <%= item.time %>
-                                                </span>
-                                                <span>•</span>
-                                                <span><%= item.service %></span>
-                                            </div>
-                                        </div>
+                        <% proximosAmanha.forEach((item) => { %>
+                            <div class="appointment-card bg-gray-50 p-2 rounded border border-gray-100 flex justify-between items-center group opacity-80 hover:opacity-100">
+                                <div class="flex items-center gap-3 pl-1 overflow-hidden w-full">
+                                     <div class="flex flex-col items-center justify-center min-w-[50px] border-r border-gray-200 pr-2">
+                                        <span class="font-bold text-gray-600 text-sm"><%= item.time %></span>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="font-semibold text-sm truncate text-gray-700"><a href="/client/<%= item.clientId %>"><%= item.name %></a></div>
+                                        <div class="text-xs text-gray-500 truncate"><%= item.service %></div>
                                     </div>
                                 </div>
-                                <div class="flex items-center space-x-2">
-                                    <a href="/client/<%= item.clientId %>" class="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <div class="w-2 h-2 bg-gray-500 rounded-full"></div>
-                                </div>
                             </div>
-                        </div>
                         <% }); %>
-                    </div>
-                     <div class="mt-6 text-center">
-                        <a href="/agendamentos-por-dia" class="inline-flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                            <i class="fas fa-calendar-alt mr-2"></i>
-                            Ver Todos os Agendamentos
-                        </a>
-                    </div>
                     <% } %>
                 </div>
             </div>
-        </section>
 
-        <section class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden animate-fade-in">
-             <div class="bg-emerald-600 p-6">
-                <h2 class="text-xl font-bold text-white flex items-center">
-                    <i class="fas fa-chart-line mr-3"></i>
-                    Receita Total
-                </h2>
-            </div>
-            <div class="p-6">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                         <div class="flex items-center justify-between mb-4">
-                            <div class="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/50 rounded-full flex items-center justify-center">
-                                <i class="fas fa-calendar-day text-emerald-600 dark:text-emerald-400"></i>
-                            </div>
-                            <span class="text-sm font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/50 px-3 py-1 rounded-full">Hoje</span>
-                        </div>
-                        <div class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">R$ <%= (receitaHoje || 0).toFixed(2).replace('.', ',') %></div>
-                        <div class="text-sm text-gray-600 dark:text-gray-400 flex items-center"><i class="fas fa-clock mr-1"></i> Atualizado agora</div>
-                    </div>
-                     <div class="p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                         <div class="flex items-center justify-between mb-4">
-                            <div class="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/50 rounded-full flex items-center justify-center">
-                                <i class="fas fa-calendar-week text-yellow-600 dark:text-yellow-400"></i>
-                            </div>
-                            <span class="text-sm font-medium text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-900/50 px-3 py-1 rounded-full">Semana</span>
-                        </div>
-                        <div class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">R$ <%= (receitaSemana || 0).toFixed(2).replace('.', ',') %></div>
-                        <div class="text-sm text-gray-600 dark:text-gray-400 flex items-center"><i class="fas fa-trending-up mr-1"></i> Últimos 7 dias</div>
-                    </div>
-                     <div class="p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                         <div class="flex items-center justify-between mb-4">
-                            <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center">
-                                <i class="fas fa-calendar-alt text-blue-600 dark:text-blue-400"></i>
-                            </div>
-                            <span class="text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/50 px-3 py-1 rounded-full">Mês</span>
-                        </div>
-                        <div class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">R$ <%= (receitaMes || 0).toFixed(2).replace('.', ',') %></div>
-                        <div class="text-sm text-gray-600 dark:text-gray-400 flex items-center"><i class="fas fa-chart-bar mr-1"></i> <%= new Date().toLocaleDateString('pt-BR', { month: 'long' }) %></div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-         <section class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden animate-fade-in">
-             <div class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 p-6">
-                <h3 class="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center">
-                    <i class="fas fa-heartbeat mr-3 text-gray-600 dark:text-gray-400"></i>
-                    Status do Sistema
-                </h3>
-            </div>
-            <div class="p-6">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                     <div class="flex items-center space-x-3 p-4 bg-green-50 dark:bg-green-900/50 rounded-xl">
-                        <div class="w-3 h-3 bg-green-500 rounded-full"></div>
-                        <div>
-                            <div class="font-semibold text-green-800 dark:text-green-300">Sistema Online</div>
-                            <div class="text-sm text-green-600 dark:text-green-400">Funcionando perfeitamente</div>
-                        </div>
-                    </div>
-                     <div class="flex items-center space-x-3 p-4 bg-blue-50 dark:bg-blue-900/50 rounded-xl">
-                        <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
-                        <div>
-                            <div class="font-semibold text-blue-800 dark:text-blue-300">Última Atualização</div>
-                            <div class="text-sm text-blue-600 dark:text-blue-400">Agora mesmo</div>
-                        </div>
-                    </div>
-                     <div class="flex items-center space-x-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-                        <div class="w-3 h-3 bg-gray-500 rounded-full"></div>
-                        <div>
-                            <div class="font-semibold text-gray-800 dark:text-gray-300">Versão</div>
-                            <div class="text-sm text-gray-600 dark:text-gray-400">AgendaPro v1.0</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-             <div id="dashboard-data"
-                class="hidden"
-                data-hoje='<%- JSON.stringify(proximosHoje || []) %>'
-                data-amanha='<%- JSON.stringify(proximosAmanha || []) %>'
-                data-pending='<%- JSON.stringify(pendingAppointments || []) %>'>
-            </div>
-        </section>
+        </div>
+        
+        <div id="dashboard-data" class="hidden"
+            data-hoje='<%- JSON.stringify(proximosHoje || []) %>'
+            data-amanha='<%- JSON.stringify(proximosAmanha || []) %>'
+            data-pending='<%- JSON.stringify(pendingAppointments || []) %>'>
+        </div>
     </main>
 
     <script>
-        // Script do Menu Mobile
+        // =================================================
+        // === LÓGICA JAVASCRIPT PARA CICLO DE TEMA ===
+        // =================================================
+
+        const THEMES = ["light", "medium-dark", "deep-dark"];
+        const htmlEl = document.documentElement;
+
+        function getNextTheme(currentTheme) {
+            const currentIndex = THEMES.indexOf(currentTheme);
+            const nextIndex = (currentIndex + 1) % THEMES.length;
+            return THEMES[nextIndex];
+        }
+
+        function updateIcons(theme) {
+            const sunDesktop = document.getElementById('theme-icon-sun');
+            const moonDesktop = document.getElementById('theme-icon-moon');
+            const sunMobile = document.getElementById('theme-icon-sun-mobile'); 
+            const moonMobile = document.getElementById('theme-icon-moon-mobile'); 
+            
+            const isLight = theme === 'light';
+
+            if (sunDesktop) sunDesktop.classList.toggle('hidden', !isLight);
+            if (moonDesktop) moonDesktop.classList.toggle('hidden', isLight);
+            
+            if (sunMobile) sunMobile.classList.toggle('hidden', !isLight);
+            if (moonMobile) moonMobile.classList.toggle('hidden', isLight);
+        }
+
+        function toggleTheme() {
+            const currentTheme = htmlEl.getAttribute('data-theme') || 'light';
+            const newTheme = getNextTheme(currentTheme);
+
+            htmlEl.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateIcons(newTheme);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+             const initialTheme = htmlEl.getAttribute('data-theme') || 'light';
+             updateIcons(initialTheme);
+             
+             const toggleButtonDesktop = document.getElementById('theme-toggle-btn');
+             const toggleButtonMobile = document.getElementById('theme-toggle-btn-mobile'); 
+
+             if (toggleButtonDesktop) {
+                 toggleButtonDesktop.addEventListener('click', toggleTheme);
+             }
+             if (toggleButtonMobile) { 
+                 toggleButtonMobile.addEventListener('click', toggleTheme);
+             }
+        });
+        // FIM DA LÓGICA DE TEMA ============================
+
+        // Toggle Menu Mobile
         const menuButton = document.getElementById('menu-button');
         const mobileMenu = document.getElementById('mobile-menu');
-        if (menuButton && mobileMenu) {
-            menuButton.addEventListener('click', () => { mobileMenu.classList.toggle('hidden'); });
+        const closeMenu = document.getElementById('close-menu');
+        if(menuButton && mobileMenu && closeMenu) {
+            menuButton.addEventListener('click', () => mobileMenu.classList.remove('hidden'));
+            closeMenu.addEventListener('click', () => mobileMenu.classList.add('hidden'));
         }
 
-        // --- NOVO: Script de Controle do Tema ---
-        function setupThemeToggle() {
-            const toggleButton = document.getElementById('theme-toggle-btn');
-            const toggleButtonMobile = document.getElementById('theme-toggle-btn-mobile');
-            
-            const sunIcon = document.getElementById('theme-icon-sun');
-            const moonIcon = document.getElementById('theme-icon-moon');
-            const sunIconMobile = document.getElementById('theme-icon-sun-mobile');
-            const moonIconMobile = document.getElementById('theme-icon-moon-mobile');
+        // Logica de Alertas Pendentes
+        document.addEventListener('DOMContentLoaded', function() {
+            const dataEl = document.getElementById('dashboard-data');
+            if(!dataEl) return;
 
-            // Função para atualizar os ícones
-            function updateIcons(isDarkMode) {
-                if (isDarkMode) {
-                    if (sunIcon) sunIcon.classList.add('hidden');
-                    if (moonIcon) moonIcon.classList.remove('hidden');
-                    if (sunIconMobile) sunIconMobile.classList.add('hidden');
-                    if (moonIconMobile) moonIconMobile.classList.remove('hidden');
-                } else {
-                    if (sunIcon) sunIcon.classList.remove('hidden');
-                    if (moonIcon) moonIcon.classList.add('hidden');
-                    if (sunIconMobile) sunIconMobile.classList.remove('hidden');
-                    if (moonIconMobile) moonIconMobile.classList.add('hidden');
+            try {
+                const pending = JSON.parse(dataEl.dataset.pending || '[]');
+                if (pending.length > 0) {
+                    let html = '<div class="text-left text-sm max-h-60 overflow-y-auto space-y-2 p-1">';
+                    pending.forEach(appt => {
+                        const date = new Date(appt.date).toLocaleString('pt-BR', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+                        const cName = appt.Client ? appt.Client.name : 'Cliente';
+                        const sName = (appt.AppointmentServices && appt.AppointmentServices[0]?.name) || (appt.AppointmentProducts && appt.AppointmentProducts[0]?.name) || 'Serviço';
+                        const pId = appt.id;
+                        
+                        html += `
+                        <div class="bg-gray-100 p-3 rounded flex flex-col gap-2 border border-gray-200">
+                            <div><strong class="text-gold-dark">${cName}</strong> <span class="text-gray-500 text-xs">(${sName})</span></div>
+                            <div class="text-xs text-gray-600"><i class="far fa-clock"></i> ${date}</div>
+                            <div class="flex gap-2 mt-1">
+                                <form action="/admin/appointment/${pId}/confirm" method="POST" class="flex-1"><button class="w-full bg-green-100 text-green-700 py-1 rounded text-xs hover:bg-green-200 font-bold">Confirmar</button></form>
+                                <form action="/admin/appointment/${pId}/cancel-by-admin" method="POST" class="flex-1" onsubmit="return promptReason(this)"><button class="w-full bg-red-100 text-red-700 py-1 rounded text-xs hover:bg-red-200 font-bold">Cancelar</button></form>
+                            </div>
+                        </div>`;
+                    });
+                    html += '</div>';
+                    
+                    Swal.fire({
+                        title: `<span class="text-lg">🔔 ${pending.length} Pendente(s)</span>`,
+                        html: html,
+                        showConfirmButton: false,
+                        showCloseButton: true,
+                        width: '400px',
+                        customClass: { popup: 'bg-white dark:bg-gray-800' }
+                    });
                 }
-            }
+            } catch(e) { console.error(e); }
+        });
 
-            // Função para alternar o tema
-            function toggleTheme() {
-                const isDarkMode = document.documentElement.classList.toggle('dark');
-                localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-                updateIcons(isDarkMode);
-            }
-
-            // Adiciona eventos de clique
-            if (toggleButton) {
-                toggleButton.addEventListener('click', toggleTheme);
-            }
-            if (toggleButtonMobile) {
-                toggleButtonMobile.addEventListener('click', toggleTheme);
-            }
-
-            // Define o estado inicial dos ícones na carga da página
-            const currentIsDark = document.documentElement.classList.contains('dark');
-            updateIcons(currentIsDark);
-        }
-        // --- FIM Script de Tema ---
-
-
-        // Função helper para o formulário de cancelamento
-        function promptCancelReason(form) {
-            // ... (código original mantido)
-            const reason = prompt("Por favor, insira o motivo do cancelamento (será visível para o cliente):");
-            if (reason === null) return false;
-            if (reason.trim() === "") {
-                alert("O motivo do cancelamento é obrigatório.");
-                return false;
-            }
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'cancellationReason';
-            input.value = reason.trim();
-            form.appendChild(input);
+        function promptReason(form) {
+            const r = prompt("Motivo do cancelamento:");
+            if(!r || r.trim() === "") return false;
+            const i = document.createElement('input'); i.type='hidden'; i.name='cancellationReason'; i.value=r; form.appendChild(i);
             return true;
         }
-
-        // Script de Animação e Alertas
-        document.addEventListener('DOMContentLoaded', function() {
-            // Configura o botão de tema
-            setupThemeToggle();
-
-            // Animação (código original)
-            const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -50px 0px' };
-            const observer = new IntersectionObserver(function(entries) {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.style.opacity = '1';
-                        entry.target.style.transform = 'translateY(0)';
-                    }
-                });
-            }, observerOptions);
-            document.querySelectorAll('.animate-fade-in').forEach(el => {
-                el.style.opacity = '0'; el.style.transform = 'translateY(20px)';
-                el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-                observer.observe(el);
-            });
-        
-            // Alerta Próximos Agendamentos (código original)
-            try {
-                const dataElementHojeAmanha = document.getElementById('dashboard-data');
-                if (dataElementHojeAmanha) {
-                    const proximosHoje = JSON.parse(dataElementHojeAmanha.dataset.hoje || '[]');
-                    const proximosAmanha = JSON.parse(dataElementHojeAmanha.dataset.amanha || '[]');
-                    let alertHTML = '';
-
-                    // ... (resto da lógica original para montar o HTML de hoje/amanhã) ...
-                    if (proximosHoje.length > 0) {
-                        alertHTML += '<h3 style="font-weight: bold; font-size: 1.1em; color: var(--color-text-accent); margin-top: 10px; margin-bottom: 5px; text-align: left;">Hoje:</h3>';
-                        alertHTML += '<ul style="list-style-type: none; padding-left: 0; text-align: left; margin-top: 5px; max-height: 150px; overflow-y: auto; color: var(--color-text-secondary);">';
-                        proximosHoje.forEach(appt => {
-                            alertHTML += `<li style="margin-bottom: 8px; border-bottom: 1px solid var(--color-border); padding-bottom: 8px; font-size: 0.9em;"><strong>${appt.time}</strong> - ${appt.name} (${appt.service})</li>`;
-                        });
-                        alertHTML += '</ul>';
-                    }
-                    if (proximosAmanha.length > 0) {
-                        alertHTML += '<h3 style="font-weight: bold; font-size: 1.1em; color: var(--color-text-secondary); margin-top: 15px; margin-bottom: 5px; text-align: left;">Amanhã:</h3>';
-                        alertHTML += '<ul style="list-style-type: none; padding-left: 0; text-align: left; margin-top: 5px; max-height: 150px; overflow-y: auto; color: var(--color-text-secondary);">';
-                        proximosAmanha.forEach(appt => {
-                            alertHTML += `<li style="margin-bottom: 8px; border-bottom: 1px solid var(--color-border); padding-bottom: 8px; font-size: 0.9em;"><strong>${appt.time}</strong> - ${appt.name} (${appt.service})</li>`;
-                        });
-                        alertHTML += '</ul>';
-                    }
-
-                    if (alertHTML) {
-                        Swal.fire({
-                            iconHtml: '<i class="fas fa-bell text-gold"></i>', // 'text-gold' usará a variável CSS
-                            title: 'Próximos Agendamentos',
-                            html: alertHTML,
-                            confirmButtonText: 'Entendido!',
-                            confirmButtonColor: 'var(--color-gold-dark)',
-                            background: 'var(--color-bg-secondary)', // Usa variável
-                            color: 'var(--color-text-primary)', // Usa variável
-                            customClass: { popup: 'swal-popup-agenda' }
-                        });
-                    }
-                } else {
-                    console.warn("Elemento #dashboard-data não encontrado para alerta de próximos agendamentos.");
-                }
-            } catch (e) {
-                console.error("Erro ao processar dados do dashboard para SweetAlert (Hoje/Amanhã):", e);
-            }
-
-            // Alerta AGENDAMENTOS PENDENTES (Debugs removidos, código original mantido)
-            try {
-                const dataElementPending = document.getElementById('dashboard-data'); 
-                
-                if (dataElementPending) {
-                    const pendingDataString = dataElementPending.dataset.pending;
-                    
-                    if (pendingDataString && pendingDataString !== 'undefined') {
-                        const pendingList = JSON.parse(pendingDataString || '[]');
-                        
-                        if (pendingList.length > 0) {
-                            let alertHTML = '<div style="text-align: left; max-height: 400px; overflow-y: auto; padding-right: 15px;">';
-                            
-                            pendingList.forEach(appt => {
-                                const dateObj = new Date(appt.date);
-                                const date = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                                const time = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                                
-                                // --- MUDANÇA AQUI: Corrigido para padrão Sequelize ---
-                                // appt.clientId.name -> appt.Client.name
-                                const clientName = appt.Client ? appt.Client.name : 'Cliente';
-                                // appt.staffId.name -> appt.Staff.name
-                                const staffName = appt.Staff ? appt.Staff.name : 'Qualquer Profissional';
-                                // appt.services -> appt.AppointmentServices (e checa produtos)
-                                const serviceName = (appt.AppointmentServices && appt.AppointmentServices[0]?.name) || 
-                                                    (appt.AppointmentProducts && appt.AppointmentProducts[0]?.name) || 
-                                                    'Serviço';
-                                // appt._id -> appt.id
-                                const appointmentId = appt.id; 
-                                // --- FIM DA MUDANÇA ---
-
-                                alertHTML += `
-                                    <div style="padding: 12px; border: 1px solid var(--color-border); background: var(--color-bg-accent-light); border-radius: 8px; margin-bottom: 12px;">
-                                        <div style="font-weight: bold; font-size: 1.1em; color: var(--color-text-accent);"><i class="fas fa-user"></i> ${clientName}</div>
-                                        <div style="font-size: 0.95em; color: var(--color-text-secondary); margin-top: 5px;"><i class="fas fa-concierge-bell"></i> ${serviceName}<br><i class="fas fa-user-tie"></i> ${staffName}<br><i class="fas fa-calendar-alt"></i> ${date} às ${time}</div>
-                                        <div style="margin-top: 10px; display: flex; justify-content: flex-end; gap: 8px;">
-                                            <form action="/admin/appointment/${appointmentId}/cancel-by-admin" method="POST" onsubmit="return promptCancelReason(this)" style="margin:0;"><button type="submit" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; padding: 5px 10px; font-size: 0.8em; font-weight: 600; border-radius: 5px; cursor: pointer;"><i class="fas fa-times"></i> Cancelar</button></form>
-                                            <form action="/admin/appointment/${appointmentId}/confirm" method="POST" style="margin:0;"><button type="submit" style="background: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; padding: 5px 10px; font-size: 0.8em; font-weight: 600; border-radius: 5px; cursor: pointer;"><i class="fas fa-check"></i> Confirmar</button></form>
-                                            </div>
-                                    </div>`;
-                            });
-                            alertHTML += '</div>';
-
-                            Swal.fire({
-                                iconHtml: '<i class="fas fa-bell fa-beat" style="color: #F59E0B; font-size: 2.5em;"></i>',
-                                title: `Você tem ${pendingList.length} Agendamento${pendingList.length > 1 ? 's' : ''} Pendente${pendingList.length > 1 ? 's' : ''}!`,
-                                html: alertHTML,
-                                showCloseButton: true,
-                                showConfirmButton: false,
-                                width: '500px',
-                                background: 'var(--color-bg-secondary)', // Usa variável
-                                color: 'var(--color-text-primary)', // Usa variável
-                            });
-                        }
-                    }
-                } else {
-                    console.error("Elemento #dashboard-data não encontrado para dados pendentes!"); 
-                }
-            } catch (e) {
-                console.error("Erro CRÍTICO ao processar agendamentos pendentes para SweetAlert:", e); 
-            }
-        });
     </script>
 </body>
 </html>

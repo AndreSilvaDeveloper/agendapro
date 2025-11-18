@@ -1,42 +1,109 @@
 <!DOCTYPE html>
-<html lang="pt-BR" class="<%= (org.settings && org.settings.theme === 'dark') ? 'dark' : '' %>">
+<html lang="pt-BR" class="h-full" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <title><%= org && org.name ? org.name : 'Salão' %> – Agendamento Online</title>
+    <title><%= (org && org.name) ? org.name : 'Salão' %> – Agendamento Online</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <script>
+        (function() {
+            // Se a organização tiver um tema forçado nas configurações, podemos usá-lo aqui.
+            // Caso contrário, usa a preferência do usuário ou sistema.
+            // Exemplo simples usando localStorage e sistema:
+            const THEMES = ["light", "medium-dark", "deep-dark"];
+            const savedTheme = localStorage.getItem('theme');
+            let initialTheme = 'light';
+
+            // Verifica se a organização força um tema (injatado pelo EJS)
+            const orgTheme = "<%= (org.settings && org.settings.theme) ? org.settings.theme : '' %>";
+            
+            if (orgTheme === 'dark') {
+                 initialTheme = 'deep-dark'; // Mapeia 'dark' legado para 'deep-dark'
+            } else if (savedTheme && THEMES.includes(savedTheme)) {
+                initialTheme = savedTheme;
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                initialTheme = 'deep-dark';
+            }
+            document.documentElement.setAttribute('data-theme', initialTheme);
+        })();
+    </script>
+
     <style>
-        :root {
+        /* ================================================= */
+        /* === 1. DEFINIÇÃO DAS CORES PARA TRÊS TEMAS === */
+        /* ================================================= */
+
+        /* --- TEMA 1: LIGHT --- */
+        :root, [data-theme="light"] {
             --color-gold-light: #FFD700;
             --color-gold-dark: #B8860B;
             --color-gold-accent: #DAA520;
-        }
-        
-        /* * MUDANÇA: Tema Light vira o padrão
-         * O 'dark-mode' do Tailwind será ativado pela classe 'dark' no <html>
-         */
-        body {
-            background-color: #f3f4f6; /* bg-gray-100 (light mode) */
-        }
-        
-        /* * MUDANÇA: O background escuro só se aplica quando
-         * a classe 'dark' está no <html> E o body tem esta classe
-         */
-        .dark body.bg-dark-image {
-            background-image: url('/images/background-login.png'); 
-            background-size: cover;       
-            background-position: center;  
-            background-repeat: no-repeat; 
-            background-attachment: fixed; 
+            --color-bg-primary: #f3f4f6;
+            --color-bg-secondary: #ffffff;
+            --color-bg-muted: #f9fafb;     
+            --color-bg-accent-light: #FFFBEB;
+            --color-text-primary: #1f2937;
+            --color-text-secondary: #4b5563;
+            --color-text-accent: #B8860B;
+            --color-border: #e5e7eb;
         }
 
-        .text-gold-dark { color: var(--color-gold-dark); }
-        .text-gold-accent { color: var(--color-gold-accent); }
+        /* --- TEMA 2: MEDIUM DARK --- */
+        [data-theme="medium-dark"] {
+            --color-gold-light: #FFD700;
+            --color-gold-dark: #e0aa1f;
+            --color-gold-accent: #DAA520;
+            --color-bg-primary: #1f2937;
+            --color-bg-secondary: #374151;
+            --color-bg-muted: #4b5563;     
+            --color-bg-accent-light: #422c01;
+            --color-text-primary: #f9fafb;
+            --color-text-secondary: #d1d5db;
+            --color-text-accent: #e0aa1f;
+            --color-border: #4b5563;
+        }
+
+        /* --- TEMA 3: DEEP DARK --- */
+        [data-theme="deep-dark"] {
+            --color-gold-light: #FFD700;
+            --color-gold-dark: #e0aa1f;
+            --color-gold-accent: #DAA520;
+            --color-bg-primary: #0a0e14;
+            --color-bg-secondary: #1f2937;
+            --color-bg-muted: #374151;
+            --color-bg-accent-light: #422c01;
+            --color-text-primary: #f9fafb;
+            --color-text-secondary: #d1d5db;
+            --color-text-accent: #e0aa1f;
+            --color-border: #4b5563;
+        }
+
+        /* ================================================= */
+        /* === 2. ESTILOS BASE (Mapeamento) === */
+        /* ================================================= */
+        
+        body { 
+            /* Landing page rola normalmente */
+            min-height: 100vh;
+            background-color: var(--color-bg-primary); 
+            color: var(--color-text-primary);
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        } 
+        
+        /* Mapeamento */
+        .bg-white, .bg-gray-50 { background-color: var(--color-bg-secondary); }
+        /* .bg-gray-100 { background-color: var(--color-bg-primary); } */ /* Removido para não afetar cards */
         .bg-gold { background-color: var(--color-gold-accent); }
-        .border-gold { border-color: var(--color-gold-accent); }
-        .ring-gold-dark { --tw-ring-color: var(--color-gold-dark); }
 
+        .border-gray-200, .border-gray-300 { border-color: var(--color-border); }
+        
+        .text-gray-900, .text-gray-800 { color: var(--color-text-primary); }
+        .text-gray-600, .text-gray-700, .text-gray-500 { color: var(--color-text-secondary); }
+        .text-gold-accent, .text-gold-dark { color: var(--color-text-accent); }
+        
+        /* Hero Background */
         .hero-bg-default {
             background: linear-gradient(135deg, var(--color-gold-dark) 0%, var(--color-gold-accent) 100%);
         }
@@ -44,88 +111,126 @@
              background-size: cover;
              background-position: center;
         }
+        
+        /* Card Styles */
+        .info-card {
+            background-color: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .info-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Service Card Specifics */
+        .service-card {
+            background-color: var(--color-bg-muted); /* Diferencia do fundo do cartão principal */
+            border: 1px solid var(--color-border);
+        }
+
+        /* Avatar Placeholder */
+        .avatar-placeholder {
+            background-color: var(--color-bg-muted);
+            color: var(--color-text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Botão de Tema Flutuante */
+        .theme-float {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 50;
+            background-color: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            color: var(--color-text-secondary);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .theme-float:hover { color: var(--color-text-accent); }
+
     </style>
 </head>
-<body class="<%= (org.settings && org.settings.theme === 'dark') ? 'bg-dark-image' : '' %>">
+<body>
+
     <% 
-      // Proteções: garantem que não quebre se o controller não passar os arrays
       const _services = Array.isArray(services) ? services : [];
       const _staff    = Array.isArray(staff)    ? staff    : [];
       const orgIdSafe = (org && (org.id || org._id)) ? (org.id || org._id) : '';
-
-      // --- MUDANÇA AQUI ---
-      // Pega as configurações. Se 'org.settings' for null, usa os
-      // padrões (defaults) que definimos no modelo.
-      // O default é 'light' e 'true' para as seções.
-      const _settings = org.settings || {
-        theme: 'light',
-        showAddress: true,
-        showOperatingHours: true,
-        showGallery: true 
-      };
+      const _settings = org.settings || { theme: 'light', showAddress: true, showOperatingHours: true, showGallery: true };
     %>
 
-    <header class="text-white p-12 sm:py-10 rounded-b-3xl shadow-xl
-                   <% if (org && org.coverImageUrl) { %>
-                       hero-bg-image
-                   <% } else { %>
-                       hero-bg-default
-                   <% } %>"
+    <button id="theme-toggle-btn" class="theme-float p-3 rounded-full transition-colors" title="Alternar Tema">
+        <i id="theme-icon-sun" class="fas fa-sun"></i> 
+        <i id="theme-icon-moon" class="fas fa-moon hidden"></i> 
+    </button>
+
+    <header class="text-white p-12 sm:py-16 rounded-b-[3rem] shadow-xl mb-12 relative
+                   <% if (org && org.coverImageUrl) { %> hero-bg-image <% } else { %> hero-bg-default <% } %>"
             <% if (org && org.coverImageUrl) { %>
-                style="background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('<%= org.coverImageUrl %>');"
+                style="background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('<%= org.coverImageUrl %>');"
             <% } %> >
-        <div class="max-w-4xl mx-auto">
-            <h1 class="text-4xl sm:text-6xl font-bold break-words">
+        
+        <div class="max-w-4xl mx-auto text-center">
+            <h1 class="text-4xl sm:text-6xl font-extrabold break-words tracking-tight text-white drop-shadow-md">
                 <%= org && org.name ? org.name : 'Seu Salão' %>
             </h1>
             
             <% if (org && org.address && _settings.showAddress) { %>
-                <p class="text-lg sm:text-xl dark:text-yellow-100 text-gray-100 mt-2">
-                    <i class="fas fa-map-marker-alt fa-fw mr-1"></i>
+                <p class="text-lg sm:text-xl text-yellow-100 mt-4 font-medium flex items-center justify-center gap-2 drop-shadow-sm">
+                    <i class="fas fa-map-marker-alt"></i>
                     <%= org.address %>
                 </p>
             <% } %>
         </div>
     </header>
 
-    <main class="max-w-4xl mx-auto p-4 sm:p-8 -mt-10 sm:-mt-16">
+    <main class="max-w-5xl mx-auto p-4 sm:p-6 -mt-20 sm:-mt-24 relative z-10 space-y-8">
 
-        <div class="dark:bg-black/30 dark:backdrop-blur-lg bg-white rounded-2xl shadow-2xl p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="info-card rounded-2xl shadow-2xl p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <a href="/portal/<%= orgIdSafe %>/registro"
-               class="w-full bg-gold text-white text-center py-4 px-6 rounded-xl font-bold text-lg hover:opacity-90 transition-all shadow-lg flex items-center justify-center">
+               class="w-full bg-gold text-white text-center py-4 px-6 rounded-xl font-bold text-lg hover:opacity-90 transition-all shadow-lg flex items-center justify-center transform hover:scale-[1.02]">
                 <i class="fas fa-calendar-plus mr-3"></i>
                 <span>Agendar Horário</span>
             </a>
             <a href="/portal/<%= orgIdSafe %>/login"
-               class="w-full bg-white text-gold-dark border-2 border-gold text-center py-4 px-6 rounded-xl font-bold text-lg hover:bg-gray-50 transition-all shadow-lg flex items-center justify-center">
+               class="w-full bg-transparent text-gold-dark border-2 border-gold text-center py-4 px-6 rounded-xl font-bold text-lg hover:bg-gold-light transition-all shadow-lg flex items-center justify-center transform hover:scale-[1.02]">
                 <i class="fas fa-sign-in-alt mr-3"></i>
                 <span>Já tenho conta</span>
             </a>
         </div>
 
-        <div class="mt-8 dark:bg-black/30 dark:backdrop-blur-lg bg-white rounded-2xl shadow-xl p-6">
-            <h2 class="text-2xl font-bold dark:text-white text-gray-900 mb-6">Informações</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div class="info-card rounded-2xl shadow-xl p-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                <i class="fas fa-info-circle mr-3 text-gold-accent"></i> Informações
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
 
                 <% if (org && org.address && _settings.showAddress) { %>
                 <div class="flex items-start space-x-4">
-                    <i class="fas fa-map-marker-alt fa-2x text-gold-accent mt-1"></i>
+                    <div class="w-10 h-10 rounded-full bg-gold-light flex items-center justify-center shrink-0">
+                        <i class="fas fa-map-marker-alt text-gold-dark"></i>
+                    </div>
                     <div>
-                        <h3 class="font-semibold dark:text-gray-100 text-gray-800">Endereço</h3>
-                        <p class="dark:text-gray-200 text-gray-600"><%= org.address %></p>
+                        <h3 class="font-semibold text-gray-800 text-lg">Endereço</h3>
+                        <p class="text-gray-600 mt-1 leading-relaxed"><%= org.address %></p>
                     </div>
                 </div>
                 <% } %>
 
                 <% if (org && org.whatsapp) { %>
                 <div class="flex items-start space-x-4">
-                    <i class="fab fa-whatsapp fa-2x text-green-500 mt-1"></i>
+                    <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                        <i class="fab fa-whatsapp text-green-600"></i>
+                    </div>
                     <div>
-                        <h3 class="font-semibold dark:text-gray-100 text-gray-800">WhatsApp</h3>
-                        <p class="dark:text-gray-200 text-gray-600"><%= org.whatsapp %></p>
+                        <h3 class="font-semibold text-gray-800 text-lg">WhatsApp</h3>
+                        <p class="text-gray-600 mt-1"><%= org.whatsapp %></p>
                         <a href="https://wa.me/<%= String(org.whatsapp).replace(/\D/g, '') %>" target="_blank"
-                           class="text-sm text-blue-400 hover:underline">
-                           Enviar mensagem
+                           class="inline-flex items-center mt-2 text-sm font-medium text-green-600 hover:text-green-700">
+                           Enviar mensagem <i class="fas fa-external-link-alt ml-1 text-xs"></i>
                         </a>
                     </div>
                 </div>
@@ -133,20 +238,24 @@
 
                 <% if (org && org.phone) { %>
                 <div class="flex items-start space-x-4">
-                    <i class="fas fa-phone fa-2x text-gold-accent mt-1"></i>
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                        <i class="fas fa-phone text-blue-600"></i>
+                    </div>
                     <div>
-                        <h3 class="font-semibold dark:text-gray-100 text-gray-800">Telefone Fixo</h3>
-                        <p class="dark:text-gray-200 text-gray-600"><%= org.phone %></p>
+                        <h3 class="font-semibold text-gray-800 text-lg">Telefone</h3>
+                        <p class="text-gray-600 mt-1"><%= org.phone %></p>
                     </div>
                 </div>
                 <% } %>
 
                 <% if (org && org.operatingHours && _settings.showOperatingHours) { %>
                 <div class="flex items-start space-x-4">
-                    <i class="fas fa-clock fa-2x text-gold-accent mt-1"></i>
+                    <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
+                        <i class="fas fa-clock text-purple-600"></i>
+                    </div>
                     <div>
-                        <h3 class="font-semibold dark:text-gray-100 text-gray-800">Horário</h3>
-                        <p class="dark:text-gray-200 text-gray-600 whitespace-pre-line"><%= org.operatingHours %></p>
+                        <h3 class="font-semibold text-gray-800 text-lg">Horário de Atendimento</h3>
+                        <p class="text-gray-600 mt-1 whitespace-pre-line leading-relaxed"><%= org.operatingHours %></p>
                     </div>
                 </div>
                 <% } %>
@@ -154,22 +263,33 @@
             </div>
         </div>
 
-        <div class="mt-8 dark:bg-black/30 dark:backdrop-blur-lg bg-white rounded-2xl shadow-xl p-6">
-            <h2 class="text-2xl font-bold dark:text-white text-gray-900 mb-6">Nossos Serviços</h2>
+        <div class="info-card rounded-2xl shadow-xl p-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+                <i class="fas fa-cut mr-3 text-gold-accent"></i> Nossos Serviços
+            </h2>
 
             <% if (!Array.isArray(_services) || _services.length === 0) { %>
-                <p class="dark:text-gray-200 text-gray-600">O salão ainda não cadastrou seus serviços.</p>
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-stream text-4xl mb-3 opacity-30"></i>
+                    <p>O salão ainda não cadastrou seus serviços.</p>
+                </div>
             <% } else { %>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <% _services.forEach(service => { %>
-                        <div class="dark:bg-black/70 dark:backdrop-blur-md dark:border-gray-600 bg-gray-50 border-gray-200 p-5 rounded-xl border shadow-sm">
-                            <h3 class="text-xl font-semibold text-gold-accent"><%= service.name %></h3>
-                             <p class="text-lg font-bold dark:text-white text-gray-900 mt-1"> 
+                        <div class="service-card p-5 rounded-xl transition-all hover:border-gold-accent">
+                            <div class="flex justify-between items-start mb-2">
+                                <h3 class="text-lg font-bold text-gray-900"><%= service.name %></h3>
+                                <span class="bg-gold-light text-gold-dark text-xs font-bold px-2 py-1 rounded-full">
+                                    <%= service.duration %> min
+                                </span>
+                            </div>
+                            <p class="text-xl font-extrabold text-gold-accent"> 
                                 R$ <%= Number(service.price || 0).toFixed(2).replace('.', ',') %>
                             </p>
-                            <p class="text-sm dark:text-gray-100 text-gray-700"><%= service.duration %> minutos</p> 
                             <% if (service.description) { %>
-                                <p class="dark:text-gray-100 text-gray-700 text-sm mt-3"><%= service.description %></p> 
+                                <p class="text-gray-600 text-sm mt-3 leading-relaxed border-t border-gray-200 pt-3 opacity-80">
+                                    <%= service.description %>
+                                </p> 
                             <% } %>
                         </div>
                     <% }); %>
@@ -178,19 +298,24 @@
         </div>
 
         <% if (Array.isArray(_staff) && _staff.length > 0) { %>
-        <div class="mt-8 dark:bg-black/30 dark:backdrop-blur-lg bg-white rounded-2xl shadow-xl p-6">
-            <h2 class="text-2xl font-bold dark:text-white text-gray-900 mb-6">Nossa Equipe</h2>
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+        <div class="info-card rounded-2xl shadow-xl p-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-8 flex items-center">
+                <i class="fas fa-users mr-3 text-gold-accent"></i> Nossa Equipe
+            </h2>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-8">
                 <% _staff.forEach(member => { %>
-                    <div class="text-center">
-                        <div class="w-24 h-24 mx-auto rounded-full dark:bg-black/20 dark:border-gray-600 bg-gray-200 border-gray-300 flex items-center justify-center overflow-hidden border">
+                    <div class="flex flex-col items-center group">
+                        <div class="w-24 h-24 rounded-full border-4 border-gray-100 shadow-sm flex items-center justify-center overflow-hidden mb-3 transition-transform group-hover:scale-105 avatar-placeholder">
                             <% if (member.imageUrl) { %>
                                 <img src="<%= member.imageUrl %>" alt="<%= member.name %>" class="w-full h-full object-cover">
                             <% } else { %>
-                                <i class="fas fa-user fa-3x dark:text-gray-400 text-gray-500"></i>
+                                <i class="fas fa-user fa-3x opacity-50"></i>
                             <% } %>
                         </div>
-                        <h4 class="mt-3 font-semibold dark:text-gray-100 text-gray-800"><%= member.name %></h4>
+                        <h4 class="font-bold text-gray-800 text-center leading-tight"><%= member.name %></h4>
+                        <% if (member.role) { %>
+                            <span class="text-xs text-gray-500 mt-1"><%= member.role %></span>
+                        <% } %>
                     </div>
                 <% }); %>
             </div>
@@ -199,15 +324,64 @@
 
     </main>
 
-    <footer class="text-center py-10">
-        <p class="text-sm dark:text-gray-200 text-gray-600">
-            <i class="fas fa-crown mr-1.5 text-gold-accent"></i>
-            <%= org && org.name ? org.name : 'Seu Salão' %> © <%= new Date().getFullYear() %>
-        </p> 
-        <p class="text-xs dark:text-gray-300 text-gray-500 mt-4">
-            <a href="/login" class="hover:underline">Acesso do Administrador</a>
-        </p>
+    <footer class="text-center py-12 bg-gray-50 mt-12 border-t border-gray-200">
+        <div class="max-w-4xl mx-auto px-4">
+            <p class="text-sm text-gray-600">
+                <i class="fas fa-crown mr-1.5 text-gold-accent"></i>
+                <%= org && org.name ? org.name : 'Seu Salão' %> © <%= new Date().getFullYear() %>
+            </p> 
+            <p class="text-xs text-gray-400 mt-4">
+                Desenvolvido com AgendaPro • <a href="/login" class="hover:text-gold-dark transition-colors">Acesso do Administrador</a>
+            </p>
+        </div>
     </footer>
+
+    <script>
+        // =================================================
+        // === LÓGICA DE TEMA (IGUAL AO RESTANTE) ===
+        // =================================================
+        const THEMES = ["light", "medium-dark", "deep-dark"];
+        const htmlEl = document.documentElement;
+
+        function getNextTheme(currentTheme) {
+            const currentIndex = THEMES.indexOf(currentTheme);
+            const nextIndex = (currentIndex + 1) % THEMES.length;
+            return THEMES[nextIndex];
+        }
+
+        function updateIcons(theme) {
+            const sun = document.getElementById('theme-icon-sun');
+            const moon = document.getElementById('theme-icon-moon');
+            if (!sun || !moon) return;
+
+            const isLight = theme === 'light';
+            if (isLight) {
+                sun.classList.remove('hidden');
+                moon.classList.add('hidden');
+            } else {
+                sun.classList.add('hidden');
+                moon.classList.remove('hidden');
+            }
+        }
+
+        function toggleTheme() {
+            const currentTheme = htmlEl.getAttribute('data-theme') || 'light';
+            const newTheme = getNextTheme(currentTheme);
+
+            htmlEl.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateIcons(newTheme);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializa ícones com base no tema já carregado no head
+            const initialTheme = htmlEl.getAttribute('data-theme') || 'light';
+            updateIcons(initialTheme);
+            
+            const toggleButton = document.getElementById('theme-toggle-btn');
+            if (toggleButton) toggleButton.addEventListener('click', toggleTheme);
+        });
+    </script>
 
 </body>
 </html>

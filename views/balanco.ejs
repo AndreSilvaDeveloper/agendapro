@@ -1,471 +1,408 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="h-full" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <title>Balanço Geral <%= (typeof org !== 'undefined') ? org.name : 'AgendaPro' %></title>    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Balanço Geral <%= (typeof org !== 'undefined') ? org.name : 'AgendaPro' %></title>    
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        (function() {
+            const THEMES = ["light", "medium-dark", "deep-dark"];
+            const savedTheme = localStorage.getItem('theme');
+            let initialTheme = 'light';
+
+            if (savedTheme && THEMES.includes(savedTheme)) {
+                initialTheme = savedTheme;
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                initialTheme = 'deep-dark';
+            }
+            document.documentElement.setAttribute('data-theme', initialTheme);
+        })();
+    </script>
+
     <style>
-        :root {
+        /* ================================================= */
+        /* === 1. DEFINIÇÃO DAS CORES PARA TRÊS TEMAS === */
+        /* ================================================= */
+
+        /* --- TEMA 1: LIGHT --- */
+        :root, [data-theme="light"] {
             --color-gold-light: #FFD700; 
             --color-gold-dark: #B8860B; 
             --color-gold-accent: #DAA520;
+            --color-bg-primary: #f3f4f6;
+            --color-bg-secondary: #ffffff;
+            --color-bg-muted: #f9fafb;     
+            --color-bg-accent-light: #FFFBEB;
+            --color-bg-accent-dark: #fefce8;
+            --color-text-primary: #1f2937;
+            --color-text-secondary: #4b5563;
+            --color-text-accent: #B8860B;
+            --color-text-accent-muted: #b45309;
+            --color-border: #e5e7eb;
         }
 
-        .text-gold {
-            color: var(--color-gold-dark);
-        }
-        .bg-gold {
-            background-color: var(--color-gold-accent);
-        }
-        .bg-gold-light {
-            background-color: #FFFBEB; 
-        }
-        .border-gold {
-            border-color: var(--color-gold-light);
-        }
-        .hover\:text-gold:hover {
-            color: var(--color-gold-dark);
-        }
-        .hover\:bg-gold-light:hover {
-            background-color: #FFF8DC; 
+        /* --- TEMA 2: MEDIUM DARK --- */
+        [data-theme="medium-dark"] {
+            --color-gold-light: #FFD700;
+            --color-gold-dark: #e0aa1f;
+            --color-gold-accent: #DAA520;
+            --color-bg-primary: #1f2937;
+            --color-bg-secondary: #374151;
+            --color-bg-muted: #4b5563;     
+            --color-bg-accent-light: #422c01;
+            --color-bg-accent-dark: #423001;
+            --color-text-primary: #f9fafb;
+            --color-text-secondary: #d1d5db;
+            --color-text-accent: #e0aa1f;
+            --color-text-accent-muted: #fde047;
+            --color-border: #4b5563;
         }
 
-        .animate-fade-in {
-            animation: fadeIn 0.5s ease-in;
+        /* --- TEMA 3: DEEP DARK --- */
+        [data-theme="deep-dark"] {
+            --color-gold-light: #FFD700;
+            --color-gold-dark: #e0aa1f;
+            --color-gold-accent: #DAA520;
+            --color-bg-primary: #0a0e14;
+            --color-bg-secondary: #1f2937;
+            --color-bg-muted: #374151;
+            --color-bg-accent-light: #422c01;
+            --color-bg-accent-dark: #423001;
+            --color-text-primary: #f9fafb;
+            --color-text-secondary: #d1d5db;
+            --color-text-accent: #e0aa1f;
+            --color-text-accent-muted: #fde047;
+            --color-border: #4b5563;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+
+        /* ================================================= */
+        /* === 2. ESTILOS BASE (Mapeamento) === */
+        /* ================================================= */
         
-        /* --- ESTILOS PARA BRILHO --- */
+        body { 
+            height: 100%; 
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column; 
+            background-color: var(--color-bg-primary); 
+            color: var(--color-text-primary);
+        } 
+        
+        /* Mapeamento de Classes Tailwind */
+        .bg-white, .bg-gray-800 { background-color: var(--color-bg-secondary); }
+        .bg-gray-50, .bg-gray-700\/50, .bg-gray-100 { background-color: var(--color-bg-muted); }
+        .bg-gold-light { background-color: var(--color-bg-accent-light); }
+        
+        .border-gray-200, .border-gray-300, .border-gray-700, .border-gray-100 { border-color: var(--color-border); }
+        
+        .text-gray-900, .text-gray-800 { color: var(--color-text-primary); }
+        .text-gray-700, .text-gray-600, .text-gray-500 { color: var(--color-text-secondary); }
+        .text-gold { color: var(--color-text-accent); }
+        
+        /* Link Mobile */
+        .mobile-nav-link { 
+            color: var(--color-text-primary);
+            transition: color 0.2s ease;
+        }
+
+        /* Utilitários Específicos de Balanço */
+        .card-hover { transition: all 0.2s ease; }
+        .card-hover:hover { transform: translateY(-2px); } /* Sombra removida para dark mode */
+        
+        .chart-container { position: relative; height: 250px; width: 100%; }
+
+        /* Cores Semânticas (Ajustadas para Dark Mode) */
+        .bg-green-50 { background-color: rgba(52, 211, 153, 0.2); }
+        [data-theme^="dark"] .bg-green-50 { background-color: rgba(52, 211, 153, 0.1); }
+        .text-green-700 { color: #15803d; }
+        [data-theme^="dark"] .text-green-700 { color: #4ade80; }
+
+        .bg-red-50 { background-color: rgba(248, 113, 113, 0.2); }
+        [data-theme^="dark"] .bg-red-50 { background-color: rgba(248, 113, 113, 0.1); }
+        .text-red-700 { color: #b91c1c; }
+        [data-theme^="dark"] .text-red-700 { color: #f87171; }
+
+        .bg-blue-50 { background-color: rgba(96, 165, 250, 0.2); }
+        [data-theme^="dark"] .bg-blue-50 { background-color: rgba(96, 165, 250, 0.1); }
+        .text-blue-700 { color: #1d4ed8; }
+        [data-theme^="dark"] .text-blue-700 { color: #60a5fa; }
+
+        /* Scroll */
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background-color: var(--color-border); border-radius: 20px; }
+        .custom-scroll:hover::-webkit-scrollbar-thumb { background-color: var(--color-gold-accent); }
+
+        .compact-body { flex-grow: 1; overflow-y: auto; min-height: 0; }
+
+        /* Efeito Shine */
+        .bg-shine-gold { position: relative; overflow: hidden; background-color: var(--color-gold-accent); }
+        .bg-shine-gold::after {
+            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: bg-shine 5s infinite linear;
+        }
+        @keyframes bg-shine { 0% { left: -100%; } 100% { left: 125%; } }
+        
         .text-gradient-gold {
-            background: linear-gradient(
-                90deg, 
-                #B8860B, #FFD700, #DAA520, #FFD700, #B8860B
-            );
+             background: linear-gradient(90deg, #B8860B, #FFD700, #DAA520, #FFD700, #B8860B);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            text-fill-color: transparent;
             background-size: 200% auto;
             animation: text-shine 4s linear infinite;
         }
+         @keyframes text-shine { from { background-position: 200% center; } to { background-position: 0% center; } }
 
-        @keyframes text-shine {
-            from { background-position: 200% center; }
-            to { background-position: 0% center; }
-        }
-
-        .bg-shine-gold {
-            position: relative;
-            overflow: hidden;
-        }
-        .bg-shine-gold::after {
-            content: '';
-            position: absolute;
-            top: -10%; 
-            left: -75%;
-            width: 50%;
-            height: 120%;
-            background: linear-gradient(
-                90deg, 
-                rgba(255, 255, 255, 0) 0%, 
-                rgba(255, 255, 255, 0.4) 50%,
-                rgba(255, 255, 255, 0) 100%
-            );
-            transform: skewX(-25deg);
-            animation: bg-shine 5s infinite linear;
-        }
-
-        @keyframes bg-shine {
-            0% { left: -75%; }
-            100% { left: 125%; }
-        }
-        /* --- FIM ESTILOS BRILHO --- */
-        
-        .card-hover {
-            transition: all 0.3s ease;
-        }
-        .card-hover:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-        
-        .chart-container {
-            position: relative;
-            height: 300px;
-        }
-
-        /* Cores semânticas mantidas */
-        .positive-trend { background-color: #dcfce7; color: #166534; }
-        .negative-trend { background-color: #fee2e2; color: #991b1b; }
-        .neutral-trend { background-color: #dbeafe; color: #1e40af; }
     </style>
 </head>
-<body class="min-h-screen bg-gray-50 font-sans antialiased">
-    <header class="bg-white sticky top-0 z-50 shadow-sm border-b border-gray-100">
-        <div class="max-w-7xl mx-auto px-4 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                    <div class="flex items-center space-x-4">
-                    <h1 class="flex items-center">
-                        <p> Agenda Pro</p>
-                                        </h1>
-                    <div class="h-6 w-px bg-gray-200 hidden sm:block"></div>
-                  
-                </div>
-                    <span class="text-lg font-semibold text-gray-700 flex items-center">
-                        <i class="fas fa-balance-scale mr-2 text-gold"></i>
-                        Balanço Geral
-                    </span>
-                </div>
+<body class="font-sans antialiased">
+    
+    <header class="bg-white shadow-md border-b border-gray-200 shrink-0 h-16 flex items-center z-50">
+        <div class="w-full max-w-full px-4 flex items-center justify-between">
+            
+            <div class="flex items-center shrink-0 mr-4">
+                <h1 class="flex items-center text-gray-800 text-lg font-bold">
+                   Agenda Pro
+                </h1>
+                <div class="h-6 w-px bg-gray-200 hidden sm:block ml-4"></div>
+                <span class="text-lg font-semibold text-gray-700 flex items-center ml-4">
+                    <i class="fas fa-balance-scale mr-2 text-gold"></i>
+                    Balanço
+                </span>
+            </div>
+
+            <nav class="hidden xl:flex items-center space-x-4 text-sm whitespace-nowrap overflow-x-auto custom-scroll pb-1 lg:pb-0">
+                <a href="/dashboard" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-home mr-1"></i>Dash
+                </a>
+                <a href="/agendamentos-por-dia" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-calendar-alt mr-1"></i>Agenda
+                </a>
+                <a href="/clients" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-users mr-1"></i>Clientes
+                </a>
+                <a href="/admin/servicos" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-cut mr-1"></i>Serviços
+                </a>
+                <a href="/admin/equipe" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-users-cog mr-1"></i>Equipe
+                </a>
+                <a href="/financeiro" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-dollar-sign mr-1"></i>Financeiro
+                </a>
+                <a href="/balanco" class="text-gradient-gold font-semibold">
+                    <i class="fas fa-balance-scale mr-1"></i>Balanço
+                </a>
+                <a href="/expenses" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-receipt mr-1"></i>Despesas
+                </a>
                 
-                <nav class="hidden lg:flex items-center space-x-6">
-                    <a href="/dashboard" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-home mr-2"></i>Dashboard
-                    </a>
-                    <a href="/agendamentos-por-dia" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-calendar-alt mr-2"></i>Agendamentos
-                    </a>
-                    <a href="/clients" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-users mr-2"></i>Clientes
-                    </a>
-                    <a href="/financeiro" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-dollar-sign mr-2"></i>Financeiro
-                    </a>
-                    <a href="/balanco" class="text-gradient-gold font-semibold">
-                        <i class="fas fa-balance-scale mr-2"></i>Balanço
-                    </a>
-                    <a href="/expenses" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-receipt mr-2"></i>Despesas
-                    </a>
-                    <a href="/logout" class="text-red-600 hover:text-red-700 transition-colors">
-                        <i class="fas fa-sign-out-alt mr-2"></i>Sair
-                    </a>
-                </nav>
+                <div class="h-4 w-px bg-gray-300 mx-2"></div>
 
-                <button id="menu-button" class="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                    <i class="fas fa-bars text-gradient-gold"></i>
+                <button id="theme-toggle-btn" class="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600">
+                    <i id="theme-icon-sun" class="fas fa-sun"></i> <i id="theme-icon-moon" class="fas fa-moon hidden"></i> 
                 </button>
-            </div>
+                
+                <a href="/logout" class="text-red-600 hover:text-red-700 transition-colors font-semibold">
+                    <i class="fas fa-sign-out-alt mr-1"></i>Sair
+                </a>
+            </nav>
 
-            <div id="mobile-menu" class="hidden lg:hidden mt-4 space-y-2">
-                 <a href="/dashboard" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-home"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="/agendamentos-por-dia" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>Agendamentos</span>
-                </a>
-                <a href="/clients" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-users"></i>
-                    <span>Clientes</span>
-                </a>
-                <a href="/financeiro" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-dollar-sign"></i>
-                    <span>Financeiro</span>
-                </a>
-                <a href="/balanco" class="flex items-center space-x-3 p-3 rounded-lg bg-gold-light text-gold font-semibold">
-                    <i class="fas fa-balance-scale"></i>
-                    <span>Balanço</span>
-                </a>
-                <a href="/expenses" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-receipt"></i>
-                    <span>Despesas</span>
-                </a>
-                <a href="/logout" class="flex items-center space-x-3 p-3 rounded-lg text-red-600 hover:bg-red-100">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Sair</span>
-                </a>
-            </div>
+            <button id="menu-button" class="xl:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                <i class="fas fa-bars text-gold"></i>
+            </button>
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
-        <section class="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
-            <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover">
-                <div class="bg-green-600 p-6"> <div class="flex items-center justify-between">
-                        <div>
-                            <h2 class="text-lg font-semibold text-white">Total Receitas</h2>
-                            <p class="text-3xl font-bold text-white mt-2">R$ <%= totalReceita.toFixed(2) %></p>
-                        </div>
-                        <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                            <i class="fas fa-arrow-up text-2xl text-white"></i>
-                        </div>
+    <div id="mobile-menu" class="hidden fixed inset-0 z-50 flex flex-col p-6 space-y-4 overflow-y-auto xl:hidden" style="background-color: var(--color-bg-primary);">
+        <div class="flex justify-end">
+            <button id="close-menu" class="text-2xl" style="color: var(--color-text-primary);"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="flex flex-col space-y-3 text-center">
+            <a href="/dashboard" class="mobile-nav-link text-lg py-2 hover:text-gold">Dashboard</a>
+            <a href="/agendamentos-por-dia" class="mobile-nav-link text-lg py-2 hover:text-gold">Agendamentos</a>
+            <a href="/clients" class="mobile-nav-link text-lg py-2 hover:text-gold">Clientes</a>
+            <a href="/admin/servicos" class="mobile-nav-link text-lg py-2 hover:text-gold">Serviços</a>
+            <a href="/admin/equipe" class="mobile-nav-link text-lg py-2 hover:text-gold">Equipe</a>
+            <a href="/financeiro" class="mobile-nav-link text-lg py-2 hover:text-gold">Financeiro</a>
+            <a href="/balanco" class="mobile-nav-link text-gold text-lg font-bold py-2 border-b border-gray-700">Balanço</a>
+            <a href="/expenses" class="mobile-nav-link text-lg py-2 hover:text-gold">Despesas</a>
+            
+            <button id="theme-toggle-btn-mobile" class="w-full flex items-center justify-center space-x-3 p-3 rounded-lg mobile-nav-link hover:bg-gray-700 hover:text-gold border border-gray-500 mt-4">
+                <i id="theme-icon-sun-mobile" class="fas fa-sun w-5 text-center"></i>
+                <i id="theme-icon-moon-mobile" class="fas fa-moon w-5 text-center hidden"></i>
+                <span>Alternar Tema</span>
+            </button>
+
+            <a href="/logout" class="mobile-nav-link text-red-400 text-lg py-2 font-bold mt-4">Sair do Sistema</a>
+        </div>
+    </div>
+
+
+    <main class="flex-1 p-3 overflow-hidden flex flex-col gap-3 max-w-full mx-auto w-full">
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 shrink-0">
+            <div class="bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden flex flex-col card-hover">
+                <div class="bg-green-600 p-3 flex items-center justify-between text-white">
+                    <div>
+                        <h2 class="text-xs font-semibold uppercase opacity-80">Total Receitas</h2>
+                        <p class="text-xl font-bold">R$ <%= totalReceita.toFixed(2) %></p>
                     </div>
+                    <i class="fas fa-arrow-up text-2xl opacity-50"></i>
                 </div>
-                <div class="p-4 bg-green-50">
-                    <div class="flex items-center text-green-700">
-                        <i class="fas fa-chart-line mr-2"></i>
-                        <span class="text-sm font-medium">Entradas financeiras</span>
-                    </div>
+                <div class="p-2 bg-green-50 flex-1 flex items-center">
+                    <span class="text-xs font-medium text-green-700"><i class="fas fa-check-circle mr-1"></i> Entradas consolidadas</span>
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover">
-                <div class="bg-red-600 p-6"> <div class="flex items-center justify-between">
-                        <div>
-                            <h2 class="text-lg font-semibold text-white">Total Despesas</h2>
-                            <p class="text-3xl font-bold text-white mt-2">R$ <%= totalDespesa.toFixed(2) %></p>
-                        </div>
-                        <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                            <i class="fas fa-arrow-down text-2xl text-white"></i>
-                        </div>
+            <div class="bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden flex flex-col card-hover">
+                <div class="bg-red-600 p-3 flex items-center justify-between text-white">
+                    <div>
+                        <h2 class="text-xs font-semibold uppercase opacity-80">Total Despesas</h2>
+                        <p class="text-xl font-bold">R$ <%= totalDespesa.toFixed(2) %></p>
                     </div>
+                    <i class="fas fa-arrow-down text-2xl opacity-50"></i>
                 </div>
-                <div class="p-4 bg-red-50">
-                    <div class="flex items-center text-red-700">
-                        <i class="fas fa-chart-line-down mr-2"></i>
-                        <span class="text-sm font-medium">Saídas financeiras</span>
-                    </div>
+                <div class="p-2 bg-red-50 flex-1 flex items-center">
+                    <span class="text-xs font-medium text-red-700"><i class="fas fa-exclamation-circle mr-1"></i> Saídas registradas</span>
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover">
-                <div class="<%= liquido >= 0 ? 'bg-blue-600' : 'bg-red-600' %> p-6"> <div class="flex items-center justify-between">
-                        <div>
-                            <h2 class="text-lg font-semibold text-white">Saldo Líquido</h2>
-                            <p class="text-3xl font-bold text-white mt-2">R$ <%= liquido.toFixed(2) %></p>
-                        </div>
-                        <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                            <i class="fas fa-<%= liquido >= 0 ? 'balance-scale' : 'exclamation-triangle' %> text-2xl text-white"></i>
-                        </div>
+            <div class="bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden flex flex-col card-hover">
+                <div class="<%= liquido >= 0 ? 'bg-blue-600' : 'bg-red-600' %> p-3 flex items-center justify-between text-white">
+                    <div>
+                        <h2 class="text-xs font-semibold uppercase opacity-80">Saldo Líquido</h2>
+                        <p class="text-xl font-bold">R$ <%= liquido.toFixed(2) %></p>
                     </div>
+                    <i class="fas fa-<%= liquido >= 0 ? 'balance-scale' : 'exclamation-triangle' %> text-2xl opacity-50"></i>
                 </div>
-                <div class="p-4 <%= liquido >= 0 ? 'bg-blue-50' : 'bg-red-50' %>">
-                    <div class="flex items-center <%= liquido >= 0 ? 'text-blue-700' : 'text-red-700' %>">
-                        <i class="fas fa-<%= liquido >= 0 ? 'thumbs-up' : 'thumbs-down' %> mr-2"></i>
-                        <span class="text-sm font-medium">
-                            <%= liquido >= 0 ? 'Resultado positivo' : 'Resultado negativo' %>
-                        </span>
-                    </div>
+                <div class="p-2 <%= liquido >= 0 ? 'bg-blue-50' : 'bg-red-50' %> flex-1 flex items-center">
+                    <span class="text-xs font-medium <%= liquido >= 0 ? 'text-blue-700' : 'text-red-700' %>">
+                        <i class="fas fa-<%= liquido >= 0 ? 'thumbs-up' : 'thumbs-down' %> mr-1"></i>
+                        <%= liquido >= 0 ? 'Resultado positivo' : 'Atenção: Negativo' %>
+                    </span>
                 </div>
             </div>
-        </section>
+        </div>
 
-        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
-                <div class="bg-gold p-6 bg-shine-gold">
-                    <h3 class="text-xl font-bold text-white flex items-center">
-                        <i class="fas fa-chart-pie mr-3"></i>
-                        Receitas vs Despesas
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 min-h-0">
+
+            <div class="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-3 overflow-y-auto custom-scroll">
+                
+                <div class="bg-white rounded-lg shadow-xl border border-gray-200 p-4 flex flex-col">
+                    <h3 class="text-sm font-bold text-gray-700 mb-2 flex items-center">
+                        <i class="fas fa-chart-pie mr-2 text-gold"></i> Receitas vs Despesas
                     </h3>
-                </div>
-                <div class="p-6">
-                    <div class="chart-container">
+                    <div class="chart-container flex-1">
                         <canvas id="chartRevDesp"></canvas>
                     </div>
                 </div>
-            </div>
 
-            <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
-                <div class="bg-gold p-6 bg-shine-gold">
-                    <h3 class="text-xl font-bold text-white flex items-center">
-                        <i class="fas fa-box mr-3"></i>
-                        Vendas por Produto
+                <div class="bg-white rounded-lg shadow-xl border border-gray-200 p-4 flex flex-col">
+                    <h3 class="text-sm font-bold text-gray-700 mb-2 flex items-center">
+                        <i class="fas fa-box mr-2 text-gold"></i> Vendas por Produto
                     </h3>
-                </div>
-                <div class="p-6">
-                    <div class="chart-container">
+                    <div class="chart-container flex-1">
                         <canvas id="chartProd"></canvas>
                     </div>
                     <% if (!productTotals || productTotals.length === 0) { %>
-                    <div class="text-center py-8 text-gray-500">
-                        <i class="fas fa-box-open text-4xl mb-4"></i>
-                        <p>Nenhum produto vendido ainda</p>
-                    </div>
+                        <p class="text-xs text-center text-gray-400 mt-2">Sem dados de produtos.</p>
                     <% } %>
                 </div>
-            </div>
 
-            <div class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
-                 <div class="bg-gold p-6 bg-shine-gold">
-                    <h3 class="text-xl font-bold text-white flex items-center">
-                        <i class="fas fa-chart-pie mr-3"></i> Serviços vs Produtos (Qtd)
-                    </h3>
-                </div>
-                <div class="p-6">
-                    <div class="chart-container">
-                        <canvas id="chartCount"></canvas>
-                    </div>
-                    <div class="mt-4 grid grid-cols-2 gap-4 text-center">
-                        <div class="bg-green-50 p-3 rounded-lg">
-                            <div class="text-2xl font-bold text-green-600"><%= serviceCount %></div>
-                            <div class="text-sm text-green-700">Serviços</div>
+                <div class="bg-white rounded-lg shadow-xl border border-gray-200 p-4 md:col-span-2 flex flex-col md:flex-row items-center">
+                    <div class="flex-1 w-full">
+                        <h3 class="text-sm font-bold text-gray-700 mb-2 flex items-center">
+                            <i class="fas fa-chart-bar mr-2 text-gold"></i> Volume: Serviços vs Produtos
+                        </h3>
+                        <div class="chart-container" style="height: 200px;">
+                            <canvas id="chartCount"></canvas>
                         </div>
-                        <div class="bg-blue-50 p-3 rounded-lg">
-                            <div class="text-2xl font-bold text-blue-600"><%= productCount %></div>
-                            <div class="text-sm text-blue-700">Produtos</div>
+                    </div>
+                    <div class="w-full md:w-1/3 p-4 flex flex-col gap-3">
+                        <div class="bg-green-50 p-3 rounded border border-green-200 text-center">
+                            <div class="text-xl font-bold text-green-600"><%= serviceCount %></div>
+                            <div class="text-xs text-green-800">Serviços Realizados</div>
+                        </div>
+                        <div class="bg-blue-50 p-3 rounded border border-blue-200 text-center">
+                            <div class="text-xl font-bold text-blue-600"><%= productCount %></div>
+                            <div class="text-xs text-blue-800">Produtos Vendidos</div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
 
-        <section class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
-            <div class="bg-gold p-6 bg-shine-gold">
-                <h3 class="text-xl font-bold text-white flex items-center">
-                    <i class="fas fa-calendar-alt mr-3"></i>
-                    Faturamento Mensal
-                </h3>
             </div>
-            <div class="p-6">
-                <% if (monthlyTotals && monthlyTotals.length > 0) { %>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full">
-                        <thead>
-                            <tr class="bg-gold-light">
-                                <th class="px-6 py-4 text-left text-sm font-semibold text-gold-dark border-b border-yellow-200">
-                                    <i class="fas fa-calendar mr-2"></i>
-                                    Mês
-                                </th>
-                                <th class="px-6 py-4 text-right text-sm font-semibold text-gold-dark border-b border-yellow-200">
-                                    <i class="fas fa-dollar-sign mr-2"></i>
-                                    Total (R$)
-                                </th>
-                                <th class="px-6 py-4 text-center text-sm font-semibold text-gold-dark border-b border-yellow-200">
-                                    <i class="fas fa-chart-line mr-2"></i>
-                                    Tendência
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100">
-                            <% monthlyTotals.forEach((row, index) => { 
-                                const prevRow = monthlyTotals[index - 1];
-                                let trend = 'neutral';
-                                let trendIcon = 'fas fa-minus';
-                                let trendText = 'Estável';
-                                
-                                if (prevRow) {
-                                    if (row.total > prevRow.total) {
-                                        trend = 'positive';
-                                        trendIcon = 'fas fa-arrow-up';
-                                        trendText = 'Crescimento';
-                                    } else if (row.total < prevRow.total) {
-                                        trend = 'negative';
-                                        trendIcon = 'fas fa-arrow-down';
-                                        trendText = 'Queda';
-                                    }
-                                }
-                            %>
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4 text-sm font-medium text-gray-900">
-                                    <%= row.month %>
-                                </td>
-                                <td class="px-6 py-4 text-right text-lg font-bold text-gray-900">
-                                    R$ <%= row.total.toFixed(2) %>
-                                </td>
-                                <td class="px-6 py-4 text-center">
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium <%= trend %>-trend">
-                                        <i class="<%= trendIcon %> mr-1"></i>
-                                        <%= trendText %>
-                                    </span>
-                                </td>
-                            </tr>
-                            <% }); %>
-                        </tbody>
-                        <tfoot>
-                            <tr class="bg-gold-light">
-                                <td class="px-6 py-4 text-sm font-bold text-gold-dark">
-                                    <i class="fas fa-calculator mr-2"></i>
-                                    TOTAL GERAL
-                                </td>
-                                <td class="px-6 py-4 text-right text-xl font-bold text-gold-dark">
-                                    R$ <%= monthlyTotals.reduce((sum, row) => sum + row.total, 0).toFixed(2) %>
-                                </td>
-                                <td class="px-6 py-4 text-center">
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                        <i class="fas fa-chart-bar mr-1"></i>
-                                        <%= monthlyTotals.length %> meses
-                                    </span>
-                                </td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-                <% } else { %>
-                <div class="text-center py-12">
-                    <div class="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                        <i class="fas fa-chart-line text-4xl text-gray-400"></i>
-                    </div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Nenhum dado mensal</h3>
-                    <p class="text-gray-600">Ainda não há dados suficientes para exibir o faturamento mensal.</p>
-                </div>
-                <% } %>
-            </div>
-        </section>
 
-        <section class="bg-white rounded-2xl shadow-xl overflow-hidden card-hover animate-fade-in">
-            <div class="bg-gold p-6 bg-shine-gold">
-                <h3 class="text-xl font-bold text-white flex items-center">
-                    <i class="fas fa-lightbulb mr-3"></i>
-                    Insights e Recomendações
-                </h3>
-            </div>
-            <div class="p-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="space-y-4">
-                        <h4 class="font-semibold text-gray-900 flex items-center">
-                            <i class="fas fa-chart-line mr-2 text-green-600"></i>
-                            Pontos Positivos
-                        </h4>
-                        <div class="space-y-3">
-                            <% if (liquido > 0) { %>
-                            <div class="flex items-start space-x-3 p-3 bg-green-50 rounded-lg">
-                                <i class="fas fa-check-circle text-green-600 mt-0.5"></i>
-                                <p class="text-sm text-green-800">Saldo positivo de <strong>R$ <%= liquido.toFixed(2) %></strong></p>
-                            </div>
-                            <% } %>
-                            <% if (totalReceita > totalDespesa) { %>
-                            <div class="flex items-start space-x-3 p-3 bg-green-50 rounded-lg">
-                                <i class="fas fa-check-circle text-green-600 mt-0.5"></i>
-                                <p class="text-sm text-green-800">Receitas superam as despesas em <strong><%= (((totalReceita - totalDespesa) / totalDespesa) * 100).toFixed(1) %>%</strong></p>
-                            </div>
-                            <% } %>
-                            <% if (serviceCount > 0 || productCount > 0) { %>
-                            <div class="flex items-start space-x-3 p-3 bg-green-50 rounded-lg">
-                                <i class="fas fa-check-circle text-green-600 mt-0.5"></i>
-                                <p class="text-sm text-green-800">Diversificação entre serviços e produtos</p>
-                            </div>
-                            <% } %>
-                        </div>
+            <div class="lg:col-span-4 flex flex-col gap-3 overflow-y-auto custom-scroll">
+                
+                <div class="bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col shrink-0">
+                    <div class="bg-gold p-2 bg-shine-gold">
+                        <h3 class="text-sm font-bold text-white flex items-center">
+                            <i class="fas fa-calendar-alt mr-2"></i> Faturamento Mensal
+                        </h3>
                     </div>
-                    
-                    <div class="space-y-4">
-                        <h4 class="font-semibold text-gray-900 flex items-center">
-                            <i class="fas fa-exclamation-triangle mr-2 text-yellow-600"></i>
-                            Pontos de Atenção
-                        </h4>
-                        <div class="space-y-3">
-                            <% if (liquido < 0) { %>
-                            <div class="flex items-start space-x-3 p-3 bg-red-50 rounded-lg">
-                                <i class="fas fa-exclamation-triangle text-red-600 mt-0.5"></i>
-                                <p class="text-sm text-red-800">Saldo negativo requer atenção imediata</p>
+                    <div class="overflow-x-auto p-0">
+                        <table class="min-w-full text-sm">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Mês</th>
+                                    <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <% if (monthlyTotals && monthlyTotals.length > 0) { %>
+                                    <% monthlyTotals.forEach((row) => { %>
+                                    <tr>
+                                        <td class="px-3 py-2 text-gray-800"><%= row.month %></td>
+                                        <td class="px-3 py-2 text-right font-mono text-gray-900 font-bold">R$ <%= row.total.toFixed(2) %></td>
+                                    </tr>
+                                    <% }); %>
+                                <% } else { %>
+                                    <tr><td colspan="2" class="px-3 py-4 text-center text-gray-500 text-xs">Sem dados mensais.</td></tr>
+                                <% } %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col flex-1">
+                    <div class="bg-gray-700 p-2">
+                        <h3 class="text-sm font-bold text-white flex items-center">
+                            <i class="fas fa-lightbulb mr-2"></i> Análise Rápida
+                        </h3>
+                    </div>
+                    <div class="p-3 space-y-2 text-xs">
+                         <% if (liquido > 0) { %>
+                            <div class="flex items-start gap-2 p-2 bg-green-50 rounded border border-green-100">
+                                <i class="fas fa-check text-green-600 mt-0.5"></i>
+                                <span class="text-green-800">Caixa no azul! Mantenha o controle de gastos.</span>
                             </div>
-                            <% } %>
-                            <% if (totalDespesa > totalReceita * 0.8) { %>
-                            <div class="flex items-start space-x-3 p-3 bg-yellow-50 rounded-lg">
+                        <% } else { %>
+                            <div class="flex items-start gap-2 p-2 bg-red-50 rounded border border-red-100">
+                                <i class="fas fa-exclamation text-red-600 mt-0.5"></i>
+                                <span class="text-red-800">Caixa negativo. Revise despesas urgentes.</span>
+                            </div>
+                        <% } %>
+
+                        <% if (totalDespesa > totalReceita * 0.8) { %>
+                            <div class="flex items-start gap-2 p-2 bg-yellow-50 rounded border border-yellow-100">
                                 <i class="fas fa-exclamation-triangle text-yellow-600 mt-0.5"></i>
-                                <p class="text-sm text-yellow-800">Despesas representam mais de 80% das receitas</p>
+                                <span class="text-yellow-800">Alerta: Despesas consomem +80% da receita.</span>
                             </div>
-                            <% } %>
-                            <% if ((!productTotals || productTotals.length === 0) && (!serviceCount || serviceCount === 0)) { %>
-                            <div class="flex items-start space-x-3 p-3 bg-yellow-50 rounded-lg">
-                                <i class="fas fa-exclamation-triangle text-yellow-600 mt-0.5"></i>
-                                <p class="text-sm text-yellow-800">Considere diversificar produtos e serviços</p>
-                            </div>
-                            <% } %>
-                        </div>
+                        <% } %>
                     </div>
                 </div>
+
             </div>
-        </section>
+
+        </div>
     </main>
 
     <div id="balanco-data"
@@ -477,201 +414,160 @@
          style="display:none">
     </div>
     
-    <footer class="bg-white border-t border-gray-200 mt-12">
-        <div class="max-w-7xl mx-auto px-4 py-6">
-            <div class="text-center text-gray-600">
-                <p class="flex items-center justify-center">
-                    <i class="fas fa-crown mr-2 text-gold"></i>
-                    Studio Kadosh © <%= new Date().getFullYear() %>
-                    <i class="fas fa-heart ml-2 text-red-500"></i>
-                </p>
-            </div>
-        </div>
-    </footer>
-
     <script>
+        // =================================================
+        // === LÓGICA DE TEMA ===
+        // =================================================
+        const THEMES = ["light", "medium-dark", "deep-dark"];
+        const htmlEl = document.documentElement;
+
+        function getNextTheme(currentTheme) {
+            const currentIndex = THEMES.indexOf(currentTheme);
+            const nextIndex = (currentIndex + 1) % THEMES.length;
+            return THEMES[nextIndex];
+        }
+
+        function updateIcons(theme) {
+            const sunDesktop = document.getElementById('theme-icon-sun');
+            const moonDesktop = document.getElementById('theme-icon-moon');
+            const sunMobile = document.getElementById('theme-icon-sun-mobile'); 
+            const moonMobile = document.getElementById('theme-icon-moon-mobile'); 
+            
+            const isLight = theme === 'light';
+
+            if (sunDesktop) sunDesktop.classList.toggle('hidden', !isLight);
+            if (moonDesktop) moonDesktop.classList.toggle('hidden', isLight);
+            
+            if (sunMobile) sunMobile.classList.toggle('hidden', !isLight);
+            if (moonMobile) moonMobile.classList.toggle('hidden', isLight);
+        }
+
+        function toggleTheme() {
+            const currentTheme = htmlEl.getAttribute('data-theme') || 'light';
+            const newTheme = getNextTheme(currentTheme);
+
+            htmlEl.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateIcons(newTheme);
+            
+            // Atualizar gráficos se necessário (re-render para pegar novas cores de fonte)
+            // Opcional: window.location.reload(); para simplicidade, ou atualizar a instância do chart.
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const initialTheme = htmlEl.getAttribute('data-theme') || 'light';
+            updateIcons(initialTheme);
+            
+            const toggleButtonDesktop = document.getElementById('theme-toggle-btn');
+            const toggleButtonMobile = document.getElementById('theme-toggle-btn-mobile'); 
+
+            if (toggleButtonDesktop) toggleButtonDesktop.addEventListener('click', toggleTheme);
+            if (toggleButtonMobile) toggleButtonMobile.addEventListener('click', toggleTheme);
+        });
+        // =================================================
+
         // Mobile menu toggle
         const menuButton = document.getElementById('menu-button');
         const mobileMenu = document.getElementById('mobile-menu');
-        
+        const closeMenu = document.getElementById('close-menu');
+
         if (menuButton && mobileMenu) {
             menuButton.addEventListener('click', () => {
-                mobileMenu.classList.toggle('hidden');
+                mobileMenu.classList.remove('hidden');
+            });
+        }
+        if (closeMenu && mobileMenu) {
+            closeMenu.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
             });
         }
 
-        // Dados dos charts
-        const ds = document.getElementById('balanco-data').dataset;
-        const receita = parseFloat(ds.receita);
-        const despesa = parseFloat(ds.despesa);
-        const produtos = JSON.parse(ds.produtos);
-        const svcCount = parseInt(ds.svcCount, 10);
-        const prdCount = parseInt(ds.prdCount, 10);
-
-        // Configuração padrão dos charts
-        Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
-        Chart.defaults.color = '#374151'; // Cor do texto padrão (cinza escuro)
-
-        // 1) Receita vs Despesa
-        if (receita > 0 || despesa > 0) {
-            new Chart(document.getElementById('chartRevDesp').getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Receitas', 'Despesas'],
-                    datasets: [{
-                        data: [receita, despesa],
-                        backgroundColor: ['#10b981', '#ef4444'], // Verde e Vermelho mantidos
-                        borderWidth: 0,
-                        hoverOffset: 10
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 20,
-                                usePointStyle: true,
-                                font: {
-                                    size: 12,
-                                    weight: '500'
-                                }
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.label || '';
-                                    const value = context.parsed;
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                                    return `${label}: R$ ${value.toFixed(2)} (${percentage}%)`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // 2) Vendas por Produto
-        if (produtos && produtos.length > 0) {
-            const prodLabels = produtos.map(p => p.name);
-            const prodData = produtos.map(p => p.total);
-            // Usando uma paleta consistente com o tema, mas variada
-            const colors = [ 
-                '#B8860B', '#DAA520', '#FFD700', // Tons de Dourado
-                '#6b7280', '#9ca3af', '#d1d5db', // Tons de Cinza
-                '#a78bfa', '#c4b5fd'            // Tons de Roxo suave
-            ];
-
-            new Chart(document.getElementById('chartProd').getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: prodLabels,
-                    datasets: [{
-                        data: prodData,
-                        backgroundColor: colors.slice(0, prodData.length), // Usa a paleta definida
-                        borderWidth: 0,
-                        hoverOffset: 10
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 20,
-                                usePointStyle: true,
-                                font: {
-                                    size: 11, // Um pouco menor para caber mais
-                                    weight: '500'
-                                }
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.label || '';
-                                    const value = context.parsed;
-                                    return `${label}: R$ ${value.toFixed(2)}`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // 3) Qtd. Serviços vs Produtos
-        if (svcCount > 0 || prdCount > 0) {
-             // Usando verde para serviços e azul para produtos (consistente com os cards de resumo)
-            new Chart(document.getElementById('chartCount').getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Serviços', 'Produtos'],
-                    datasets: [{
-                        data: [svcCount, prdCount],
-                        backgroundColor: ['#10b981', '#3b82f6'], // Verde e Azul
-                        borderWidth: 0,
-                        hoverOffset: 10
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        datalabels: {
-                            color: '#fff',
-                            formatter: (value) => value,
-                            font: {
-                                weight: 'bold',
-                                size: 16
-                            }
-                        },
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 20,
-                                usePointStyle: true,
-                                font: {
-                                    size: 12,
-                                    weight: '500'
-                                }
-                            }
-                        }
-                    }
-                },
-                plugins: [ChartDataLabels] // Registrar o plugin
-            });
-        }
-
-        // Inicialização das animações
+        // Chart.js Logic
         document.addEventListener('DOMContentLoaded', function() {
-            const observerOptions = {
-                threshold: 0.1,
-                rootMargin: '0px 0px -50px 0px'
-            };
+            const ds = document.getElementById('balanco-data').dataset;
+            const receita = parseFloat(ds.receita);
+            const despesa = parseFloat(ds.despesa);
+            const produtos = JSON.parse(ds.produtos);
+            const svcCount = parseInt(ds.svcCount, 10);
+            const prdCount = parseInt(ds.prdCount, 10);
 
-            const observer = new IntersectionObserver(function(entries) {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.style.opacity = '1';
-                        entry.target.style.transform = 'translateY(0)';
+            // Configs Globais
+            Chart.defaults.font.family = 'Inter, system-ui, sans-serif';
+            // Detecta tema para cor da fonte do gráfico (básico)
+            const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+            Chart.defaults.color = isDark ? '#e5e7eb' : '#374151';
+
+            // 1) Receita vs Despesa
+            if (receita > 0 || despesa > 0) {
+                new Chart(document.getElementById('chartRevDesp').getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Receitas', 'Despesas'],
+                        datasets: [{
+                            data: [receita, despesa],
+                            backgroundColor: ['#10b981', '#ef4444'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { usePointStyle: true } }
+                        }
                     }
                 });
-            }, observerOptions);
+            }
 
-            document.querySelectorAll('.animate-fade-in').forEach(el => {
-                el.style.opacity = '0';
-                el.style.transform = 'translateY(20px)';
-                el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-                observer.observe(el);
-            });
+            // 2) Produtos
+            if (produtos && produtos.length > 0) {
+                const prodLabels = produtos.map(p => p.name);
+                const prodData = produtos.map(p => p.total);
+                const colors = ['#B8860B', '#DAA520', '#FFD700', '#6b7280', '#9ca3af'];
+                
+                new Chart(document.getElementById('chartProd').getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: prodLabels,
+                        datasets: [{
+                            data: prodData,
+                            backgroundColor: colors.slice(0, prodData.length),
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { usePointStyle: true, font: { size: 10 } } }
+                        }
+                    }
+                });
+            }
+
+            // 3) Qtd
+            if (svcCount > 0 || prdCount > 0) {
+                new Chart(document.getElementById('chartCount').getContext('2d'), {
+                    type: 'pie',
+                    data: {
+                        labels: ['Serviços', 'Produtos'],
+                        datasets: [{
+                            data: [svcCount, prdCount],
+                            backgroundColor: ['#10b981', '#3b82f6'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { usePointStyle: true } },
+                            datalabels: { color: '#fff', font: { weight: 'bold' } }
+                        }
+                    },
+                    plugins: [ChartDataLabels]
+                });
+            }
         });
     </script>
 </body>

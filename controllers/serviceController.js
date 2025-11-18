@@ -12,6 +12,27 @@ const db = require('../models');
  */
 const getOrgId = (req) => req.session.organizationId;
 
+
+const parsePriceBRL = (v) => {
+      if (v === null || v === undefined) return null;
+      if (typeof v === "number") return Number.isFinite(v) ? v : null;
+      if (typeof v === "string") {
+        let s = v.trim().replace(/\s+/g, "").replace(/R\$/g, "");
+    
+        const hasComma = s.includes(',');
+        // Se tem vírgula, é BRL (ex: "1.250,50" ou "25,50")
+        if (hasComma) {
+          s = s.replace(/\./g, ""). // Remove milhar
+                replace(/,/g, "."); // Troca vírgula
+        } 
+        // Se não tem vírgula, assume formato "25.50" ou "2500"
+        
+        const parsed = parseFloat(s);
+        return Number.isNaN(parsed) ? null : parsed;
+      }
+      return null;
+    };
+
 /**
  * GET /admin/servicos
  * Lista todos os serviços cadastrados pelo salão.
@@ -71,7 +92,7 @@ exports.postNewService = async (req, res) => {
       organizationId: organizationId,
       name: name,
       description: description || '',
-      price: parseFloat(price),
+      price: parsePriceBRL(price),
       duration: parseInt(duration, 10),
       imageUrl: imageUrl || '',
       isActive: isActive === 'on'
@@ -140,7 +161,7 @@ exports.postEditService = async (req, res) => {
       {
         name: name,
         description: description || '',
-        price: parseFloat(price),
+        price: parsePriceBRL(price),
         duration: parseInt(duration, 10),
         imageUrl: imageUrl || '',
         isActive: isActive === 'on'

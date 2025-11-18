@@ -38,9 +38,13 @@ function processWorkingHours(formData) {
   days.forEach((day) => {
     const dayData = formData && formData[day] ? formData[day] : {};
     const isOff = toBool(dayData.isOff);
+    
+    // MODIFICADO: Salva os dois turnos
     hoursObject[day] = {
-      startTime: !isOff ? (dayData.startTime || '') : '',
-      endTime:   !isOff ? (dayData.endTime   || '') : '',
+      startTime1: !isOff ? (dayData.startTime1 || '') : '',
+      endTime1:   !isOff ? (dayData.endTime1   || '') : '',
+      startTime2: !isOff ? (dayData.startTime2 || '') : '',
+      endTime2:   !isOff ? (dayData.endTime2   || '') : '',
       isOff
     };
   });
