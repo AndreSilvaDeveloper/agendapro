@@ -1,176 +1,275 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="h-full" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <title>Agendamentos da Semana <%= (typeof org !== 'undefined') ? org.name : 'AgendaPro' %></title>    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Agendamentos da Semana <%= (typeof org !== 'undefined') ? org.name : 'AgendaPro' %></title>    
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
+    <script>
+        (function() {
+            const THEMES = ["light", "medium-dark", "deep-dark"];
+            const savedTheme = localStorage.getItem('theme');
+            let initialTheme = 'light';
+
+            if (savedTheme && THEMES.includes(savedTheme)) {
+                initialTheme = savedTheme;
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                initialTheme = 'deep-dark';
+            }
+            document.documentElement.setAttribute('data-theme', initialTheme);
+        })();
+    </script>
+    
     <style>
-        :root {
+        /* ================================================= */
+        /* === 1. DEFINIÇÃO DAS CORES PARA TRÊS TEMAS === */
+        /* ================================================= */
+
+        /* --- TEMA 1: LIGHT --- */
+        :root, [data-theme="light"] {
             --color-gold-light: #FFD700;
             --color-gold-dark: #B8860B;
             --color-gold-accent: #DAA520;
+            --color-bg-primary: #f3f4f6;   /* Fundo da Página */
+            --color-bg-secondary: #ffffff; /* Fundo dos Cartões */
+            --color-bg-muted: #f9fafb;     
+            --color-bg-accent-light: #FFFBEB;
+            --color-text-primary: #1f2937; /* Texto Principal */
+            --color-text-secondary: #4b5563;
+            --color-text-accent: #B8860B;
+            --color-border: #e5e7eb;
         }
 
-        .text-gold { color: var(--color-gold-dark); }
+        /* --- TEMA 2: MEDIUM DARK --- */
+        [data-theme="medium-dark"] {
+            --color-gold-light: #FFD700;
+            --color-gold-dark: #e0aa1f;
+            --color-gold-accent: #DAA520;
+            --color-bg-primary: #1f2937;   
+            --color-bg-secondary: #374151; 
+            --color-bg-muted: #4b5563;     
+            --color-bg-accent-light: #422c01;
+            --color-text-primary: #f9fafb; 
+            --color-text-secondary: #d1d5db;
+            --color-text-accent: #e0aa1f;
+            --color-border: #4b5563;
+        }
+
+        /* --- TEMA 3: DEEP DARK --- */
+        [data-theme="deep-dark"] {
+            --color-gold-light: #FFD700;
+            --color-gold-dark: #e0aa1f;
+            --color-gold-accent: #DAA520;
+            --color-bg-primary: #0a0e14;   
+            --color-bg-secondary: #1f2937; 
+            --color-bg-muted: #374151;
+            --color-bg-accent-light: #422c01;
+            --color-text-primary: #f9fafb;
+            --color-text-secondary: #d1d5db;
+            --color-text-accent: #e0aa1f;
+            --color-border: #4b5563;
+        }
+
+        /* ================================================= */
+        /* === 2. ESTILOS BASE (Mapeamento) === */
+        /* ================================================= */
+        
+        body { 
+            height: 100%; 
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column; 
+            background-color: var(--color-bg-primary); 
+            color: var(--color-text-primary);
+        } 
+        
+        /* Mapeamento de Classes Tailwind para Variáveis CSS */
+        .bg-white, .bg-gray-800 { background-color: var(--color-bg-secondary); }
+        .bg-gray-50, .bg-gray-700\/30, .bg-gray-100 { background-color: var(--color-bg-muted); } /* .bg-gray-100 usado no alerta */
+        .bg-gold-light { background-color: var(--color-bg-accent-light); }
+        
+        .border-gray-200, .border-gray-700 { border-color: var(--color-border); }
+        .border-gray-300, .border-gray-600 { border-color: var(--color-border); }
+        
+        .text-gray-900, .text-gray-800 { color: var(--color-text-primary); }
+        .text-gray-600, .text-gray-700 { color: var(--color-text-secondary); }
+        .text-gray-500 { color: var(--color-text-secondary); }
+        
+        /* Link Mobile */
+        .mobile-nav-link { 
+            color: var(--color-text-primary);
+            transition: color 0.2s ease;
+        }
+        
+        /* Cores de Status */
+        .bg-yellow-50 { background-color: rgba(251, 191, 36, 0.2); }
+        [data-theme^="dark"] .bg-yellow-50 { background-color: rgba(251, 191, 36, 0.1); }
+        .border-yellow-200 { border-color: #fbbf24; }
+        [data-theme^="dark"] .border-yellow-200 { border-color: rgba(251, 191, 36, 0.4); }
+
+        .bg-green-50 { background-color: rgba(52, 211, 153, 0.2); }
+        [data-theme^="dark"] .bg-green-50 { background-color: rgba(52, 211, 153, 0.1); }
+        .border-green-200 { border-color: #6ee7b7; }
+        [data-theme^="dark"] .border-green-200 { border-color: rgba(52, 211, 153, 0.4); }
+        
+        /* Scroll e Efeitos */
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background-color: var(--color-border); border-radius: 20px; }
+        .custom-scroll:hover::-webkit-scrollbar-thumb { background-color: var(--color-gold-accent); }
+        
+        .text-gold { color: var(--color-text-accent); }
         .bg-gold { background-color: var(--color-gold-accent); }
-        .bg-gold-light { background-color: #FFFBEB; }
         .border-gold { border-color: var(--color-gold-light); }
-        .hover\:text-gold:hover { color: var(--color-gold-dark); }
-        .hover\:bg-gold-light:hover { background-color: #FFF8DC; }
-
-        .animate-fade-in { animation: fadeIn 0.5s ease-in; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .appointment-card { transition: all 0.3s ease; border-left: 4px solid transparent; }
-        .appointment-card:hover { border-left-color: var(--color-gold-dark); background-color: #fcfcfc; }
-
-        .time-badge {
-            background-color: #fefce8;
-            color: #b45309;
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        /* --- ESTILOS PARA BRILHO --- */
         .text-gradient-gold {
             background: linear-gradient(90deg, #B8860B, #FFD700, #DAA520, #FFD700, #B8860B);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            text-fill-color: transparent;
             background-size: 200% auto;
             animation: text-shine 4s linear infinite;
         }
-        @keyframes text-shine {
-            from { background-position: 200% center; }
-            to { background-position: 0% center; }
-        }
+        @keyframes text-shine { from { background-position: 200% center; } to { background-position: 0% center; } }
+        
         .bg-shine-gold { position: relative; overflow: hidden; }
         .bg-shine-gold::after {
-            content: '';
-            position: absolute;
-            top: -10%;
-            left: -75%;
-            width: 50%;
-            height: 120%;
-            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
-            transform: skewX(-25deg);
-            animation: bg-shine 5s infinite linear;
+            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transform: skewX(-25deg); animation: bg-shine 5s infinite linear;
         }
-        @keyframes bg-shine {
-            0% { left: -75%; }
-            100% { left: 125%; }
-        }
-        /* --- FIM ESTILOS BRILHO --- */
+        @keyframes bg-shine { 0% { left: -100%; } 100% { left: 125%; } }
+        
+        .appointment-card { transition: all 0.2s ease; border-left: 3px solid transparent; }
+        .appointment-card:hover { border-left-color: var(--color-gold-dark); background-color: var(--color-bg-muted); }
 
-        .card-hover { transition: all 0.3s ease; }
-        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04); }
-        .time-slot { transition: all 0.2s ease; }
-        .time-slot:hover { transform: scale(1.05); }
-        .day-header { background-color: #f9fafb; }
-        .weekday-badge { display: inline-flex; align-items: center; padding: 0.5rem 1rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 600; }
+        .weekday-badge { display: inline-flex; align-items: center; padding: 0.3rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
         .today-badge { background-color: #fef3c7; color: #92400e; }
         .future-badge { background-color: #dbeafe; color: #1e40af; }
         .past-badge { background-color: #f3f4f6; color: #4b5563; }
+
+        .compact-card-body { flex-grow: 1; overflow-y: auto; min-height: 0; }
     </style>
 </head>
-<body class="min-h-screen bg-gray-50 font-sans antialiased">
+<body class="font-sans antialiased">
     
-    <header class="bg-white sticky top-0 z-50 shadow-sm border-b border-gray-100">
-        <div class="max-w-7xl mx-auto px-4 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                    <button onclick="history.back()" class="flex items-center space-x-2 text-gold hover:text-gold-dark transition-colors">
-                        <i class="fas fa-arrow-left"></i>
-                        <span class="hidden sm:inline">Voltar</span>
-                    </button>
-                    <div class="flex items-center space-x-4">
-                        <h1 class="flex items-center">
-                          <p> Agenda Pro</p>
-                        </h1>
-                        <div class="h-6 w-px bg-gray-200 hidden sm:block"></div>
-                    </div>
-                    <div class="h-6 w-px bg-gray-200"></div>
-                    <span class="text-lg font-semibold text-gray-700 flex items-center">
-                        <i class="fas fa-calendar-week mr-2 text-gold"></i>
-                        Agendamentos da Semana
-                    </span>
-                </div>
+    <header class="bg-white shadow-md border-b border-gray-200 shrink-0 h-16 flex items-center z-50">
+        <div class="w-full max-w-full px-4 flex items-center justify-between">
+            
+            <div class="flex items-center shrink-0 mr-4">
+                <h1 class="flex items-center text-gray-800 text-lg font-bold">
+                   Agenda Pro
+                </h1>
+                <div class="h-6 w-px bg-gray-200 hidden sm:block ml-4"></div>
+                <span class="text-lg font-semibold text-gray-700 flex items-center ml-4">
+                    <i class="fas fa-calendar-week mr-2 text-gold"></i>
+                    Agenda
+                </span>
+            </div>
 
-                <nav class="hidden lg:flex items-center space-x-6">
-                    <a href="/dashboard" class="text-gray-600 hover:text-gold transition-colors"><i class="fas fa-home mr-2"></i>Dashboard</a>
-                    <a href="/agendamentos-por-dia" class="text-gradient-gold font-semibold"><i class="fas fa-calendar-alt mr-2"></i>Agendamentos</a>
-                    <a href="/clients" class="text-gray-600 hover:text-gold transition-colors"><i class="fas fa-users mr-2"></i>Clientes</a>
-                    <a href="/financeiro" class="text-gray-600 hover:text-gold transition-colors"><i class="fas fa-dollar-sign mr-2"></i>Financeiro</a>
-                    <a href="/balanco" class="text-gray-600 hover:text-gold transition-colors"><i class="fas fa-balance-scale mr-2"></i>Balanço</a>
-                    <a href="/expenses" class="text-gray-600 hover:text-gold transition-colors"><i class="fas fa-receipt mr-2"></i>Despesas</a>
-                    <a href="/logout" class="text-red-600 hover:text-red-700 transition-colors"><i class="fas fa-sign-out-alt mr-2"></i>Sair</a>
-                </nav>
-
-                <button id="menu-button" class="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                    <i class="fas fa-bars text-gradient-gold"></i>
+            <nav class="hidden xl:flex items-center space-x-4 text-sm whitespace-nowrap overflow-x-auto pb-1 lg:pb-0">
+                <a href="/dashboard" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-home mr-1"></i>Dash
+                </a>
+                <a href="/agendamentos-por-dia" class="text-gradient-gold font-semibold">
+                    <i class="fas fa-calendar-alt mr-1"></i>Agenda
+                </a>
+                <a href="/clients" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-users mr-1"></i>Clientes
+                </a>
+                <a href="/admin/servicos" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-cut mr-1"></i>Serviços
+                </a>
+                <a href="/admin/equipe" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-users-cog mr-1"></i>Equipe
+                </a>
+                <a href="/financeiro" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-dollar-sign mr-1"></i>Financeiro
+                </a>
+                <a href="/balanco" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-balance-scale mr-1"></i>Balanço
+                </a>
+                <a href="/expenses" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-receipt mr-1"></i>Despesas
+                </a>
+                
+                <div class="h-4 w-px bg-gray-300 mx-2"></div>
+                
+                <button id="theme-toggle-btn" class="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600">
+                    <i id="theme-icon-sun" class="fas fa-sun"></i> <i id="theme-icon-moon" class="fas fa-moon hidden"></i> 
                 </button>
-            </div>
+                
+                <a href="/logout" class="text-red-600 hover:text-red-700 transition-colors font-semibold">
+                    <i class="fas fa-sign-out-alt mr-1"></i>Sair
+                </a>
+            </nav>
 
-            <div id="mobile-menu" class="hidden lg:hidden mt-4 space-y-2">
-                <a href="/dashboard" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold"><i class="fas fa-home"></i><span>Dashboard</span></a>
-                <a href="/agendamentos-por-dia" class="flex items-center space-x-3 p-3 rounded-lg bg-gold-light text-gold font-semibold"><i class="fas fa-calendar-alt"></i><span>Agendamentos</span></a>
-                <a href="/clients" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold"><i class="fas fa-users"></i><span>Clientes</span></a>
-                <a href="/financeiro" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold"><i class="fas fa-dollar-sign"></i><span>Financeiro</span></a>
-                <a href="/balanco" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold"><i class="fas fa-balance-scale"></i><span>Balanço</span></a>
-                <a href="/expenses" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold"><i class="fas fa-receipt"></i><span>Despesas</span></a>
-                <a href="/logout" class="flex items-center space-x-3 p-3 rounded-lg text-red-600 hover:bg-red-100"><i class="fas fa-sign-out-alt"></i><span>Sair</span></a>
-            </div>
+            <button id="menu-button" class="xl:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                <i class="fas fa-bars text-gold"></i>
+            </button>
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8 relative"
+    <div id="mobile-menu" class="hidden fixed inset-0 z-50 flex flex-col p-6 space-y-4 overflow-y-auto xl:hidden" style="background-color: var(--color-bg-primary);">
+        <div class="flex justify-end">
+            <button id="close-menu" class="text-2xl" style="color: var(--color-text-primary);"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="flex flex-col space-y-3 text-center">
+            <a href="/dashboard" class="mobile-nav-link text-lg py-2 border-b border-gray-700 hover:text-gold">Dashboard</a>
+            <a href="/agendamentos-por-dia" class="mobile-nav-link text-gold text-lg font-bold py-2 hover:text-gold">Agendamentos</a>
+            <a href="/clients" class="mobile-nav-link text-lg py-2 hover:text-gold">Clientes</a>
+            <a href="/admin/servicos" class="mobile-nav-link text-lg py-2 hover:text-gold">Serviços</a>
+            <a href="/admin/equipe" class="mobile-nav-link text-lg py-2 hover:text-gold">Equipe</a>
+            <a href="/financeiro" class="mobile-nav-link text-lg py-2 hover:text-gold">Financeiro</a>
+            <a href="/balanco" class="mobile-nav-link text-lg py-2 hover:text-gold">Balanço</a>
+            <a href="/expenses" class="mobile-nav-link text-lg py-2 hover:text-gold">Despesas</a>
+            
+            <button id="theme-toggle-btn-mobile" class="w-full flex items-center justify-center space-x-3 p-3 rounded-lg mobile-nav-link hover:bg-gray-700 hover:text-gold border border-gray-500 mt-4">
+                <i id="theme-icon-sun-mobile" class="fas fa-sun w-5 text-center"></i>
+                <i id="theme-icon-moon-mobile" class="fas fa-moon w-5 text-center hidden"></i>
+                <span>Alternar Tema</span>
+            </button>
+
+            <a href="/logout" class="mobile-nav-link text-red-400 text-lg py-2 font-bold mt-4">Sair do Sistema</a>
+        </div>
+    </div>
+
+
+    <main class="flex-1 p-3 overflow-hidden flex flex-col gap-3 max-w-full mx-auto w-full"
           data-default-date="<%= (typeof date !== 'undefined' && date) ? date : '' %>">
 
-        <section class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover animate-fade-in">
-            <div class="bg-gold p-6 bg-shine-gold">
-                <h2 class="text-xl font-bold text-white flex items-center">
-                    <i class="fas fa-filter mr-3"></i>
-                    Filtrar por Data
-                </h2>
-            </div>
-            <div class="p-6">
-                <form method="GET" action="/agendamentos-por-dia" class="flex flex-col sm:flex-row items-start sm:items-end gap-4">
-                    <div class="flex-1 w-full sm:w-auto">
-                        <label for="date" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-calendar mr-2 text-gold"></i>
-                            Selecionar Dia
-                        </label>
-                        <input id="date" type="date" name="date"
-                               value="<%= (typeof date !== 'undefined' && date) ? date : '' %>"
-                               class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all">
-                    </div>
-                    <button type="submit" class="bg-gold text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity">
-                        <i class="fas fa-search mr-2"></i>
-                        Buscar Agendamentos
-                    </button>
-                </form>
-            </div>
-        </section>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 min-h-0">
 
-        <section class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover animate-fade-in">
-            <div class="bg-gold p-6 bg-shine-gold">
-                <h2 class="text-xl font-bold text-white flex items-center">
-                    <i class="fas fa-chart-bar mr-3"></i>
-                    Resumo da Semana (Ter–Sáb)
-                </h2>
-            </div>
-            <div class="p-6">
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="lg:col-span-3 flex flex-col gap-3 overflow-y-auto custom-scroll p-1">
+                
+                <section class="bg-white rounded-lg shadow-xl border border-gray-200 p-4 shrink-0">
+                    <h3 class="text-md font-bold text-gray-800 flex items-center mb-3">
+                        <i class="fas fa-filter mr-2 text-gold"></i>
+                        Buscar
+                    </h3>
+                    <form method="GET" action="/agendamentos-por-dia" class="flex flex-col gap-3">
+                        <div>
+                            <label for="date" class="block text-xs font-medium text-gray-500 mb-1">
+                                Selecionar Dia
+                            </label>
+                            <input id="date" type="date" name="date"
+                                value="<%= (typeof date !== 'undefined' && date) ? date : '' %>"
+                                class="w-full p-2 text-sm border border-gray-300 bg-gray-50 rounded-lg focus:ring-1 focus:ring-gold transition-all">
+                        </div>
+                        <button type="submit" class="bg-gold text-white px-4 py-2 rounded-lg font-semibold text-sm hover:opacity-90 transition-opacity">
+                            <i class="fas fa-search mr-2"></i> Buscar
+                        </button>
+                    </form>
+                </section>
+
+                <section class="bg-white rounded-lg shadow-xl border border-gray-200 p-4 flex-1">
+                    <h3 class="text-md font-bold text-gray-800 flex items-center mb-3">
+                        <i class="fas fa-chart-bar mr-2 text-gold"></i>
+                        Resumo (Semana)
+                    </h3>
+                    
                     <%
                     let totalAgendamentos = 0;
                     let totalHorariosLivres = 0;
@@ -187,299 +286,218 @@
                             if (agendados > 0) diasComAgendamento++;
                         });
                     }
+                    const ocupacao = totalAgendamentos + totalHorariosLivres > 0 ? Math.round((totalAgendamentos / (totalAgendamentos + totalHorariosLivres)) * 100) : 0;
                     %>
 
-                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-200">
-                        <div class="flex items-center justify-between">
-                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-calendar-check text-blue-600"></i>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-2xl font-bold text-blue-800"><%= totalAgendamentos %></div>
-                                <div class="text-sm text-blue-600">Agendamentos</div>
-                            </div>
+                    <div class="space-y-3 text-sm">
+                        
+                        <div class="flex justify-between items-center p-2 rounded-md bg-blue-50 border border-blue-200">
+                            <i class="fas fa-calendar-check text-blue-600"></i>
+                            <span class="font-medium text-blue-800">Agendados:</span>
+                            <span class="font-bold text-lg text-blue-800"><%= totalAgendamentos %></span>
                         </div>
-                    </div>
 
-                    <div class="bg-green-50 p-4 rounded-xl border border-green-200">
-                        <div class="flex items-center justify-between">
-                            <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-clock text-green-600"></i>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-2xl font-bold text-green-800"><%= totalHorariosLivres %></div>
-                                <div class="text-sm text-green-600">Horários Livres</div>
-                            </div>
+                        <div class="flex justify-between items-center p-2 rounded-md bg-green-50 border border-green-200">
+                            <i class="fas fa-clock text-green-600"></i>
+                            <span class="font-medium text-green-800">Livres:</span>
+                            <span class="font-bold text-lg text-green-800"><%= totalHorariosLivres %></span>
                         </div>
-                    </div>
 
-                    <div class="bg-purple-50 p-4 rounded-xl border border-purple-200">
-                        <div class="flex items-center justify-between">
-                            <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-calendar-day text-purple-600"></i>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-2xl font-bold text-purple-800"><%= diasComAgendamento %></div>
-                                <div class="text-sm text-purple-600">Dias Ocupados</div>
-                            </div>
+                        <div class="flex justify-between items-center p-2 rounded-md bg-purple-50 border border-purple-200">
+                            <i class="fas fa-calendar-day text-purple-600"></i>
+                            <span class="font-medium text-purple-800">Dias Ocup.:</span>
+                            <span class="font-bold text-lg text-purple-800"><%= diasComAgendamento %></span>
                         </div>
-                    </div>
 
-                    <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
-                        <div class="flex items-center justify-between">
-                            <div class="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-percentage text-yellow-600"></i>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-2xl font-bold text-yellow-800">
-                                    <%= totalAgendamentos + totalHorariosLivres > 0 ? Math.round((totalAgendamentos / (totalAgendamentos + totalHorariosLivres)) * 100) : 0 %>%
-                                </div>
-                                <div class="text-sm text-yellow-600">Taxa Ocupação</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <%
-        // Mapa de dias em inglês → português
-        const weekdayMap = {
-            Monday: 'Segunda-feira',
-            Tuesday: 'Terça-feira',
-            Wednesday: 'Quarta-feira',
-            Thursday: 'Quinta-feira',
-            Friday: 'Sexta-feira',
-            Saturday: 'Sábado',
-            Sunday: 'Domingo'
-        };
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        %>
-
-        <div class="space-y-6">
-            <% if (typeof days !== 'undefined' && days && days.length > 0 && typeof resultsByDay !== 'undefined' && typeof availableByDay !== 'undefined') { %>
-                <% days.forEach((d, index) => {
-                    const key = d.format('YYYY-MM-DD');
-                    const dayDate = new Date(key + 'T00:00:00-03:00'); // Força fuso SP para comparação
-                    const isToday = dayDate.toDateString() === today.toDateString();
-                    const isPast = dayDate < today;
-                    const isFuture = dayDate > today && !isToday;
-
-                    let badgeClass = 'future-badge';
-                    let dayIcon = 'fas fa-calendar-day';
-
-                    if (isToday) {
-                        badgeClass = 'today-badge';
-                        dayIcon = 'fas fa-calendar-check';
-                    } else if (isPast) {
-                        badgeClass = 'past-badge';
-                        dayIcon = 'fas fa-history';
-                    }
-
-                    const agendadosList = resultsByDay[key] || [];
-                    const livresList = availableByDay[key] || [];
-                %>
-                <section class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover animate-fade-in">
-                    <div class="day-header p-6 border-b border-gray-200">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-4">
-                                <div class="w-12 h-12 bg-gold rounded-full flex items-center justify-center">
-                                    <i class="<%= dayIcon %> text-white"></i>
-                                </div>
-                                <div>
-                                    <h2 class="text-xl font-bold text-gray-900"><%= d.format('DD/MM/YYYY') %></h2>
-                                    <p class="text-gray-600"><%= weekdayMap[d.format('dddd')] %></p>
-                                </div>
-                            </div>
-                            <div class="flex items-center space-x-3">
-                                <span class="weekday-badge <%= badgeClass %>">
-                                    <% if (isToday) { %><i class="fas fa-star mr-1"></i>Hoje
-                                    <% } else if (isPast) { %><i class="fas fa-history mr-1"></i>Passado
-                                    <% } else { %><i class="fas fa-calendar mr-1"></i>Futuro<% } %>
-                                </span>
-                                <%
-                                const agendadosCount = agendadosList.length;
-                                const livresCount = livresList.length;
-                                %>
-                                <span class="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
-                                    <%= agendadosCount %> agendado<%= agendadosCount !== 1 ? 's' : '' %>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="p-6">
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            <div>
-                                <div class="flex items-center justify-between mb-4">
-                                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-                                        <i class="fas fa-user-clock mr-2 text-gold"></i>
-                                        Agendamentos
-                                    </h3>
-                                    <% if (agendadosList.length > 0) { %>
-                                    <span class="bg-gold-light text-gold-dark px-3 py-1 rounded-full text-sm font-medium"><%= agendadosList.length %></span>
-                                    <% } %>
-                                </div>
-
-                                <%# --- Loop de Agendamentos --- %>
-                                <% if (agendadosList.length > 0) { %>
-                                <div class="space-y-4">
-                                    <% agendadosList.forEach(r => { %>
-                                    <div class="appointment-card p-4 rounded-xl border border-l-4 <%= r.status === 'pendente' ? 'appointment-pending border-yellow-400 bg-yellow-50' : 'border-gray-200 bg-white' %>">
-                                        <div class="flex items-center justify-between mb-2">
-                                            <div class="flex items-center space-x-3">
-                                                <div class="w-10 h-10 bg-gold-light rounded-full flex items-center justify-center">
-                                                    <i class="fas fa-user text-gold text-sm"></i>
-                                                </div>
-                                                <div>
-                                                    <div class="font-semibold text-gray-900">
-                                                        <a href="/client/<%= r.clientId %>" class="text-gold hover:text-gold-dark transition-colors"><%= r.clientName %></a>
-                                                    </div>
-                                                    <div class="text-sm text-gray-600">
-                                                        <i class="fas fa-concierge-bell mr-1"></i>
-                                                        <%= r.servicesNames || 'Serviço não especificado' %>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="text-right">
-                                                <div class="bg-gold-light text-gold-dark px-3 py-1 rounded-full text-sm font-bold">
-                                                    <i class="fas fa-clock mr-1"></i>
-                                                    <%= r.timeFormatted %>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <% if (r.status === 'pendente') { %>
-                                        <div class="mt-3 pt-3 border-t border-yellow-200 flex flex-wrap justify-end gap-2">
-                                            
-                                            <form action="/admin/appointment/<%= r.id %>/cancel-by-admin" method="POST" onsubmit="return promptCancelReason(this)">
-                                                <button type="submit" class="px-3 py-1 text-xs font-medium text-red-600 bg-red-100 border border-red-200 rounded-md hover:bg-red-200 transition-colors">
-                                                    <i class="fas fa-times mr-1"></i> Cancelar
-                                                </button>
-                                            </form>
-                                            <form action="/admin/appointment/<%= r.id %>/confirm" method="POST">
-                                                <button type="submit" class="px-3 py-1 text-xs font-medium text-green-700 bg-green-100 border border-green-200 rounded-md hover:bg-green-200 transition-colors">
-                                                    <i class="fas fa-check mr-1"></i> Confirmar
-                                                </button>
-                                            </form>
-                                            
-                                        </div>
-                                        <% } %>
-                                    </div>
-                                    <% }); %>
-                                </div>
-                                <% } else { %>
-                                <div class="text-center py-8">
-                                    <div class="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                                        <i class="fas fa-calendar-times text-2xl text-gray-400"></i>
-                                    </div>
-                                    <p class="text-gray-500 font-medium">Nenhum agendamento</p>
-                                    <p class="text-sm text-gray-400 mt-1">Dia livre para descanso ou novos clientes</p>
-                                </div>
-                                <% } %>
-                            </div>
-
-                            <div>
-                                <div class="flex items-center justify-between mb-4">
-                                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-                                        <i class="fas fa-clock mr-2 text-green-600"></i>
-                                        Horários Disponíveis
-                                    </h3>
-                                    <% if (livresList.length > 0) { %>
-                                    <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium"><%= livresList.length %></span>
-                                    <% } %>
-                                </div>
-
-                                <% if (livresList.length > 0) { %>
-                                <div class="bg-green-50 p-4 rounded-xl border border-green-200">
-                                    <div class="flex flex-wrap gap-2">
-                                        <% livresList.forEach(t => { %>
-                                        <span class="time-slot bg-green-100 text-green-800 px-3 py-2 rounded-lg text-sm font-medium hover:bg-green-200 cursor-pointer transition-all">
-                                            <i class="fas fa-clock mr-1"></i>
-                                            <%= t %>
-                                        </span>
-                                        <% }); %>
-                                    </div>
-                                    <div class="mt-3 text-sm text-green-700 flex items-center">
-                                        <i class="fas fa-info-circle mr-2"></i>
-                                        Horários de funcionamento: 07:00 às 20:00
-                                    </div>
-                                </div>
-                                <% } else { %>
-                                <div class="text-center py-8">
-                                    <div class="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
-                                        <i class="fas fa-calendar-times text-2xl text-red-400"></i>
-                                    </div>
-                                    <p class="text-red-500 font-medium">Sem horários livres</p>
-                                    <p class="text-sm text-red-400 mt-1">Dia completamente ocupado</p>
-                                </div>
-                                <% } %>
-                            </div>
-
-                            <div id="toast-success" class="fixed top-5 right-5 z-50 hidden bg-green-100 border border-green-400 text-green-800 px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3">
-                              <i class="fas fa-check-circle text-green-600"></i>
-                              <span id="toast-message" class="font-semibold"></span>
-                            </div>
+                        <div class="flex justify-between items-center p-2 rounded-md bg-yellow-50 border border-yellow-200">
+                            <i class="fas fa-percentage text-yellow-600"></i>
+                            <span class="font-medium text-yellow-800">Ocupação:</span>
+                            <span class="font-bold text-lg text-yellow-800"><%= ocupacao %>%</span>
                         </div>
                     </div>
                 </section>
-                <% }); %>
-            <% } else { %>
-            <section class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover animate-fade-in">
-                <div class="p-12 text-center">
-                    <div class="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
-                        <i class="fas fa-calendar-alt text-4xl text-gray-400"></i>
-                    </div>
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Nenhum agendamento encontrado</h3>
-                    <p class="text-gray-600 mb-6">Selecione uma data no filtro acima para visualizar os agendamentos.</p>
-                    <button onclick="document.getElementById('date').focus()" class="bg-gold text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity">
-                        <i class="fas fa-calendar mr-2"></i>
-                        Selecionar Data
-                    </button>
+            </div>
+
+
+            <div class="lg:col-span-9 bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col compact-card-container min-h-0">
+                
+                <div class="p-4 border-b border-gray-200 bg-gray-50 shrink-0">
+                    <h2 class="text-xl font-bold text-gray-900 flex items-center">
+                        <i class="fas fa-calendar-check mr-3 text-gold"></i>
+                        Agenda Semanal Detalhada
+                    </h2>
                 </div>
-            </section>
-            <% } %>
+
+                <div class="compact-card-body custom-scroll p-4 space-y-6">
+                    <%
+                    const weekdayMap = {
+                        Monday: 'Segunda-feira', Tuesday: 'Terça-feira', Wednesday: 'Quarta-feira',
+                        Thursday: 'Quinta-feira', Friday: 'Sexta-feira', Saturday: 'Sábado', Sunday: 'Domingo'
+                    };
+
+                    const today = new Date(); today.setHours(0, 0, 0, 0);
+                    %>
+
+                    <% if (typeof days !== 'undefined' && days && days.length > 0 && typeof resultsByDay !== 'undefined' && typeof availableByDay !== 'undefined') { %>
+                        <% days.forEach((d, index) => {
+                            const key = d.format('YYYY-MM-DD');
+                            const dayDate = new Date(key + 'T00:00:00'); 
+                            const isToday = dayDate.toDateString() === today.toDateString();
+                            const isPast = dayDate < today;
+
+                            let badgeClass = isToday ? 'today-badge' : (isPast ? 'past-badge' : 'future-badge');
+                            let dayIcon = isToday ? 'fas fa-calendar-check' : (isPast ? 'fas fa-history' : 'fas fa-calendar');
+
+                            const agendadosList = resultsByDay[key] || [];
+                            const livresList = availableByDay[key] || [];
+                        %>
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                            
+                            <div class="p-3 border-b border-gray-200 flex items-center justify-between bg-gray-50">
+                                <div class="flex items-center space-x-3">
+                                    <i class="<%= dayIcon %> text-gold"></i>
+                                    <div>
+                                        <h3 class="text-md font-bold text-gray-900"><%= weekdayMap[d.format('dddd')] %></h3>
+                                        <p class="text-sm text-gray-600"><%= d.format('DD/MM/YYYY') %></p>
+                                    </div>
+                                </div>
+                                <span class="weekday-badge <%= badgeClass %>">
+                                    <%= agendadosList.length %> Agendado<%= agendadosList.length !== 1 ? 's' : '' %>
+                                </span>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+                                
+                                <div>
+                                    <h4 class="text-sm font-semibold mb-3 text-gold flex items-center">
+                                        <i class="fas fa-user-clock mr-2"></i> Agendamentos
+                                    </h4>
+                                    <% if (agendadosList.length > 0) { %>
+                                    <div class="space-y-2 max-h-56 overflow-y-auto custom-scroll">
+                                        <% agendadosList.forEach(r => { %>
+                                        <div class="appointment-card p-3 rounded-md border border-l-4 <%= r.status === 'pendente' ? 'border-yellow-400 bg-yellow-50' : 'border-gray-200 bg-white' %>">
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="font-semibold text-sm truncate">
+                                                        <a href="/client/<%= r.clientId %>" class="text-gold hover:opacity-80 transition-colors"><%= r.clientName %></a>
+                                                    </div>
+                                                    <div class="text-xs text-gray-500 truncate">
+                                                        <%= r.servicesNames || 'Serviço' %>
+                                                    </div>
+                                                </div>
+                                                <div class="flex-shrink-0 ml-2">
+                                                    <span class="bg-gold-light text-gold-dark px-2 py-0.5 rounded-full text-xs font-bold">
+                                                        <%= r.timeFormatted %>
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <% if (r.status === 'pendente') { %>
+                                            <div class="mt-2 pt-2 border-t border-yellow-200 flex justify-end gap-2">
+                                                <form action="/admin/appointment/<%= r.id %>/confirm" method="POST">
+                                                    <button type="submit" class="px-2 py-0.5 text-xs font-medium text-green-700 bg-green-100 rounded-md hover:bg-green-200 transition-colors">Confirmar</button>
+                                                </form>
+                                                <form action="/admin/appointment/<%= r.id %>/cancel-by-admin" method="POST" onsubmit="return promptCancelReason(this)">
+                                                    <button type="submit" class="px-2 py-0.5 text-xs font-medium text-red-600 bg-red-100 rounded-md hover:bg-red-200 transition-colors">Cancelar</button>
+                                                </form>
+                                            </div>
+                                            <% } %>
+                                        </div>
+                                        <% }); %>
+                                    </div>
+                                    <% } else { %>
+                                    <p class="text-center text-gray-500 text-sm py-4 bg-gray-50 rounded-lg">Dia livre.</p>
+                                    <% } %>
+                                </div>
+
+                                <div>
+                                    <h4 class="text-sm font-semibold mb-3 text-green-600 flex items-center">
+                                        <i class="fas fa-clock mr-2"></i> Horários Livres
+                                    </h4>
+                                    <% if (livresList.length > 0) { %>
+                                    <div class="bg-green-50 p-3 rounded-xl border border-green-200 max-h-56 overflow-y-auto custom-scroll">
+                                        <div class="flex flex-wrap gap-2">
+                                            <% livresList.forEach(t => { %>
+                                            <span onclick="abrirModal('<%= key %>', '<%= t %>')" class="bg-green-100 text-green-800 px-3 py-1 rounded-lg text-xs font-medium hover:bg-green-200 cursor-pointer transition-all">
+                                                <%= t %>
+                                            </span>
+                                            <% }); %>
+                                        </div>
+                                    </div>
+                                    <% } else { %>
+                                    <p class="text-center text-red-500 text-sm py-4 bg-red-50 rounded-lg">Dia completamente ocupado.</p>
+                                    <% } %>
+                                </div>
+                            </div>
+                        </div>
+                        <% }); %>
+                    <% } else { %>
+                        <div class="p-12 text-center bg-gray-50 rounded-lg h-full flex flex-col justify-center items-center">
+                            <div class="w-16 h-16 mx-auto mb-4 bg-gray-200 rounded-full flex items-center justify-center">
+                                <i class="fas fa-calendar-alt text-3xl text-gray-500"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Nenhum agendamento encontrado</h3>
+                            <p class="text-gray-600 mb-4">Selecione uma data no painel à esquerda.</p>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
         </div>
 
-        <div id="modalAgendamento" class="absolute bg-white rounded-lg p-6 w-full max-w-md hidden z-50 shadow-xl border border-gray-300">
-          <h2 class="text-lg font-bold mb-4 text-gray-800">Agendar Horário</h2>
-          <form action="/appointment" method="POST">
-            <input type="hidden" id="modalDate" name="date">
-            <input type="hidden" id="modalTime" name="time">
+        <div id="modalAgendamento" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] hidden">
+            <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-2xl border border-gray-300 animate-fade-in-up">
+                <h2 class="text-lg font-bold mb-4 text-gray-800 flex items-center"><i class="fas fa-calendar-plus mr-2 text-gold"></i> Agendar Horário</h2>
+                <form action="/appointment" method="POST">
+                    <input type="hidden" id="modalDate" name="date">
+                    <input type="hidden" id="modalTime" name="time">
 
-            <div class="mb-4">
-              <label for="clientSearch" class="block text-sm font-medium text-gray-700">Cliente:</label>
-              <input type="text" id="clientSearch" class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-gold-dark" placeholder="Digite o nome do cliente..." autocomplete="off" required>
-              <input type="hidden" name="clientId" id="clientId">
-              <ul id="clientSuggestions" class="border border-gray-300 rounded mt-1 bg-white max-h-40 overflow-y-auto hidden"></ul>
-            </div>
+                    <div class="mb-4">
+                        <label for="clientSearch" class="block text-sm font-medium text-gray-700">Cliente:</label>
+                        <input type="text" id="clientSearch" class="w-full p-2 border border-gray-300 bg-gray-50 rounded focus:ring-1 focus:ring-gold" placeholder="Digite o nome do cliente..." autocomplete="off" required>
+                        <input type="hidden" name="clientId" id="clientId">
+                        <ul id="clientSuggestions" class="absolute border border-gray-300 rounded mt-1 bg-white max-h-40 overflow-y-auto w-full z-10 hidden"></ul>
+                    </div>
 
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700">Serviço:</label>
-              <input type="text" id="serviceName" class="w-full p-2 border border-gray-300 rounded mb-2 focus:ring-2 focus:ring-gold-dark" placeholder="Nome do serviço" required>
-              <input type="number" id="servicePrice" class="w-full p-2 border border-gray-300 rounded mb-2 focus:ring-2 focus:ring-gold-dark" placeholder="Preço (R$)" required step="0.01">
-              <input type="number" id="serviceDuration" class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-gold-dark" placeholder="Duração (min)" required>
-              <input type="hidden" name="services" id="servicesInput">
-              <input type="hidden" name="duration" id="durationInput">
-            </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700">Serviço/Produto:</label>
+                        <input type="text" id="serviceName" class="w-full p-2 border border-gray-300 bg-gray-50 rounded mb-2 focus:ring-1 focus:ring-gold" placeholder="Nome do serviço" required>
+                        <input type="number" id="servicePrice" class="w-full p-2 border border-gray-300 bg-gray-50 rounded mb-2 focus:ring-1 focus:ring-gold" placeholder="Preço (R$)" required step="0.01">
+                        <input type="number" id="serviceDuration" class="w-full p-2 border border-gray-300 bg-gray-50 rounded focus:ring-1 focus:ring-gold" placeholder="Duração (min)" required>
+                        <input type="hidden" name="services" id="servicesInput">
+                        <input type="hidden" name="duration" id="durationInput">
+                    </div>
+                    
+                    <div class="mb-4">
+                         <label class="block text-sm font-medium text-gray-700" for="staffId">Profissional:</label>
+                         <select id="staffId" name="staffId" class="w-full p-2 border border-gray-300 bg-gray-50 rounded focus:ring-1 focus:ring-gold" required>
+                             <option value="">Selecione o Profissional</option>
+                             <% if (typeof staffList !== 'undefined') { %>
+                                 <% staffList.forEach(staff => { %>
+                                     <option value="<%= staff.id %>"><%= staff.name %></option>
+                                 <% }); %>
+                             <% } %>
+                         </select>
+                    </div>
 
-            <div class="flex justify-end gap-4 mt-6">
-              <button type="button" onclick="fecharModal()" class="text-gray-500 hover:text-gray-700">Cancelar</button>
-              <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Agendar</button>
+                    <div class="flex justify-end gap-4 mt-6">
+                        <button type="button" onclick="fecharModal()" class="text-gray-500 hover:text-gray-700">Cancelar</button>
+                        <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors">Agendar</button>
+                    </div>
+                </form>
             </div>
-          </form>
         </div>
-    </main>
+        </main>
 
-    <footer class="bg-white border-t border-gray-200 mt-12">
-        <div class="max-w-7xl mx-auto px-4 py-6">
-            <div class="text-center text-gray-600">
+    <div id="toast-success" class="fixed top-5 right-5 z-50 hidden bg-green-100 border border-green-400 text-green-800 px-6 py-4 rounded-lg shadow-lg flex items-center space-x-3">
+        <i class="fas fa-check-circle text-green-600"></i>
+        <span id="toast-message" class="font-semibold"></span>
+    </div>
+    <footer class="bg-white border-t border-gray-200 shrink-0">
+        <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="text-center text-gray-600 text-sm">
                 <p class="flex items-center justify-center">
                     <i class="fas fa-crown mr-2 text-gold"></i>
-                    Studio Kadosh © <%= new Date().getFullYear() %>
-                    <i class="fas fa-heart ml-2 text-red-500"></i>
+                    AgendaPro © <%= new Date().getFullYear() %>
                 </p>
             </div>
         </div>
@@ -498,402 +516,248 @@
     <% } %>
 
 <script>
-  // Evita erro se 'clients-data' não existir
-  const clientsDataElement = document.getElementById('clients-data');
-  const raw = clientsDataElement ? clientsDataElement.dataset.clients : '[]';
-  let clients = [];
-  try {
-      clients = JSON.parse(raw);
-  } catch(e) {
-      console.error("Erro ao parsear dados de clientes:", e);
-      clients = []; // Garante que clients seja um array
-  }
-</script>
+    // =================================================
+    // === LÓGICA JAVASCRIPT PARA CICLO DE TEMA ===
+    // =================================================
 
-<script>
-  // Mobile menu toggle
-  const menuButton = document.getElementById('menu-button');
-  const mobileMenu = document.getElementById('mobile-menu');
-  if (menuButton && mobileMenu) {
-    menuButton.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
-  }
+    const THEMES = ["light", "medium-dark", "deep-dark"];
+    const htmlEl = document.documentElement;
 
-  // Inicialização + ALERTA de pendentes
-  document.addEventListener('DOMContentLoaded', function () {
-    const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -50px 0px' };
-    const observer = new IntersectionObserver(function (entries) {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.style.opacity = '1';
-          entry.target.style.transform = 'translateY(0)';
+    function getNextTheme(currentTheme) {
+        const currentIndex = THEMES.indexOf(currentTheme);
+        const nextIndex = (currentIndex + 1) % THEMES.length;
+        return THEMES[nextIndex];
+    }
+
+    function updateIcons(theme) {
+        const sunDesktop = document.getElementById('theme-icon-sun');
+        const moonDesktop = document.getElementById('theme-icon-moon');
+        const sunMobile = document.getElementById('theme-icon-sun-mobile'); 
+        const moonMobile = document.getElementById('theme-icon-moon-mobile'); 
+        
+        const isLight = theme === 'light';
+
+        if (sunDesktop) sunDesktop.classList.toggle('hidden', !isLight);
+        if (moonDesktop) moonDesktop.classList.toggle('hidden', isLight);
+        
+        if (sunMobile) sunMobile.classList.toggle('hidden', !isLight);
+        if (moonMobile) moonMobile.classList.toggle('hidden', isLight);
+    }
+
+    function toggleTheme() {
+        const currentTheme = htmlEl.getAttribute('data-theme') || 'light';
+        const newTheme = getNextTheme(currentTheme);
+
+        htmlEl.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateIcons(newTheme);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+         const initialTheme = htmlEl.getAttribute('data-theme') || 'light';
+         updateIcons(initialTheme);
+         
+         const toggleButtonDesktop = document.getElementById('theme-toggle-btn');
+         const toggleButtonMobile = document.getElementById('theme-toggle-btn-mobile'); 
+
+         if (toggleButtonDesktop) {
+             toggleButtonDesktop.addEventListener('click', toggleTheme);
+         }
+         if (toggleButtonMobile) { 
+             toggleButtonMobile.addEventListener('click', toggleTheme);
+         }
+    });
+    // FIM DA LÓGICA DE TEMA ============================
+
+    // Toggle Menu Mobile
+    const menuButton = document.getElementById('menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const closeMenu = document.getElementById('close-menu');
+    if(menuButton && mobileMenu && closeMenu) {
+        menuButton.addEventListener('click', () => mobileMenu.classList.remove('hidden'));
+        closeMenu.addEventListener('click', () => mobileMenu.classList.add('hidden'));
+    }
+
+    // Inicialização da Data e Alertas
+    document.addEventListener('DOMContentLoaded', function () {
+        const dateInput = document.getElementById('date');
+        if (dateInput && !dateInput.value) {
+            const defaultDate = document.querySelector('main').dataset.defaultDate;
+            if (defaultDate) {
+                dateInput.value = defaultDate;
+            } else {
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                dateInput.value = `${year}-${month}-${day}`;
+            }
         }
-      });
-    }, observerOptions);
+        
+        // ======================================================
+        // ===  ALERTA DE AGENDAMENTOS PENDENTES (ATUALIZADO) ===
+        // ======================================================
+        const pendingDataElement = document.getElementById('pending-data');
+        if (pendingDataElement) {
+            try {
+                const pendingList = JSON.parse(pendingDataElement.dataset.pending || '[]');
+                if (pendingList.length > 0) {
+                    let html = '<div style="text-align: left; max-height: 400px; overflow-y: auto; padding-right: 15px;">';
+                    
+                    pendingList.forEach(appt => {
+                        const dateObj = new Date(appt.date);
+                        const date = isNaN(dateObj.getTime())
+                            ? ''
+                            : dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                        const time = isNaN(dateObj.getTime())
+                            ? ''
+                            : dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                            
+                        const cName = appt.Client ? appt.Client.name : 'Cliente';
+                        const sName = (appt.AppointmentServices && appt.AppointmentServices[0]?.name) || 
+                                      (appt.AppointmentProducts && appt.AppointmentProducts[0]?.name) || 
+                                      'Serviço';
+                        const pId = appt.id; 
 
-    document.querySelectorAll('.animate-fade-in').forEach(el => {
-      el.style.opacity = '0';
-      el.style.transform = 'translateY(20px)';
-      el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-      observer.observe(el);
+                        html += `
+                        <div class="bg-gray-100 p-3 rounded flex flex-col gap-2 border border-gray-200" style="background-color: var(--color-bg-muted); border-color: var(--color-border);">
+                            <div><strong class="text-gold-dark">${cName}</strong> <span class="text-gray-500 text-xs" style="color: var(--color-text-secondary);">(${sName})</span></div>
+                            <div class="text-xs text-gray-600" style="color: var(--color-text-secondary);"><i class="far fa-clock"></i> ${date} ${time}</div>
+                            <div class="flex gap-2 mt-1">
+                                <form action="/admin/appointment/${pId}/confirm" method="POST" class="flex-1"><button class="w-full bg-green-100 text-green-700 py-1 rounded text-xs hover:bg-green-200 font-bold" style="background-color: rgba(52, 211, 153, 0.2); color: #16a34a;">Confirmar</button></form>
+                                <form action="/admin/appointment/${pId}/cancel-by-admin" method="POST" class="flex-1" onsubmit="return promptCancelReason(this)"><button class="w-full bg-red-100 text-red-700 py-1 rounded text-xs hover:bg-red-200 font-bold" style="background-color: rgba(254, 202, 202, 0.2); color: #dc2626;">Cancelar</button></form>
+                            </div>
+                        </div>`;
+                    });
+                    html += '</div>';
+                    
+                    Swal.fire({
+                        title: `<span class="text-lg" style="color: var(--color-text-primary);">🔔 ${pendingList.length} Pendente(s)</span>`,
+                        html: html,
+                        showConfirmButton: false,
+                        showCloseButton: true,
+                        width: '400px',
+                        background: 'var(--color-bg-secondary)',
+                        color: 'var(--color-text-primary)',
+                    });
+                }
+            } catch(e) { console.error(e); }
+        }
     });
 
-    // Define a data de hoje como padrão se não houver valor
-    const dateInput = document.getElementById('date');
-    if (dateInput && !dateInput.value) {
-      const defaultDate = document.querySelector('main').dataset.defaultDate;
-      if (defaultDate) {
-        dateInput.value = defaultDate;
-      } else {
-        const today = new Date();
-        const formattedDate = today.toISOString().split('T')[0];
-        dateInput.value = formattedDate;
-      }
-    }
-
-    // ======================================================
-    // ===  Alerta de Agendamentos Pendentes (robusto)    ===
-    // ======================================================
-    console.log("--- [Agenda-Dia] Iniciando verificação de Agendamentos Pendentes ---");
-    if (window.__pendenteAlertShown) {
-      console.log("[Agenda-Dia] Alerta já exibido neste load. Abortando.");
-      return;
-    }
-
-    // Função fallback: coleta pendentes a partir do DOM renderizado
-    function collectPendingFromDOM() {
-      const items = [];
-      document.querySelectorAll('.appointment-card.appointment-pending').forEach(card => {
-        const section = card.closest('section.bg-white');
-        const dateH2 = section ? section.querySelector('h2.text-xl') : null;
-        const dateText = dateH2 ? dateH2.textContent.trim() : ''; // dd/mm/yyyy
-        const m = dateText.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-
-        // Hora (pega o badge dentro do card e limpa ícone/espacos)
-        const timeBadge = card.querySelector('div.bg-gold-light.text-gold-dark.text-sm.font-bold') || card.querySelector('div.bg-gold-light.text-gold-dark');
-        let timeText = timeBadge ? timeBadge.textContent : '';
-        timeText = (timeText || '').replace(/[^\d:]/g, '').slice(0,5); // HH:MM
-
-        // Cliente
-        const clientAnchor = card.querySelector('.font-semibold a, a.text-gold');
-        const clientName = clientAnchor ? clientAnchor.textContent.trim() : 'Cliente';
-
-        // Serviço
-        const serviceEl = card.querySelector('.text-sm.text-gray-600');
-        const serviceName = serviceEl ? serviceEl.textContent.trim().replace(/\s+/g,' ') : 'Serviço';
-
-        // ID do agendamento (pega do action do form)
-        const cancelForm = card.querySelector('form[action*="/cancel-by-admin"]');
-        let id = null;
-        if (cancelForm && cancelForm.action) {
-          // MUDANÇA AQUI: r.id -> r.id (a regex já pega sem o '_')
-          const mId = cancelForm.action.match(/appointment\/([^/]+)\/cancel-by-admin/);
-          if (mId) id = mId[1];
+    // Função para pedir o motivo do cancelamento
+    function promptCancelReason(form) {
+        const reason = prompt("Por favor, insira o motivo do cancelamento:");
+        if (reason === null || reason.trim() === "") {
+            alert("O motivo do cancelamento é obrigatório.");
+            return false;
         }
-
-        // Monta ISO aproximado para exibir (fuso -03:00)
-        let iso = new Date().toISOString();
-        if (m && timeText) {
-          iso = `${m[3]}-${m[2]}-${m[1]}T${timeText}:00-03:00`;
-        }
-
-        items.push({
-          id: id, // MUDANÇA: _id -> id
-          date: iso,
-          Client: { name: clientName }, // MUDANÇA: clientId -> Client
-          Staff: { name: 'Qualquer Profissional' }, // MUDANÇA: staffId -> Staff
-          AppointmentServices: [{ name: serviceName }] // MUDANÇA: services -> AppointmentServices
-        });
-      });
-      return items;
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'cancellationReason';
+        input.value = reason.trim();
+        form.appendChild(input);
+        return true;
     }
 
-    try {
-      const dataElementPending = document.getElementById('pending-data');
-      console.log("[Agenda-Dia] Elemento #pending-data encontrado:", !!dataElementPending);
-
-      let pendingList = [];
-      if (dataElementPending) {
-        const pendingDataString = dataElementPending.dataset.pending;
-        console.log("[Agenda-Dia] String de dados pendentes (data-pending):", pendingDataString);
-        if (pendingDataString && pendingDataString !== 'undefined') {
-          try {
-            pendingList = JSON.parse(pendingDataString || '[]');
-          } catch (e) {
-            console.warn("[Agenda-Dia] Falha ao parsear data-pending. Usando fallback DOM.", e);
-          }
-        }
-      }
-
-      // Fallback: se vazio, coleta do DOM renderizado
-      if (!Array.isArray(pendingList) || pendingList.length === 0) {
-        console.log("[Agenda-Dia] Usando fallback: coletando pendentes do DOM…");
-        pendingList = collectPendingFromDOM();
-        console.log("[Agenda-Dia] Pendentes coletados do DOM:", pendingList);
-      }
-
-      if (Array.isArray(pendingList) && pendingList.length > 0) {
-        let alertHTML = '<div style="text-align: left; max-height: 400px; overflow-y: auto; padding-right: 15px;">';
-        pendingList.forEach(appt => {
-          const dateObj = new Date(appt.date);
-          const date = isNaN(dateObj.getTime())
-            ? ''
-            : dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-          const time = isNaN(dateObj.getTime())
-            ? ''
-            : dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            
-          // --- MUDANÇA AQUI: Corrigido para Sequelize ---
-          const clientName = appt.Client ? appt.Client.name : 'Cliente';
-          const staffName = appt.Staff ? appt.Staff.name : 'Qualquer Profissional';
-          const serviceName = (appt.AppointmentServices && appt.AppointmentServices[0]?.name) || 
-                              (appt.AppointmentProducts && appt.AppointmentProducts[0]?.name) || 
-                              'Serviço';
-          const appointmentId = appt.id; // <-- Usa appt.id
-          // --- FIM DA MUDANÇA ---
-
-          // Botões só se tivermos id
-          const btns = appointmentId ? `
-              <form action="/admin/appointment/${appointmentId}/cancel-by-admin" method="POST" onsubmit="return promptCancelReason(this)" style="margin:0;">
-                <button type="submit" style="background:#fee2e2;color:#dc2626;border:1px solid #fecaca;padding:5px 10px;font-size:0.8em;font-weight:600;border-radius:5px;cursor:pointer;">
-                  <i class="fas fa-times"></i> Cancelar
-                </button>
-              </form>
-              <form action="/admin/appointment/${appointmentId}/confirm" method="POST" style="margin:0;">
-                <button type="submit" style="background:#dcfce7;color:#16a34a;border:1px solid #bbf7d0;padding:5px 10px;font-size:0.8em;font-weight:600;border-radius:5px;cursor:pointer;">
-                  <i class="fas fa-check"></i> Confirmar
-                </button>
-              </form>` : '';
-
-          alertHTML += `
-            <div style="padding:12px;border:1px solid #fce7b6;background:#fffbeb;border-radius:8px;margin-bottom:12px;">
-              <div style="font-weight:bold;font-size:1.1em;color:var(--color-gold-dark);">
-                <i class="fas fa-user"></i> ${clientName}
-              </div>
-              <div style="font-size:0.95em;color:#555;margin-top:5px;">
-                <i class="fas fa-concierge-bell"></i> ${serviceName}<br>
-                <i class="fas fa-user-tie"></i> ${staffName}<br>
-                ${(date || time) ? `<i class="fas fa-calendar-alt"></i> ${date}${date && time ? ' às ' : ''}${time}` : ''}
-              </div>
-              <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px;">
-                ${btns}
-              </div>
-            </div>`;
-        });
-        alertHTML += '</div>';
-
-        Swal.fire({
-          iconHtml: '<i class="fas fa-bell fa-beat" style="color:#F59E0B;font-size:2.5em;"></i>',
-          title: `Você tem ${pendingList.length} Agendamento${pendingList.length > 1 ? 's' : ''} Pendente${pendingList.length > 1 ? 's' : ''}!`,
-          html: alertHTML,
-          showCloseButton: true,
-          showConfirmButton: false,
-          width: '500px',
-          background: '#ffffff'
-        });
-
-        window.__pendenteAlertShown = true;
-        console.log("[Agenda-Dia] Alerta Swal de pendentes disparado.");
-      } else {
-        console.log("[Agenda-Dia] Nenhum agendamento pendente identificado. Alerta não exibido.");
-      }
-    } catch (e) {
-      console.error("[Agenda-Dia] Erro CRÍTICO ao processar agendamentos pendentes:", e);
-    }
-    console.log("--- [Agenda-Dia] Fim da verificação de Agendamentos Pendentes ---");
-  });
-
-  // Autocompletar cliente
-  const clientSearch = document.getElementById('clientSearch');
-  const suggestions = document.getElementById('clientSuggestions');
-  const clientIdInput = document.getElementById('clientId');
-
-  if (clientSearch && suggestions && clientIdInput) {
-    clientSearch.addEventListener('input', () => {
-      clientIdInput.value = '';
-      const value = clientSearch.value.toLowerCase();
-      suggestions.innerHTML = '';
-      const matches = Array.isArray(clients) ? clients.filter(c => c && c.name && c.name.toLowerCase().includes(value)) : [];
-      if (matches.length > 0) {
-        suggestions.classList.remove('hidden');
-        matches.forEach(c => {
-          const li = document.createElement('li');
-          li.textContent = c.name;
-          li.className = 'p-2 cursor-pointer hover:bg-gray-100';
-          li.addEventListener('click', () => {
-            clientSearch.value = c.name;
-            // MUDANÇA AQUI: c._id -> c.id
-            clientIdInput.value = c.id; 
-            suggestions.classList.add('hidden');
-          });
-          suggestions.appendChild(li);
-        });
-      } else {
-        suggestions.classList.add('hidden');
-      }
-    });
-  }
-
-  // Esconde sugestão ao clicar fora
-  document.addEventListener('click', (e) => {
-    if (suggestions && !suggestions.contains(e.target) && e.target !== clientSearch) {
-      suggestions.classList.add('hidden');
-    }
-  });
-
-  // Clicar em horário → abre o modal
-  document.querySelectorAll('.time-slot').forEach(el => {
-    el.addEventListener('click', (event) => {
-      const time = el.textContent.trim().replace(/[^0-9:]/g, '');
-      const section = el.closest('section.bg-white');
-      if (!section) return;
-      const dateH2 = section.querySelector('h2.text-xl');
-      if (!dateH2) return;
-
-      const dateText = dateH2.textContent.trim(); // 10/07/2025
-      const [day, month, year] = dateText.split('/');
-      if (!day || !month || !year) return;
-      const isoDate = `${year}-${month}-${day}`;
-
-      const modal = document.getElementById('modalAgendamento');
-      if (!modal) return;
-
-      const modalDateInput = document.getElementById('modalDate');
-      const modalTimeInput = document.getElementById('modalTime');
-      if (modalDateInput) modalDateInput.value = isoDate;
-      if (modalTimeInput) modalTimeInput.value = time;
-
-      const clientSearchInput = document.getElementById('clientSearch');
-      const clientIdHiddenInput = document.getElementById('clientId');
-      const serviceNameInput = document.getElementById('serviceName');
-      const servicePriceInput = document.getElementById('servicePrice');
-      const serviceDurationInput = document.getElementById('serviceDuration');
-      if(clientSearchInput) clientSearchInput.value = '';
-      if(clientIdHiddenInput) clientIdHiddenInput.value = '';
-      if(serviceNameInput) serviceNameInput.value = '';
-      if(servicePriceInput) servicePriceInput.value = '';
-      if(serviceDurationInput) serviceDurationInput.value = '';
-
-      const rect = el.getBoundingClientRect();
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-
-      const top = rect.top + scrollTop + el.offsetHeight + 8;
-      let left = rect.left + scrollLeft;
-
-      if (left + modal.offsetWidth > window.innerWidth) {
-        left = window.innerWidth - modal.offsetWidth - 20;
-      }
-
-      modal.style.top = `${top}px`;
-      modal.style.left = `${left}px`;
-      modal.classList.remove('hidden');
-      if(clientSearchInput) clientSearchInput.focus();
-    });
-  });
-
-  // Fecha o modal
-  function fecharModal() {
+    // Lógica do Modal de Agendamento
     const modal = document.getElementById('modalAgendamento');
-    if (modal) {
-      modal.classList.add('hidden');
-      modal.style.top = '';
-      modal.style.left = '';
+    const clientSearch = document.getElementById('clientSearch');
+    const clientSuggestions = document.getElementById('clientSuggestions');
+    const clientIdInput = document.getElementById('clientId');
+    let clients = [];
+    try {
+        const raw = document.getElementById('clients-data').dataset.clients;
+        clients = JSON.parse(raw);
+    } catch(e) { console.error("Erro ao carregar clientes:", e); }
+
+    function abrirModal(date, time) {
+        document.getElementById('modalDate').value = date;
+        document.getElementById('modalTime').value = time;
+        modal.classList.remove('hidden');
     }
-  }
 
-  // Antes do submit, monta objeto services e preenche duração
-  const modalForm = document.querySelector('#modalAgendamento form');
-  if (modalForm) {
-    modalForm.addEventListener('submit', function (e) {
-      const clientIdHidden = document.getElementById('clientId');
-      const clientSearchInput = document.getElementById('clientSearch');
-      if (!clientIdHidden || !clientSearchInput) return;
+    function fecharModal() {
+        modal.classList.add('hidden');
+        clientSuggestions.classList.add('hidden');
+        clientSearch.value = '';
+        clientIdInput.value = '';
+        document.getElementById('serviceName').value = '';
+        document.getElementById('servicePrice').value = '';
+        document.getElementById('serviceDuration').value = '';
+    }
 
-      const clientId = clientIdHidden.value;
-      const clientName = clientSearchInput.value;
+    // Pesquisa de Clientes
+    clientSearch.addEventListener('input', function() {
+        const query = this.value.toLowerCase();
+        clientSuggestions.innerHTML = '';
+        if (query.length < 2) {
+            clientSuggestions.classList.add('hidden');
+            return;
+        }
 
-      // MUDANÇA AQUI: c._id -> c.id
-      const clientExists = Array.isArray(clients) ? clients.find(c => c && c.id === clientId && c.name === clientName) : null;
-      if (!clientId || !clientExists) {
-        e.preventDefault();
-        Swal.fire({
-          icon: 'error',
-          title: 'Cliente Inválido',
-          text: 'Por favor, digite o nome e SELECIONE um cliente da lista antes de agendar.',
-          confirmButtonColor: '#ef4444',
-          background: '#fff1f2'
-        });
-        clientSearchInput.focus();
-        return false;
-      }
+        const filteredClients = clients.filter(client => 
+            client.name.toLowerCase().includes(query) || 
+            (client.phone && client.phone.includes(query))
+        );
 
-      const serviceNameInput = document.getElementById('serviceName');
-      const servicePriceInput = document.getElementById('servicePrice');
-      const serviceDurationInput = document.getElementById('serviceDuration');
-      const servicesInputHidden = document.getElementById('servicesInput');
-      const durationInputHidden = document.getElementById('durationInput');
-
-      if (!serviceNameInput || !servicePriceInput || !serviceDurationInput || !servicesInputHidden || !durationInputHidden) return;
-
-      const service = {
-        name: serviceNameInput.value,
-        price: parseFloat(servicePriceInput.value) || 0,
-        payments: []
-      };
-      const duration = parseInt(serviceDurationInput.value, 10) || 30;
-
-      servicesInputHidden.value = JSON.stringify([service]);
-      durationInputHidden.value = duration;
+        if (filteredClients.length > 0) {
+            clientSuggestions.style.width = clientSearch.offsetWidth + 'px'; 
+            filteredClients.forEach(client => {
+                const li = document.createElement('li');
+                li.className = 'p-2 cursor-pointer hover:bg-gray-100 text-gray-800 text-sm';
+                li.onclick = () => {
+                    clientSearch.value = client.name;
+                    clientIdInput.value = client.id;
+                    clientSuggestions.classList.add('hidden');
+                };
+                clientSuggestions.appendChild(li);
+            });
+            clientSuggestions.classList.remove('hidden');
+        } else {
+            clientSuggestions.classList.add('hidden');
+        }
     });
-  }
 
-  // Prompt motivo cancelamento (global)
-  function promptCancelReason(form) {
-      const reason = prompt("Por favor, insira o motivo do cancelamento (será visível para o cliente):");
-      if (reason === null) return false;
-      if (reason.trim() === "") {
-          alert("O motivo do cancelamento é obrigatório.");
-          return false;
-      }
-      const input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = 'cancellationReason';
-      input.value = reason.trim();
-      form.appendChild(input);
-      return true;
-  }
+    // Submissão do formulário de agendamento (junta dados do serviço)
+    document.querySelector('#modalAgendamento form').addEventListener('submit', function(e) {
+        const clientIdHidden = document.getElementById('clientId');
+        const clientSearchInput = document.getElementById('clientSearch');
+        if (!clientIdHidden || !clientSearchInput) return;
+
+        const clientId = clientIdHidden.value;
+        const clientName = clientSearchInput.value;
+
+        // Verifica se o cliente foi selecionado corretamente
+        const clientExists = Array.isArray(clients) ? clients.find(c => c && c.id === clientId && c.name === clientName) : null;
+        if (!clientId || !clientExists) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'error',
+                title: 'Cliente Inválido',
+                text: 'Por favor, digite o nome e SELECIONE um cliente da lista antes de agendar.',
+                confirmButtonColor: '#ef4444',
+                background: 'var(--color-bg-secondary)'
+            });
+            clientSearchInput.focus();
+            return false;
+        }
+
+
+        const serviceName = document.getElementById('serviceName').value;
+        const servicePrice = document.getElementById('servicePrice').value;
+        const serviceDuration = document.getElementById('serviceDuration').value;
+
+        const serviceData = [{
+            name: serviceName,
+            price: parseFloat(servicePrice),
+            duration: parseInt(serviceDuration)
+        }];
+
+        document.getElementById('servicesInput').value = JSON.stringify(serviceData);
+        document.getElementById('durationInput').value = serviceDuration;
+
+    });
 </script>
-
-<script>
-  // SweetAlert via parâmetros da URL (success/error)
-  const urlParams = new URLSearchParams(window.location.search);
-  const successMsg = urlParams.get('success');
-  const errorMsg = urlParams.get('error');
-
-  if (successMsg) {
-    window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
-    Swal.fire({
-      icon: 'success',
-      title: 'Sucesso!',
-      text: decodeURIComponent(successMsg),
-      confirmButtonText: 'Fechar',
-      confirmButtonColor: '#10b981',
-      background: '#f0fdf4'
-    });
-  }
-
-  if (errorMsg) {
-    window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
-    Swal.fire({
-      icon: 'error',
-      title: 'Erro',
-      text: decodeURIComponent(errorMsg),
-      confirmButtonText: 'Fechar',
-      confirmButtonColor: '#ef4444',
-      background: '#fff1f2'
-    });
-  }
-</script>
-
 </body>
 </html>

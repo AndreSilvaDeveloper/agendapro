@@ -1,222 +1,332 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="h-full" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <title><%= pageTitle %> – AgendaPro</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        (function() {
+            const THEMES = ["light", "medium-dark", "deep-dark"];
+            const savedTheme = localStorage.getItem('theme');
+            let initialTheme = 'light';
+
+            if (savedTheme && THEMES.includes(savedTheme)) {
+                initialTheme = savedTheme;
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                initialTheme = 'deep-dark';
+            }
+            document.documentElement.setAttribute('data-theme', initialTheme);
+        })();
+    </script>
+
     <style>
-        :root {
+        /* ================================================= */
+        /* === 1. DEFINIÇÃO DAS CORES PARA TRÊS TEMAS === */
+        /* ================================================= */
+
+        /* --- TEMA 1: LIGHT --- */
+        :root, [data-theme="light"] {
             --color-gold-light: #FFD700;
             --color-gold-dark: #B8860B;
             --color-gold-accent: #DAA520;
-        }
-        .text-gold-dark { color: var(--color-gold-dark); }
-        .bg-gold { background-color: var(--color-gold-accent); }
-        .border-gold { border-color: var(--color-gold-accent); }
-        .ring-gold-dark { --tw-ring-color: var(--color-gold-dark); }
-        .hover\:bg-gold-dark:hover { background-color: var(--color-gold-dark); }
-        /* Estilos para inputs focados */
-        .form-input:focus, .form-textarea:focus, .form-checkbox:focus {
-            border-color: var(--color-gold-dark);
-            box-shadow: 0 0 0 2px var(--color-gold-light);
-            outline: none;
+            --color-bg-primary: #f3f4f6;
+            --color-bg-secondary: #ffffff;
+            --color-bg-muted: #f9fafb;     
+            --color-bg-accent-light: #FFFBEB;
+            --color-bg-accent-dark: #fefce8;
+            --color-text-primary: #1f2937;
+            --color-text-secondary: #4b5563;
+            --color-text-accent: #B8860B;
+            --color-text-accent-muted: #b45309;
+            --color-border: #e5e7eb;
         }
 
-        /* --- ESTILOS DO HEADER (COPIADOS) --- */
-        .text-gold { color: var(--color-gold-dark); }
-        .bg-gold-light { background-color: #FFFBEB; }
-        .hover\:text-gold:hover { color: var(--color-gold-dark); }
+        /* --- TEMA 2: MEDIUM DARK --- */
+        [data-theme="medium-dark"] {
+            --color-gold-light: #FFD700;
+            --color-gold-dark: #e0aa1f;
+            --color-gold-accent: #DAA520;
+            --color-bg-primary: #1f2937;
+            --color-bg-secondary: #374151;
+            --color-bg-muted: #4b5563;     
+            --color-bg-accent-light: #422c01;
+            --color-bg-accent-dark: #423001;
+            --color-text-primary: #f9fafb;
+            --color-text-secondary: #d1d5db;
+            --color-text-accent: #e0aa1f;
+            --color-text-accent-muted: #fde047;
+            --color-border: #4b5563;
+        }
+
+        /* --- TEMA 3: DEEP DARK --- */
+        [data-theme="deep-dark"] {
+            --color-gold-light: #FFD700;
+            --color-gold-dark: #e0aa1f;
+            --color-gold-accent: #DAA520;
+            --color-bg-primary: #0a0e14;
+            --color-bg-secondary: #1f2937;
+            --color-bg-muted: #374151;
+            --color-bg-accent-light: #422c01;
+            --color-bg-accent-dark: #423001;
+            --color-text-primary: #f9fafb;
+            --color-text-secondary: #d1d5db;
+            --color-text-accent: #e0aa1f;
+            --color-text-accent-muted: #fde047;
+            --color-border: #4b5563;
+        }
+
+        /* ================================================= */
+        /* === 2. ESTILOS BASE (Mapeamento) === */
+        /* ================================================= */
+        
+        body { 
+            height: 100%; 
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column; 
+            background-color: var(--color-bg-primary); 
+            color: var(--color-text-primary);
+        } 
+        
+        /* Mapeamento */
+        .bg-white, .bg-gray-800 { background-color: var(--color-bg-secondary); }
+        .bg-gray-50, .bg-gray-700\/50, .bg-gray-100 { background-color: var(--color-bg-muted); }
+        .bg-gold-light { background-color: var(--color-bg-accent-light); }
+        .bg-gold { background-color: var(--color-gold-accent); }
+
+        .border-gray-200, .border-gray-300 { border-color: var(--color-border); }
+        
+        .text-gray-900, .text-gray-800 { color: var(--color-text-primary); }
+        .text-gray-700, .text-gray-600, .text-gray-500 { color: var(--color-text-secondary); }
+        .text-gold { color: var(--color-text-accent); }
+        
+        /* Link Mobile */
+        .mobile-nav-link { 
+            color: var(--color-text-primary);
+            transition: color 0.2s ease;
+        }
+
+        /* Inputs e Textarea */
+        .form-input, .form-textarea, .form-checkbox { 
+            background-color: var(--color-bg-secondary);
+            color: var(--color-text-primary);
+            border-color: var(--color-border);
+        }
+        .form-input:focus, .form-textarea:focus, .form-checkbox:focus {
+            border-color: var(--color-gold-accent);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(218, 165, 32, 0.2);
+        }
+
+        /* Scroll */
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background-color: var(--color-border); border-radius: 20px; }
+        .custom-scroll:hover::-webkit-scrollbar-thumb { background-color: var(--color-gold-accent); }
+
+        .compact-body { flex-grow: 1; overflow-y: auto; min-height: 0; }
+
+        /* Efeito Shine */
+        .bg-shine-gold { position: relative; overflow: hidden; background-color: var(--color-gold-accent); }
+        .bg-shine-gold::after {
+            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: bg-shine 5s infinite linear;
+        }
+        @keyframes bg-shine { 0% { left: -100%; } 100% { left: 125%; } }
+        
         .text-gradient-gold {
-            background: linear-gradient(90deg, #B8860B, #FFD700, #DAA520, #FFD700, #B8860B);
+             background: linear-gradient(90deg, #B8860B, #FFD700, #DAA520, #FFD700, #B8860B);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            text-fill-color: transparent;
             background-size: 200% auto;
             animation: text-shine 4s linear infinite;
         }
-        @keyframes text-shine {
-            from { background-position: 200% center; }
-            to { background-position: 0% center; }
-        }
-        /* --- FIM ESTILOS HEADER --- */
+         @keyframes text-shine { from { background-position: 200% center; } to { background-position: 0% center; } }
+
     </style>
 </head>
-<body class="min-h-screen bg-gray-50 font-sans antialiased">
+<body class="font-sans antialiased">
 
-    <header class="bg-white sticky top-0 z-50 shadow-sm border-b border-gray-100">
-        <div class="max-w-7xl mx-auto px-4 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                    <h1 class="flex items-center">
-                        <img src="/images/kadosh.jpg" alt="Studio Kadosh Logo" class="h-9">
-                    </h1>
-                    <div class="h-6 w-px bg-gray-200"></div>
-                    <span class="text-lg font-semibold text-gray-700 flex items-center">
-                        <i class="fas fa-tags mr-2 text-gold"></i>
-                        <%= pageTitle %>
-                    </span>
-                </div>
+    <header class="bg-white shadow-md border-b border-gray-200 shrink-0 h-16 flex items-center z-50">
+        <div class="w-full max-w-full px-4 flex items-center justify-between">
+            
+            <div class="flex items-center shrink-0 mr-4">
+                <h1 class="flex items-center text-gray-800 text-lg font-bold">
+                   <img src="/images/kadosh.jpg" alt="Logo" class="h-8 w-auto mr-2 rounded-full">
+                   Agenda Pro
+                </h1>
+                <div class="h-6 w-px bg-gray-200 hidden sm:block ml-4"></div>
+                <span class="text-lg font-semibold text-gray-700 flex items-center ml-4">
+                    <i class="fas fa-tags mr-2 text-gold"></i>
+                    <%= pageTitle %>
+                </span>
+            </div>
+
+            <nav class="hidden xl:flex items-center space-x-4 text-sm whitespace-nowrap overflow-x-auto custom-scroll pb-1 lg:pb-0">
+                <a href="/dashboard" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-home mr-1"></i>Dash
+                </a>
+                <a href="/agendamentos-por-dia" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-calendar-alt mr-1"></i>Agenda
+                </a>
+                <a href="/clients" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-users mr-1"></i>Clientes
+                </a>
+                <a href="/admin/servicos" class="text-gradient-gold font-semibold">
+                    <i class="fas fa-cut mr-1"></i>Serviços
+                </a>
+                <a href="/admin/equipe" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-users-cog mr-1"></i>Equipe
+                </a>
+                <a href="/financeiro" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-dollar-sign mr-1"></i>Financeiro
+                </a>
+                <a href="/balanco" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-balance-scale mr-1"></i>Balanço
+                </a>
+                <a href="/expenses" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-receipt mr-1"></i>Despesas
+                </a>
                 
-                <nav class="hidden lg:flex items-center space-x-6">
-                    <a href="/dashboard" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-home mr-2"></i>Dashboard
-                    </a>
-                    <a href="/agendamentos-por-dia" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-calendar-alt mr-2"></i>Agendamentos
-                    </a>
-                    <a href="/clients" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-users mr-2"></i>Clientes
-                    </a>
-                    <a href="/admin/servicos" class="text-gradient-gold font-semibold">
-                        <i class="fas fa-tags mr-2"></i>Serviços
-                    </a>
-                    <a href="/admin/equipe" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-users-cog mr-2"></i>Equipe
-                    </a>
-                    <a href="/financeiro" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-dollar-sign mr-2"></i>Financeiro
-                    </a>
-                    <a href="/balanco" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-balance-scale mr-2"></i>Balanço
-                    </a>
-                    <a href="/expenses" class="text-gray-600 hover:text-gold transition-colors">
-                        <i class="fas fa-receipt mr-2"></i>Despesas
-                    </a>
-                    <a href="/logout" class="text-red-600 hover:text-red-700 transition-colors">
-                        <i class="fas fa-sign-out-alt mr-2"></i>Sair
-                    </a>
-                </nav>
+                <div class="h-4 w-px bg-gray-300 mx-2"></div>
 
-                <button id="menu-button" class="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                    <i class="fas fa-bars text-gradient-gold"></i>
+                <button id="theme-toggle-btn" class="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600">
+                    <i id="theme-icon-sun" class="fas fa-sun"></i> <i id="theme-icon-moon" class="fas fa-moon hidden"></i> 
                 </button>
-            </div>
+                
+                <a href="/logout" class="text-red-600 hover:text-red-700 transition-colors font-semibold">
+                    <i class="fas fa-sign-out-alt mr-1"></i>Sair
+                </a>
+            </nav>
 
-            <div id="mobile-menu" class="hidden lg:hidden mt-4 space-y-2">
-                <a href="/dashboard" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-home"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="/agendamentos-por-dia" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>Agendamentos</span>
-                </a>
-                <a href="/clients" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-users"></i>
-                    <span>Clientes</span>
-                </a>
-                <a href="/admin/servicos" class="flex items-center space-x-3 p-3 rounded-lg bg-gold-light text-gold font-semibold">
-                    <i class="fas fa-tags"></i>
-                    <span>Serviços</span>
-                </a>
-                <a href="/admin/equipe" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-users-cog"></i>
-                    <span>Equipe</span>
-                </a>
-                <a href="/financeiro" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-dollar-sign"></i>
-                    <span>Financeiro</span>
-                </a>
-                <a href="/balanco" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-balance-scale"></i>
-                    <span>Balanço</span>
-                </a>
-                <a href="/expenses" class="flex items-center space-x-3 p-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gold">
-                    <i class="fas fa-receipt"></i>
-                    <span>Despesas</span>
-                </a>
-                <a href="/logout" class="flex items-center space-x-3 p-3 rounded-lg text-red-600 hover:bg-red-100">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Sair</span>
-                </a>
-            </div>
+            <button id="menu-button" class="xl:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                <i class="fas fa-bars text-gold"></i>
+            </button>
         </div>
     </header>
-    <main class="container mx-auto max-w-2xl p-4 sm:p-8 py-8">
+
+    <div id="mobile-menu" class="hidden fixed inset-0 z-50 flex flex-col p-6 space-y-4 overflow-y-auto xl:hidden" style="background-color: var(--color-bg-primary);">
+        <div class="flex justify-end">
+            <button id="close-menu" class="text-white text-2xl"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="flex flex-col space-y-3 text-center">
+            <a href="/dashboard" class="mobile-nav-link text-lg py-2 hover:text-gold">Dashboard</a>
+            <a href="/agendamentos-por-dia" class="mobile-nav-link text-lg py-2 hover:text-gold">Agendamentos</a>
+            <a href="/clients" class="mobile-nav-link text-lg py-2 hover:text-gold">Clientes</a>
+            <a href="/admin/servicos" class="mobile-nav-link text-gold text-lg font-bold py-2 border-b border-gray-700">Serviços</a>
+            <a href="/admin/equipe" class="mobile-nav-link text-lg py-2 hover:text-gold">Equipe</a>
+            <a href="/financeiro" class="mobile-nav-link text-lg py-2 hover:text-gold">Financeiro</a>
+            <a href="/balanco" class="mobile-nav-link text-lg py-2 hover:text-gold">Balanço</a>
+            <a href="/expenses" class="mobile-nav-link text-lg py-2 hover:text-gold">Despesas</a>
+            
+            <button id="theme-toggle-btn-mobile" class="w-full flex items-center justify-center space-x-3 p-3 rounded-lg mobile-nav-link hover:bg-gray-700 hover:text-gold border border-gray-500 mt-4">
+                <i id="theme-icon-sun-mobile" class="fas fa-sun w-5 text-center"></i>
+                <i id="theme-icon-moon-mobile" class="fas fa-moon w-5 text-center hidden"></i>
+                <span>Alternar Tema</span>
+            </button>
+
+            <a href="/logout" class="mobile-nav-link text-red-400 text-lg py-2 font-bold mt-4">Sair do Sistema</a>
+        </div>
+    </div>
+
+
+    <main class="flex-1 p-3 overflow-hidden flex flex-col gap-3 max-w-full mx-auto w-full">
         
-        <div class="bg-white shadow-xl rounded-lg overflow-hidden">
-            <div class="bg-gray-50 p-5 border-b border-gray-200 flex justify-between items-center">
-                <h1 class="text-2xl font-bold text-gray-800"><%= pageTitle %></h1>
-                <a href="/admin/servicos" class="text-sm text-gray-600 hover:text-gold-dark transition-colors">
-                    <i class="fas fa-arrow-left mr-1"></i> Voltar para Lista
-                </a>
+        <div class="flex justify-center h-full min-h-0">
+            <div class="w-full max-w-3xl bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col h-full min-h-0">
+                
+                <div class="bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-center shrink-0">
+                    <h1 class="text-xl font-bold text-gray-900 flex items-center">
+                        <i class="fas fa-edit mr-2 text-gold"></i>
+                        <%= pageTitle %>
+                    </h1>
+                    <a href="/admin/servicos" class="text-sm text-gray-600 hover:text-gold transition-colors font-medium">
+                        <i class="fas fa-arrow-left mr-1"></i> Voltar
+                    </a>
+                </div>
+
+                <div class="compact-body custom-scroll p-6">
+                    <form action="<%= editing ? '/admin/servicos/' + service._id + '/editar' : '/admin/servicos/novo' %>" 
+                          method="POST" 
+                          class="space-y-6">
+
+                        <% if (typeof error !== 'undefined' && error) { %>
+                            <div class="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center">
+                                <i class="fas fa-exclamation-triangle text-red-600 mr-2"></i>
+                                <span class="text-red-800 text-sm"><%= error %></span>
+                            </div>
+                        <% } %>
+
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nome do Serviço *</label>
+                            <input type="text" id="name" name="name" required 
+                                   value="<%= service.name || '' %>"
+                                   class="form-input mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3">
+                        </div>
+
+                        <div>
+                            <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                            <textarea id="description" name="description" rows="3"
+                                      class="form-textarea mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"><%= service.description || '' %></textarea>
+                            <p class="text-xs text-gray-500 mt-1">Opcional. Aparecerá para o cliente na página do salão.</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <div>
+                                <label for="price" class="block text-sm font-medium text-gray-700 mb-1">Preço (R$) *</label>
+                                <input type="number" id="price" name="price" required min="0" step="0.01" 
+                                       value="<%= service.price || '' %>"
+                                       placeholder="Ex: 50.00"
+                                       class="form-input mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3">
+                            </div>
+                            <div>
+                                <label for="duration" class="block text-sm font-medium text-gray-700 mb-1">Duração (minutos) *</label>
+                                <input type="number" id="duration" name="duration" required min="1" step="1" 
+                                       value="<%= service.duration || '' %>"
+                                       placeholder="Ex: 60"
+                                       class="form-input mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="imageUrl" class="block text-sm font-medium text-gray-700 mb-1">URL da Imagem (Opcional)</label>
+                            <input type="url" id="imageUrl" name="imageUrl" 
+                                   value="<%= service.imageUrl || '' %>"
+                                   placeholder="https://exemplo.com/imagem.jpg"
+                                   class="form-input mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3">
+                            <p class="text-xs text-gray-500 mt-1">Link para uma imagem do serviço (se houver).</p>
+                        </div>
+
+                        <div class="flex items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <input id="isActive" name="isActive" type="checkbox" 
+                                   class="form-checkbox h-4 w-4 text-gold-dark border-gray-300 rounded focus:ring-gold-dark"
+                                   <%= (typeof service.isActive === 'undefined' || service.isActive) ? 'checked' : '' %>>
+                            <label for="isActive" class="ml-2 block text-sm text-gray-900">
+                                Serviço Ativo <span class="text-xs text-gray-500 font-normal">(visível para clientes)</span>
+                            </label>
+                        </div>
+
+                        <div class="pt-2">
+                            <button type="submit"
+                                    class="w-full bg-gold text-white py-3 px-6 rounded-lg font-semibold hover:opacity-90 transition-opacity shadow-lg bg-shine-gold flex items-center justify-center">
+                                <i class="fas fa-save mr-2"></i>
+                                <%= editing ? 'Atualizar Serviço' : 'Salvar Novo Serviço' %>
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
             </div>
-
-            <form action="<%= editing ? '/admin/servicos/' + service._id + '/editar' : '/admin/servicos/novo' %>" 
-                  method="POST" 
-                  class="p-8 space-y-6">
-
-                <% if (error) { %>
-                    <div class="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-                        <i class="fas fa-exclamation-triangle mr-2"></i><%= error %>
-                    </div>
-                <% } %>
-
-                <div>
-                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nome do Serviço *</label>
-                    <input type="text" id="name" name="name" required 
-                           value="<%= service.name || '' %>"
-                           class="form-input mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-gold-dark focus:border-gold-dark">
-                </div>
-
-                <div>
-                    <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
-                    <textarea id="description" name="description" rows="3"
-                              class="form-textarea mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-gold-dark focus:border-gold-dark"><%= service.description || '' %></textarea>
-                    <p class="text-xs text-gray-500 mt-1">Opcional. Aparecerá para o cliente na página do salão.</p>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div>
-                        <label for="price" class="block text-sm font-medium text-gray-700 mb-1">Preço (R$) *</label>
-                        <input type="number" id="price" name="price" required min="0" step="0.01" 
-                               value="<%= service.price || '' %>"
-                               placeholder="Ex: 50.00"
-                               class="form-input mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-gold-dark focus:border-gold-dark">
-                    </div>
-                    <div>
-                        <label for="duration" class="block text-sm font-medium text-gray-700 mb-1">Duração (minutos) *</label>
-                        <input type="number" id="duration" name="duration" required min="1" step="1" 
-                               value="<%= service.duration || '' %>"
-                               placeholder="Ex: 60"
-                               class="form-input mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-gold-dark focus:border-gold-dark">
-                    </div>
-                </div>
-
-                <div>
-                    <label for="imageUrl" class="block text-sm font-medium text-gray-700 mb-1">URL da Imagem (Opcional)</label>
-                    <input type="url" id="imageUrl" name="imageUrl" 
-                           value="<%= service.imageUrl || '' %>"
-                           placeholder="https://exemplo.com/imagem.jpg"
-                           class="form-input mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-gold-dark focus:border-gold-dark">
-                    <p class="text-xs text-gray-500 mt-1">Link para uma imagem do serviço (se houver).</p>
-                </div>
-
-                <div class="flex items-center">
-                    <input id="isActive" name="isActive" type="checkbox" 
-                           class="form-checkbox h-4 w-4 text-gold-dark border-gray-300 rounded focus:ring-gold-dark"
-                           <%= (typeof service.isActive === 'undefined' || service.isActive) ? 'checked' : '' %>>
-                    <label for="isActive" class="ml-2 block text-sm text-gray-900">
-                        Serviço Ativo (visível para clientes)
-                    </label>
-                </div>
-
-                <div class="pt-5">
-                    <button type="submit"
-                            class="w-full bg-gold text-white py-3 px-6 rounded-lg font-semibold hover:opacity-90 transition-opacity shadow flex items-center justify-center">
-                        <i class="fas fa-save mr-2"></i>
-                        <%= editing ? 'Atualizar Serviço' : 'Salvar Novo Serviço' %>
-                    </button>
-                </div>
-
-            </form>
         </div>
     </main>
 
-    <footer class="bg-white border-t border-gray-200 mt-12">
+    <footer class="bg-white border-t border-gray-200 mt-12 shrink-0">
         <div class="max-w-7xl mx-auto px-4 py-6">
             <div class="text-center text-gray-600">
                 <p class="flex items-center justify-center">
@@ -228,13 +338,67 @@
     </footer>
 
     <script>
+        // =================================================
+        // === LÓGICA DE TEMA ===
+        // =================================================
+        const THEMES = ["light", "medium-dark", "deep-dark"];
+        const htmlEl = document.documentElement;
+
+        function getNextTheme(currentTheme) {
+            const currentIndex = THEMES.indexOf(currentTheme);
+            const nextIndex = (currentIndex + 1) % THEMES.length;
+            return THEMES[nextIndex];
+        }
+
+        function updateIcons(theme) {
+            const sunDesktop = document.getElementById('theme-icon-sun');
+            const moonDesktop = document.getElementById('theme-icon-moon');
+            const sunMobile = document.getElementById('theme-icon-sun-mobile'); 
+            const moonMobile = document.getElementById('theme-icon-moon-mobile'); 
+            
+            const isLight = theme === 'light';
+
+            if (sunDesktop) sunDesktop.classList.toggle('hidden', !isLight);
+            if (moonDesktop) moonDesktop.classList.toggle('hidden', isLight);
+            
+            if (sunMobile) sunMobile.classList.toggle('hidden', !isLight);
+            if (moonMobile) moonMobile.classList.toggle('hidden', isLight);
+        }
+
+        function toggleTheme() {
+            const currentTheme = htmlEl.getAttribute('data-theme') || 'light';
+            const newTheme = getNextTheme(currentTheme);
+
+            htmlEl.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateIcons(newTheme);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const initialTheme = htmlEl.getAttribute('data-theme') || 'light';
+            updateIcons(initialTheme);
+            
+            const toggleButtonDesktop = document.getElementById('theme-toggle-btn');
+            const toggleButtonMobile = document.getElementById('theme-toggle-btn-mobile'); 
+
+            if (toggleButtonDesktop) toggleButtonDesktop.addEventListener('click', toggleTheme);
+            if (toggleButtonMobile) toggleButtonMobile.addEventListener('click', toggleTheme);
+        });
+        // =================================================
+
         // Mobile menu toggle
         const menuButton = document.getElementById('menu-button');
         const mobileMenu = document.getElementById('mobile-menu');
-        
+        const closeMenu = document.getElementById('close-menu');
+
         if (menuButton && mobileMenu) {
             menuButton.addEventListener('click', () => {
-                mobileMenu.classList.toggle('hidden');
+                mobileMenu.classList.remove('hidden');
+            });
+        }
+        if (closeMenu && mobileMenu) {
+            closeMenu.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
             });
         }
     </script>

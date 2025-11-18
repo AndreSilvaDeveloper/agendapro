@@ -1,67 +1,172 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="h-full" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <title>Novo Agendamento – <%= orgName %></title>
+    <title>Novo Agendamento – <%= (typeof orgName !== 'undefined') ? orgName : 'AgendaPro' %></title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <script>
+        (function() {
+            const THEMES = ["light", "medium-dark", "deep-dark"];
+            const savedTheme = localStorage.getItem('theme');
+            let initialTheme = 'light';
+
+            if (savedTheme && THEMES.includes(savedTheme)) {
+                initialTheme = savedTheme;
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                initialTheme = 'deep-dark';
+            }
+            document.documentElement.setAttribute('data-theme', initialTheme);
+        })();
+    </script>
+
     <style>
-        :root {
+        /* ================================================= */
+        /* === 1. DEFINIÇÃO DAS CORES PARA TRÊS TEMAS === */
+        /* ================================================= */
+
+        /* --- TEMA 1: LIGHT --- */
+        :root, [data-theme="light"] {
             --color-gold-light: #FFD700;
             --color-gold-dark: #B8860B;
             --color-gold-accent: #DAA520;
+            --color-bg-primary: #f3f4f6;
+            --color-bg-secondary: #ffffff;
+            --color-bg-muted: #f9fafb;     
+            --color-bg-accent-light: #FFFBEB;
+            --color-text-primary: #1f2937;
+            --color-text-secondary: #4b5563;
+            --color-text-accent: #B8860B;
+            --color-border: #e5e7eb;
+            --color-input-bg: #ffffff;
+            --color-input-border: #e5e7eb;
         }
-        .text-gold { color: var(--color-gold-dark); }
-        .bg-gold { background-color: var(--color-gold-accent); }
-        .border-gold { border-color: var(--color-gold-light); }
-        .ring-gold-dark { --tw-ring-color: var(--color-gold-dark); }
+
+        /* --- TEMA 2: MEDIUM DARK --- */
+        [data-theme="medium-dark"] {
+            --color-gold-light: #FFD700;
+            --color-gold-dark: #e0aa1f;
+            --color-gold-accent: #DAA520;
+            --color-bg-primary: #1f2937;
+            --color-bg-secondary: #374151;
+            --color-bg-muted: #4b5563;     
+            --color-bg-accent-light: #422c01;
+            --color-text-primary: #f9fafb;
+            --color-text-secondary: #d1d5db;
+            --color-text-accent: #e0aa1f;
+            --color-border: #4b5563;
+            --color-input-bg: #4b5563;
+            --color-input-border: #6b7280;
+        }
+
+        /* --- TEMA 3: DEEP DARK --- */
+        [data-theme="deep-dark"] {
+            --color-gold-light: #FFD700;
+            --color-gold-dark: #e0aa1f;
+            --color-gold-accent: #DAA520;
+            --color-bg-primary: #0a0e14;
+            --color-bg-secondary: #1f2937;
+            --color-bg-muted: #374151;
+            --color-bg-accent-light: #422c01;
+            --color-text-primary: #f9fafb;
+            --color-text-secondary: #d1d5db;
+            --color-text-accent: #e0aa1f;
+            --color-border: #4b5563;
+            --color-input-bg: #111827;
+            --color-input-border: #374151;
+        }
+
+        /* ================================================= */
+        /* === 2. ESTILOS BASE (Mapeamento) === */
+        /* ================================================= */
         
-        /* Foco do ícone dentro do input */
-        .input-group:focus-within .input-icon { color: var(--color-gold-dark); }
-        .form-select, .form-input { transition: all 0.2s ease-in-out; }
-
-        /* Melhora a aparência do input de data */
-        input[type="date"]::-webkit-calendar-picker-indicator {
-            cursor: pointer; opacity: 0.6;
-            filter: invert(0.6) sepia(1) saturate(5) hue-rotate(10deg);
+        body { 
+            height: 100%; 
+            overflow-y: auto; /* Permite rolagem natural */
+            display: flex; 
+            flex-direction: column; 
+            background-color: var(--color-bg-primary); 
+            color: var(--color-text-primary);
+            /* SVG pattern apenas no light mode (opcional) */
+            background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiIHZpZXdCb3g9IjAgMCA0IDQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9InRyYW5zcGFyZW50Ij48L3JlY3Q+PHJlY3Qgd2lkdGg9IjEiIGhlaWdodD0iMSIgZmlsbD0icmdiYSgwLDAsMCwwLjAzKSI+PC9yZWN0Pjwvc3ZnPg==");
         }
-        input[type="date"]:hover::-webkit-calendar-picker-indicator { opacity: 0.8; }
-        select:disabled, input:disabled { background-color: #f3f4f6; opacity: 0.7; cursor: not-allowed; }
+        [data-theme^="dark"] body {
+            background-image: none; /* Remove textura no dark mode para limpeza */
+        }
+        
+        /* Mapeamento */
+        .bg-white { background-color: var(--color-bg-secondary); }
+        .bg-gray-100 { background-color: var(--color-bg-primary); }
+        .bg-gray-50 { background-color: var(--color-bg-muted); }
+        .bg-gold { background-color: var(--color-gold-accent); }
+        
+        .border-gray-100, .border-gray-200 { border-color: var(--color-border); }
+        
+        .text-gray-800, .text-gray-900 { color: var(--color-text-primary); }
+        .text-gray-600, .text-gray-700 { color: var(--color-text-secondary); }
+        .text-gold { color: var(--color-text-accent); }
+        
+        /* Inputs Customizados */
+        .form-select, .form-input {
+            background-color: var(--color-input-bg);
+            color: var(--color-text-primary);
+            border-color: var(--color-input-border);
+            transition: all 0.2s ease-in-out;
+        }
+        .form-select:focus, .form-input:focus {
+            border-color: var(--color-gold-dark);
+            box-shadow: 0 0 0 2px var(--color-gold-light);
+            outline: none;
+        }
+        
+        /* Ícones dentro dos inputs */
+        .input-group:focus-within .input-icon { color: var(--color-gold-dark); }
+        .input-icon { color: var(--color-text-secondary); }
 
-        /* Animação de Fade-in */
+        /* Disabled states */
+        select:disabled, input:disabled { 
+            opacity: 0.6; 
+            cursor: not-allowed; 
+            background-color: var(--color-bg-muted);
+        }
+
+        /* Date Picker Inversion for Dark Mode */
+        [data-theme^="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
+
+        /* Animações */
         .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Efeito de Texto Gradiente */
-        .text-gradient-gold {
-            background: linear-gradient(90deg, #B8860B, #FFD700, #DAA520, #FFD700, #B8860B);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            background-clip: text; text-fill-color: transparent;
-            background-size: 200% auto; animation: text-shine 4s linear infinite;
-        }
-        @keyframes text-shine { from { background-position: 200% center; } to { background-position: 0% center; } }
-
-        /* Efeito de Brilho no Background */
-        .bg-shine-gold { position: relative; overflow: hidden; }
+        /* Efeito Shine */
+        .bg-shine-gold { position: relative; overflow: hidden; background-color: var(--color-gold-accent); }
         .bg-shine-gold::after {
-            content: ''; position: absolute; top: -10%; left: -75%;
-            width: 50%; height: 120%;
+            content: ''; position: absolute; top: -10%; left: -75%; width: 50%; height: 120%;
             background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
             transform: skewX(-25deg); animation: bg-shine 5s infinite linear;
         }
         @keyframes bg-shine { 0% { left: -75%; } 100% { left: 125%; } }
-
-        /* Fundo sutil */
-        body {
-          background-color: #f3f4f6;
-          background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiIHZpZXdCb3g9IjAgMCA0IDQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmM2Y0ZjYiPjwvcmVjdD48cmVjdCB3aWR0aD0iMSIgaGVpZ2h0PSIxIiBmaWxsPSIjZTJlNThlIj48L3JlY3Q+PC9zdmc+");
+        
+        .text-gradient-gold {
+             background: linear-gradient(90deg, #B8860B, #FFD700, #DAA520, #FFD700, #B8860B);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            background-size: 200% auto;
+            animation: text-shine 4s linear infinite;
         }
+        @keyframes text-shine { from { background-position: 200% center; } to { background-position: 0% center; } }
+
+        .ring-gold-dark { --tw-ring-color: var(--color-gold-dark); }
+
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen font-sans">
+<body class="font-sans antialiased">
 
-    <% /* ===== Helpers seguros para preço/ID e guards ===== */ %>
+    <% /* ===== Helpers ===== */ %>
     <%
       const toNumber = (v) => {
         if (v === null || v === undefined) return null;
@@ -84,48 +189,56 @@
         if (typeof obj === 'object') {
           if (obj._id) return String(obj._id);
           if (obj.id)  return String(obj.id);
-          try { return obj.toString ? String(obj.toString()) : ''; } catch(e){ return ''; }
         }
         try { return String(obj); } catch(e){ return ''; }
       };
       const list = Array.isArray(services) ? services : [];
     %>
 
-    <header class="bg-white shadow-sm border-b border-gray-100">
+    <header class="bg-white shadow-sm border-b border-gray-200 shrink-0 z-50">
         <nav class="container mx-auto max-w-2xl px-4 py-4 flex justify-between items-center">
             <div>
-                <h1 class="text-xl font-bold text-gradient-gold"><%= orgName %></h1>
-                <p class="text-sm text-gray-600">Novo Agendamento</p>
+                <h1 class="text-xl font-bold text-gradient-gold"><%= (typeof orgName !== 'undefined') ? orgName : 'AgendaPro' %></h1>
+                <p class="text-xs text-gray-600">Novo Agendamento</p>
             </div>
-            <a href="/portal/minha-area" 
-               class="flex items-center space-x-2 text-sm text-gray-600 hover:text-gold-dark transition-colors px-3 py-2 rounded-lg hover:bg-gray-100"
-               title="Voltar para Minha Área">
-                <i class="fas fa-arrow-left fa-lg"></i>
-                <span class="font-medium">Voltar</span>
-            </a>
+            
+            <div class="flex items-center gap-3">
+                <button id="theme-toggle-btn" class="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-600">
+                    <i id="theme-icon-sun" class="fas fa-sun"></i> 
+                    <i id="theme-icon-moon" class="fas fa-moon hidden"></i> 
+                </button>
+
+                <a href="/portal/minha-area" 
+                   class="flex items-center space-x-2 text-sm text-gray-600 hover:text-gold transition-colors px-3 py-2 rounded-lg hover:bg-gray-100"
+                   title="Voltar para Minha Área">
+                    <i class="fas fa-arrow-left"></i>
+                    <span class="font-medium hidden sm:inline">Voltar</span>
+                </a>
+            </div>
         </nav>
     </header>
 
-    <!-- Adicionado mb-8 para espaço inferior -->
-    <main class="container mx-auto max-w-2xl p-4 mt-8 mb-8">
+    <main class="flex-1 flex flex-col items-center p-4 mt-4 mb-8 w-full max-w-full">
 
-        <div class="bg-white rounded-2xl shadow-lg overflow-hidden animate-fade-in">
-            <div class="p-6 border-b border-gray-200">
+        <div class="w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden animate-fade-in border border-gray-200">
+            
+            <div class="p-6 border-b border-gray-200 bg-gray-50">
                 <h2 class="text-2xl font-bold text-gray-800 flex items-center">
-                    <i class="fas fa-calendar-plus text-gradient-gold mr-3"></i>
+                    <i class="fas fa-calendar-plus text-gold mr-3"></i>
                     Escolha seu Horário
                 </h2>
                 <p class="text-sm text-gray-600 mt-1">Siga os 4 passos para solicitar seu agendamento.</p>
             </div>
             
             <div class="p-6 sm:p-8">
-                <% if (error) { %>
+                
+                <% if (typeof error !== 'undefined' && error) { %>
                 <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
                     <p class="text-sm text-red-800 font-medium"><i class="fas fa-exclamation-triangle mr-2"></i><%= error %></p>
                 </div>
                 <% } %>
                 
-                <% if (success) { %>
+                <% if (typeof success !== 'undefined' && success) { %>
                 <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl">
                     <p class="text-sm text-green-800 font-medium"><i class="fas fa-check-circle mr-2"></i><%= success %></p>
                 </div>
@@ -139,10 +252,10 @@
                         </label>
                         <div class="relative input-group">
                             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
-                                <i class="fas fa-cut text-gray-400 input-icon transition-colors"></i>
+                                <i class="fas fa-cut input-icon"></i>
                             </span>
                             <select id="serviceId" name="serviceId" required
-                                    class="form-select w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-dark focus:border-gold-dark transition-all bg-white appearance-none">
+                                    class="form-select w-full pl-10 pr-10 py-3 rounded-xl border appearance-none">
                                 <option value="" disabled selected>-- Selecione um serviço --</option>
                                 <% list.forEach(service => { 
                                      const sid = safeId(service && (service._id || service.id || service));
@@ -163,10 +276,10 @@
                         </label>
                         <div class="relative input-group">
                             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
-                                <i class="fas fa-user-tie text-gray-400 input-icon transition-colors"></i>
+                                <i class="fas fa-user-tie input-icon"></i>
                             </span>
                             <select id="staffId" name="staffId" required disabled
-                                    class="form-select w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-dark focus:border-gold-dark transition-all bg-white appearance-none">
+                                    class="form-select w-full pl-10 pr-10 py-3 rounded-xl border appearance-none">
                                 <option value="" disabled selected>-- Selecione um serviço primeiro --</option>
                             </select>
                         </div>
@@ -178,11 +291,11 @@
                         </label>
                         <div class="relative input-group">
                             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
-                                <i class="fas fa-calendar-alt text-gray-400 input-icon transition-colors"></i>
+                                <i class="fas fa-calendar-alt input-icon"></i>
                             </span>
                             <input id="date" name="date" type="date" required disabled
                                    min="<%= new Date().toISOString().split('T')[0] %>" 
-                                   class="form-input w-full pl-10 px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-dark focus:border-gold-dark transition-all bg-white">
+                                   class="form-input w-full pl-10 px-4 py-3 rounded-xl border">
                         </div>
                     </div>
 
@@ -192,10 +305,10 @@
                         </label>
                         <div class="relative input-group">
                             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
-                                <i class="fas fa-clock text-gray-400 input-icon transition-colors"></i>
+                                <i class="fas fa-clock input-icon"></i>
                             </span>
                             <select id="time" name="time" required disabled
-                                    class="form-select w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gold-dark focus:border-gold-dark transition-all bg-white appearance-none">
+                                    class="form-select w-full pl-10 pr-10 py-3 rounded-xl border appearance-none">
                                 <option value="" disabled selected>-- Selecione o profissional e a data --</option>
                             </select>
                         </div>
@@ -205,13 +318,13 @@
 
                     <div class="pt-4">
                         <button type="submit" id="submitButton" disabled
-                                class="w-full bg-gold text-white py-4 px-6 rounded-xl font-bold text-lg transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 bg-shine-gold">
+                                class="w-full bg-gold text-white py-4 px-6 rounded-xl font-bold text-lg transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 bg-shine-gold shadow-lg">
                             <i class="fas fa-calendar-check mr-3"></i>
                             <span>Solicitar Agendamento</span>
                         </button>
                         <p class="text-xs text-gray-500 mt-3 text-center">
                             <i class="fas fa-info-circle mr-1"></i>
-                            Seu agendamento ficará pendente até ser confirmado pelo salão.
+                            Seu agendamento ficará pendente até ser confirmado.
                         </p>
                     </div>
                 </form>
@@ -219,17 +332,63 @@
         </div>
     </main>
 
-    <footer class="text-center py-8 mt-4">
+    <footer class="text-center py-6 shrink-0">
         <div class="container mx-auto max-w-2xl px-4">
-            <p class="text-sm text-gray-600">
+            <p class="text-xs text-gray-600">
                 <i class="fas fa-crown mr-1.5 text-gold"></i>
-                <%= orgName %> © <%= new Date().getFullYear() %>
+                <%= (typeof orgName !== 'undefined') ? orgName : 'AgendaPro' %> © <%= new Date().getFullYear() %>
             </p>
         </div>
     </footer>
 
     <script>
+        // =================================================
+        // === LÓGICA DE TEMA ===
+        // =================================================
+        const THEMES = ["light", "medium-dark", "deep-dark"];
+        const htmlEl = document.documentElement;
+
+        function getNextTheme(currentTheme) {
+            const currentIndex = THEMES.indexOf(currentTheme);
+            const nextIndex = (currentIndex + 1) % THEMES.length;
+            return THEMES[nextIndex];
+        }
+
+        function updateIcons(theme) {
+            const sun = document.getElementById('theme-icon-sun');
+            const moon = document.getElementById('theme-icon-moon');
+            
+            if (!sun || !moon) return;
+
+            const isLight = theme === 'light';
+            if (isLight) {
+                sun.classList.remove('hidden');
+                moon.classList.add('hidden');
+            } else {
+                sun.classList.add('hidden');
+                moon.classList.remove('hidden');
+            }
+        }
+
+        function toggleTheme() {
+            const currentTheme = htmlEl.getAttribute('data-theme') || 'light';
+            const newTheme = getNextTheme(currentTheme);
+
+            htmlEl.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateIcons(newTheme);
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
+            const initialTheme = htmlEl.getAttribute('data-theme') || 'light';
+            updateIcons(initialTheme);
+            
+            const toggleButton = document.getElementById('theme-toggle-btn');
+            if (toggleButton) toggleButton.addEventListener('click', toggleTheme);
+
+            // =================================================
+            // === LÓGICA DO FORMULÁRIO ===
+            // =================================================
             const serviceSelect = document.getElementById('serviceId');
             const staffSelect = document.getElementById('staffId');
             const dateInput = document.getElementById('date');
@@ -237,10 +396,12 @@
             const durationInput = document.getElementById('duration');
             const submitButton = document.getElementById('submitButton');
 
-            serviceSelect.addEventListener('change', handleServiceChange);
-            staffSelect.addEventListener('change', handleStaffOrDateChange);
-            dateInput.addEventListener('change', handleStaffOrDateChange);
-            timeSelect.addEventListener('change', handleTimeChange);
+            if(serviceSelect) {
+                serviceSelect.addEventListener('change', handleServiceChange);
+                staffSelect.addEventListener('change', handleStaffOrDateChange);
+                dateInput.addEventListener('change', handleStaffOrDateChange);
+                timeSelect.addEventListener('change', handleTimeChange);
+            }
 
             async function handleServiceChange() {
                 const serviceId = serviceSelect.value;
