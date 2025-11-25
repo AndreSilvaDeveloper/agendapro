@@ -95,7 +95,7 @@
             flex-direction: column; 
             background-color: var(--color-bg-primary); 
             color: var(--color-text-primary);
-            /* Imagem de fundo apenas no modo Light para dar textura */
+            /* SVG pattern apenas no light mode */
             background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiIHZpZXdCb3g9IjAgMCA0IDQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9InRyYW5zcGFyZW50Ij48L3JlY3Q+PHJlY3Qgd2lkdGg9IjEiIGhlaWdodD0iMSIgZmlsbD0icmdiYSgwLDAsMCwwLjAzKSI+PC9yZWN0Pjwvc3ZnPg==");
         }
         [data-theme^="dark"] body {
@@ -171,33 +171,27 @@
 </head>
 <body class="font-sans antialiased">
 
-    <% /* ===== Helpers (CORRIGIDO PARA PREÇOS) ===== */ %>
+    <% /* ===== Helpers ===== */ %>
     <%
       const toNumber = (v) => {
         if (v === null || v === undefined) return null;
         if (typeof v === 'number') return Number.isFinite(v) ? v : null;
         if (typeof v === 'string') {
           let s = v.trim().replace(/\s+/g, '').replace(/R\$/g, '');
-          
-          // Se tiver vírgula, assume formato BR (ex: 1.200,50 ou 35,00)
+          // Se tem vírgula, é formato BR
           if (s.includes(',')) {
              s = s.replace(/\./g, '').replace(',', '.');
           } 
-          // Se NÃO tiver vírgula, assume formato US/DB (ex: 1200.50 ou 35.00)
-          // OBS: Não removemos o ponto aqui para não transformar 35.00 em 3500
-          
           const parsed = parseFloat(s);
           return Number.isNaN(parsed) ? null : parsed;
         }
         return null;
       };
-
       const formatPriceBRL = (v) => {
         const n = toNumber(v);
         const safe = (n === null) ? 0 : n;
         return safe.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       };
-
       const safeId = (obj) => {
         if (!obj) return '';
         if (typeof obj === 'string') return obj;
@@ -434,7 +428,7 @@
                 }
 
                 try {
-                    const response = await fetch(`/api/portal/staff-by-service/${serviceId}`);
+                    const response = await fetch(`/api/admin/staff-by-service/${serviceId}`);
                     if (!response.ok) throw new Error('Erro ao buscar profissionais.');
                     const staffList = await response.json();
 

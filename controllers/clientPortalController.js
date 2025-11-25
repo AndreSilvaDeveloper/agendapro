@@ -381,7 +381,7 @@ exports.getStaffByService = async (req, res) => {
 
 /**
  * API GET /api/portal/available-times
- * (ATUALIZADO)
+ * (CORRIGIDO PARA SUPORTAR 2 TURNOS/ALMOÇO)
  */
 exports.getAvailableTimes = async (req, res) => {
   try {
@@ -402,10 +402,8 @@ exports.getAvailableTimes = async (req, res) => {
       return res.status(404).json({ error: 'Serviço ou profissional não encontrado.' });
     }
 
-    // === CORREÇÃO AQUI: BLINDAGEM CONTRA DADOS NULOS ===
+    // Blindagem contra dados nulos
     if (!staffMember.workingHours) {
-        console.warn(`Aviso: O profissional (ID ${staffId}) não tem horários de trabalho configurados.`);
-        // Retorna array vazio em vez de quebrar com erro 500
         return res.status(200).json([]); 
     }
 
@@ -415,18 +413,14 @@ exports.getAvailableTimes = async (req, res) => {
     }
     
     const dayName = targetDay.format('dddd').toLowerCase();
-    // Tenta acessar o dia. Se workingHours for nulo, o código acima já barrou.
-    // Se workingHours[dayName] for indefinido, workSchedule será undefined.
     const workSchedule = staffMember.workingHours[dayName]; 
 
-    // Se não houver configuração para aquele dia OU estiver marcado como folga OU faltar horário de início/fim
-    if (!workSchedule || workSchedule.isOff || !workSchedule.startTime || !workSchedule.endTime) {
+    // Se estiver marcado como folga ou não existir configuração para o dia
+    if (!workSchedule || workSchedule.isOff) {
       return res.status(200).json([]);
     }
-    // ====================================================
 
-    // 4. Pega os agendamentos existentes para verificar conflitos
-    // Usamos UTC para garantir que a busca no banco cubra o dia inteiro corretamente
+    // 2. Busca agendamentos existentes para verificar conflitos
     const startOfDay = targetDay.startOf('day').toDate(); 
     const endOfDay = targetDay.endOf('day').toDate();
 
@@ -440,64 +434,71 @@ exports.getAvailableTimes = async (req, res) => {
       attributes: ['date', 'duration']
     });
 
-    // 5. Gera os slots
-    const serviceDuration = service.duration || 60; // Fallback para 60 min se duração for nula
-    const slotInterval = 30;
+    const serviceDuration = service.duration || 60;
+    const slotInterval = 30; // Intervalo entre opções de horário
     const availableSlots = [];
-
-    // Cria objetos dayjs para o início e fim do expediente NO DIA ESPECÍFICO
     const dateString = targetDay.format('YYYY-MM-DD');
-    const openingTime = dayjs.tz(`${dateString}T${workSchedule.startTime}`, 'YYYY-MM-DDTHH:mm', tz);
-    const closingTime = dayjs.tz(`${dateString}T${workSchedule.endTime}`, 'YYYY-MM-DDTHH:mm', tz);
-    
-    let currentSlot = openingTime;
+    const now = dayjs().tz(tz);
 
-    // Loop para gerar horários
-    while (currentSlot.isBefore(closingTime)) {
-      const slotEnd = currentSlot.add(serviceDuration, 'minute');
+    // Função auxiliar para gerar slots de um período (Ex: Manhã ou Tarde)
+    const generateSlots = (startStr, endStr) => {
+        if (!startStr || !endStr) return;
 
-      // Se o serviço terminar depois do expediente, para.
-      if (slotEnd.isAfter(closingTime)) {
-        break;
-      }
+        const startTime = dayjs.tz(`${dateString}T${startStr}`, 'YYYY-MM-DDTHH:mm', tz);
+        const endTime = dayjs.tz(`${dateString}T${endStr}`, 'YYYY-MM-DDTHH:mm', tz);
+        
+        let currentSlot = startTime;
 
-      let isBooked = false;
-      // Verifica colisão com agendamentos existentes
-      for (const appt of existingAppointments) {
-        // Converte a data do banco (UTC) para o objeto dayjs com timezone correto
-        const apptStart = dayjs(appt.date).tz(tz);
-        const apptEnd = apptStart.add(appt.duration, 'minute');
+        while (currentSlot.isBefore(endTime)) {
+            const slotEnd = currentSlot.add(serviceDuration, 'minute');
 
-        // Lógica de Colisão:
-        // (Slot Novo Inicia ANTES do Fim do Existente) E (Slot Novo Termina DEPOIS do Início do Existente)
-        if (currentSlot.isBefore(apptEnd) && slotEnd.isAfter(apptStart)) {
-          isBooked = true;
-          break; 
+            // Se o serviço terminar depois do fim do expediente deste turno, pula
+            if (slotEnd.isAfter(endTime)) {
+                break;
+            }
+
+            let isBooked = false;
+            // Verifica colisão com agendamentos existentes
+            for (const appt of existingAppointments) {
+                const apptStart = dayjs(appt.date).tz(tz);
+                const apptEnd = apptStart.add(appt.duration, 'minute');
+
+                // Lógica de Colisão
+                if (currentSlot.isBefore(apptEnd) && slotEnd.isAfter(apptStart)) {
+                    isBooked = true;
+                    break; 
+                }
+            }
+
+            // Verifica se é horário passado (para o dia de hoje)
+            let isPast = false;
+            if (targetDay.isSame(now, 'day')) {
+                if (currentSlot.isBefore(now)) {
+                    isPast = true;
+                }
+            }
+
+            if (!isBooked && !isPast) {
+                availableSlots.push(currentSlot.format('HH:mm'));
+            }
+
+            currentSlot = currentSlot.add(slotInterval, 'minute');
         }
-      }
+    };
 
-      // Se não houver conflito e o horário for futuro (se for hoje)
-      if (!isBooked) {
-        const now = dayjs().tz(tz);
-        // Se a data selecionada for hoje, só mostra horários futuros
-        if (targetDay.isSame(now, 'day')) {
-             if (currentSlot.isAfter(now)) {
-                 availableSlots.push(currentSlot.format('HH:mm'));
-             }
-        } else {
-             // Se for dia futuro, mostra todos
-             availableSlots.push(currentSlot.format('HH:mm'));
-        }
-      }
+    // 3. Gera slots para o Turno 1 (Manhã)
+    generateSlots(workSchedule.startTime1, workSchedule.endTime1);
 
-      currentSlot = currentSlot.add(slotInterval, 'minute');
-    }
+    // 4. Gera slots para o Turno 2 (Tarde)
+    generateSlots(workSchedule.startTime2, workSchedule.endTime2);
 
-    res.status(200).json(availableSlots);
+    // Ordena e remove duplicatas (segurança extra)
+    const uniqueSlots = [...new Set(availableSlots)].sort();
+
+    res.status(200).json(uniqueSlots);
 
   } catch (err) {
     console.error('API Error: getAvailableTimes', err);
-    // Retorna JSON com erro para o frontend tratar, em vez de crashar ou timeout
     res.status(500).json({ error: 'Erro interno ao calcular horários.' });
   }
 };
