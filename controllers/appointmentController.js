@@ -39,44 +39,93 @@ function gerarHorariosDisponiveis(inicio = '07:00', fim = '20:00') {
 // --- Criar Agendamento (TOTALMENTE REESCRITO) ---
 exports.createAppointment = async (req, res) => {
   const organizationId = getOrgId(req);
-  const { clientId, date, time, duration, services, products, force, staffId } = req.body; // Adicionado staffId
+  const { clientId, date, time, services, products, force, staffId } = req.body;
 
   let transaction;
   try {
-    // Validações
-    if (!clientId || clientId.trim() === '') {
+    // 1. Validação básica de cliente
+    if (!clientId || String(clientId).trim() === '') {
       return res.redirect('/agendamentos-por-dia?error=Cliente não selecionado');
     }
-    // ATUALIZADO: Validação do Cliente
-    const client = await db.Client.findOne({ where: { id: clientId, organizationId: organizationId } });
+
+    // 2. Garante que o cliente existe nessa organização
+    const client = await db.Client.findOne({
+      where: { id: clientId, organizationId: organizationId }
+    });
     if (!client) {
       return res.redirect('/agendamentos-por-dia?error=Cliente não encontrado.');
     }
-    // TODO: Adicionar validação do Staff (db.Staff.findOne) se staffId for obrigatório
 
+    // 3. Parse de serviços / produtos
     const parsedServices = services ? JSON.parse(services) : [];
     const parsedProducts = products ? JSON.parse(products) : [];
 
-    const start = dayjs.tz(`${date}T${time}`, 'America/Sao_Paulo').toDate();
-    const dur = parseInt(duration, 10);
-    const end = new Date(start.getTime() + dur * 60000);
+    // 4. Montagem segura do START
+    // *** Aqui garantimos que date/time são válidos ***
+    const startDayjs = dayjs.tz(`${date}T${time}`, 'America/Sao_Paulo');
+    if (!startDayjs.isValid()) {
+      console.error('[createAppointment] Data/hora inválidas recebidas:', { date, time, body: req.body });
+      return res.redirect(
+        `/agendamentos-por-dia?error=${encodeURIComponent('Data ou hora do agendamento inválida.')}`
+      );
+    }
+    const start = startDayjs.toDate();
 
-    // ATUALIZADO: Verificação de conflito (com SQL nativo do Postgres)
+    // 5. Normalização da duração (pensando nos "outros fronts")
+    // *** aceita vários nomes e protege contra NaN ***
+    const rawDuration =
+      req.body.duration ??
+      req.body.totalDuration ??   // caso algum front mande assim
+      req.body.duracao ??         // outro nome possível
+      null;
+
+    let dur = parseInt(rawDuration, 10);
+
+    if (Number.isNaN(dur) || dur <= 0) {
+      // Aqui você escolhe a política:
+      //  - ou dá erro amigável
+      //  - ou cai num padrão (ex: 30min) para manter compatibilidade
+      console.warn('[createAppointment] Duração inválida, caindo para 30 minutos.', {
+        rawDuration,
+        body: {
+          clientId,
+          date,
+          time,
+          staffId
+        }
+      });
+      dur = 30; // *** se preferir obrigar, troque por um redirect com erro ***
+      // return res.redirect(`/agendamentos-por-dia?error=${encodeURIComponent('Duração inválida.')}`);
+    }
+
+    const endDayjs = startDayjs.add(dur, 'minute');
+    if (!endDayjs.isValid()) {
+      console.error('[createAppointment] endDayjs inválido mesmo após normalizar duração.', {
+        start: start,
+        dur
+      });
+      return res.redirect(
+        `/agendamentos-por-dia?error=${encodeURIComponent('Erro ao calcular horário final do agendamento.')}`
+      );
+    }
+    const end = endDayjs.toDate();
+
+    // 6. Verificação de conflito (sem mais 'Invalid date')
     // Lógica: (appt.start < new.end) AND (appt.end > new.start)
+    // appt.end = date + duration * 1min
     const conflict = await db.Appointment.findOne({
       where: {
         organizationId: organizationId,
-        staffId: staffId, // Verifica conflito PARA O PROFISSIONAL
+        staffId: staffId,
         date: { [Op.lt]: end }, // appt.start < new.end
-        // appt.end > new.start
-        [Op.and]: db.sequelize.literal(`"date" + ("duration" * interval '1 minute') > :start`)
-      },
-      replacements: { start: start } // 'replacements' para evitar SQL injection
+        [Op.and]: db.sequelize.literal(
+          `"date" + ("duration" * interval '1 minute') > ${db.sequelize.escape(start)}`
+        ) // appt.end > new.start
+      }
     });
 
     if (conflict && !force) {
-      // Script de confirmação (sem alteração, mas precisa passar staffId)
-      const data = { clientId, date, time, duration, services, products, force: true, staffId };
+      const data = { clientId, date, time, duration: dur, services, products, force: true, staffId };
       return res.send(`
 <!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Confirmar</title></head><body>
 <script>
@@ -93,49 +142,51 @@ if (confirm("⚠️ Conflito de horário para este profissional. Agendar mesmo a
 } else history.back();
 </script></body></html>`);
     }
-    
-    // ATUALIZADO: Criação com Transação
-    // Substitui Appointment.create() com subdocumentos
-    await db.sequelize.transaction(async (t) => {
-      // 1. Cria o Agendamento principal
-      const newAppt = await db.Appointment.create({
-        organizationId: organizationId,
-        clientId,
-        staffId, // Salva o profissional
-        date: start,
-        duration: dur,
-        status: 'confirmado' // O admin cria como 'confirmado'
-      }, { transaction: t });
 
-      // 2. Cria os Serviços do Agendamento (se houver)
+    // 7. Criação do agendamento + subitens em transação
+    await db.sequelize.transaction(async (t) => {
+      const newAppt = await db.Appointment.create(
+        {
+          organizationId: organizationId,
+          clientId,
+          staffId,
+          date: start,
+          duration: dur,
+          status: 'confirmado'
+        },
+        { transaction: t }
+      );
+
       if (parsedServices && parsedServices.length > 0) {
-        const apptServices = parsedServices.map(s => ({
+        const apptServices = parsedServices.map((s) => ({
           name: s.name,
           price: s.price,
-          serviceId: s.serviceId || null, // Link para o catálogo (opcional)
-          appointmentId: newAppt.id // Link para o agendamento
+          serviceId: s.serviceId || null,
+          appointmentId: newAppt.id
         }));
         await db.AppointmentService.bulkCreate(apptServices, { transaction: t });
       }
 
-      // 3. Cria os Produtos do Agendamento (se houver)
       if (parsedProducts && parsedProducts.length > 0) {
-        const apptProducts = parsedProducts.map(p => ({
+        const apptProducts = parsedProducts.map((p) => ({
           name: p.name,
           price: p.price,
-          appointmentId: newAppt.id // Link para o agendamento
+          appointmentId: newAppt.id
         }));
         await db.AppointmentProduct.bulkCreate(apptProducts, { transaction: t });
       }
     });
-    
+
     const hourFormatted = dayjs(start).tz('America/Sao_Paulo').format('HH:mm');
     res.redirect(`/agendamentos-por-dia?success=${hourFormatted}`);
   } catch (err) {
-    console.error("Erro ao criar agendamento:", err);
-    res.redirect(`/agendamentos-por-dia?error=${encodeURIComponent('Erro ao salvar agendamento.')}`);
+    console.error('Erro ao criar agendamento:', err);
+    res.redirect(
+      `/agendamentos-por-dia?error=${encodeURIComponent('Erro ao salvar agendamento.')}`
+    );
   }
 };
+
 
 // --- Remover Serviço / Produto (ATUALIZADO) ---
 exports.removeServiceFromAppointment = async (req, res) => {

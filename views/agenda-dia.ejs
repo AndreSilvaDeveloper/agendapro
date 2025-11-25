@@ -804,58 +804,58 @@
 
     // Submissão do formulário de agendamento (junta dados do serviço)
     document.querySelector('#modalAgendamento form').addEventListener('submit', function(e) {
-        const clientIdHidden = document.getElementById('clientId');
-        const clientSearchInput = document.getElementById('clientSearch');
-        if (!clientIdHidden || !clientSearchInput) return;
+    const clientIdHidden = document.getElementById('clientId');
+    const clientSearchInput = document.getElementById('clientSearch');
+    if (!clientIdHidden || !clientSearchInput) return;
 
-        const clientId = clientIdHidden.value;
-        const clientName = clientSearchInput.value;
+    const clientId = clientIdHidden.value;
 
-        // Verifica se o cliente foi selecionado corretamente
-        const clientExists = Array.isArray(clients) ? clients.find(c => c && c.id === clientId && c.name === clientName) : null;
-        if (!clientId || !clientExists) {
-            e.preventDefault();
-            Swal.fire({
-                icon: 'error',
-                title: 'Cliente Inválido',
-                text: 'Por favor, digite o nome e SELECIONE um cliente da lista antes de agendar.',
-                confirmButtonColor: '#ef4444',
-                background: 'var(--color-bg-secondary)',
-                color: 'var(--color-text-primary)'
-            });
-            clientSearchInput.focus();
-            return false;
-        }
+    // Se não tiver ID, é porque não clicou em nenhum item da lista
+    if (!clientId) {
+        e.preventDefault();
+        Swal.fire({
+            icon: 'error',
+            title: 'Cliente Inválido',
+            text: 'Por favor, digite o nome e SELECIONE um cliente da lista antes de agendar.',
+            confirmButtonColor: '#ef4444',
+            background: 'var(--color-bg-secondary)'
+        });
+        clientSearchInput.focus();
+        return false;
+    }
 
-        const selectedService = serviceSelect.selectedOptions[0];
-        if (!selectedService) {
-            e.preventDefault();
-            Swal.fire({
-                icon: 'error',
-                title: 'Serviço obrigatório',
-                text: 'Selecione um serviço antes de agendar.',
-                confirmButtonColor: '#ef4444',
-                background: 'var(--color-bg-secondary)',
-                color: 'var(--color-text-primary)'
-            });
-            serviceSelect.focus();
-            return false;
-        }
+    // (Opcional) Confere se o ID existe na lista vinda do servidor, sem comparar nome
+    const clientExists = Array.isArray(clients)
+        ? clients.find(c => c && String(c.id) === String(clientId))
+        : null;
 
-        const serviceName = selectedService.dataset.name;
-        const servicePrice = priceInput.value;
-        const serviceDuration = durationInput.value;
+    if (!clientExists) {
+        e.preventDefault();
+        Swal.fire({
+            icon: 'error',
+            title: 'Cliente Inválido',
+            text: 'O cliente selecionado não foi encontrado na base de dados.',
+            confirmButtonColor: '#ef4444',
+            background: 'var(--color-bg-secondary)'
+        });
+        clientSearchInput.focus();
+        return false;
+    }
 
-        const serviceData = [{
-            id: selectedService.value,
-            name: serviceName,
-            price: parseFloat(servicePrice),
-            duration: parseInt(serviceDuration)
-        }];
+    // DAQUI PRA BAIXO mantém igual ao que você já tem (serviço, preço, duração, etc.)
+    const serviceName = document.getElementById('serviceName').value;
+    const servicePrice = document.getElementById('servicePrice').value;
+    const serviceDuration = document.getElementById('serviceDuration').value;
 
-        document.getElementById('servicesInput').value = JSON.stringify(serviceData);
-        document.getElementById('durationInput').value = serviceDuration;
-    });
+    const serviceData = [{
+        name: serviceName,
+        price: parseFloat(servicePrice),
+        duration: parseInt(serviceDuration)
+    }];
+
+    document.getElementById('servicesInput').value = JSON.stringify(serviceData);
+    document.getElementById('durationInput').value = serviceDuration;
+});
 </script>
 </body>
 </html>
