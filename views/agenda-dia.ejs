@@ -88,15 +88,14 @@
         
         /* Mapeamento de Classes Tailwind para Variáveis CSS */
         .bg-white, .bg-gray-800 { background-color: var(--color-bg-secondary); }
-        .bg-gray-50, .bg-gray-700\/30, .bg-gray-100 { background-color: var(--color-bg-muted); } /* .bg-gray-100 usado no alerta */
+        .bg-gray-50, .bg-gray-700\/30, .bg-gray-100 { background-color: var(--color-bg-muted); }
         .bg-gold-light { background-color: var(--color-bg-accent-light); }
         
         .border-gray-200, .border-gray-700 { border-color: var(--color-border); }
         .border-gray-300, .border-gray-600 { border-color: var(--color-border); }
         
         .text-gray-900, .text-gray-800 { color: var(--color-text-primary); }
-        .text-gray-600, .text-gray-700 { color: var(--color-text-secondary); }
-        .text-gray-500 { color: var(--color-text-secondary); }
+        .text-gray-600, .text-gray-700, .text-gray-500 { color: var(--color-text-secondary); }
         
         /* Link Mobile */
         .mobile-nav-link { 
@@ -151,6 +150,21 @@
         .past-badge { background-color: #f3f4f6; color: #4b5563; }
 
         .compact-card-body { flex-grow: 1; overflow-y: auto; min-height: 0; }
+
+        /* ===== Sugestões de Cliente (visíveis em qualquer tema) ===== */
+        #clientSuggestions {
+            background-color: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            color: var(--color-text-primary);
+            z-index: 50;
+        }
+        #clientSuggestions li {
+            color: var(--color-text-primary);
+        }
+        #clientSuggestions li:hover {
+            background-color: var(--color-bg-muted);
+            color: var(--color-text-accent);
+        }
     </style>
 </head>
 <body class="font-sans antialiased">
@@ -444,43 +458,62 @@
             </div>
         </div>
 
+        <!-- MODAL AGENDAMENTO -->
         <div id="modalAgendamento" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] hidden">
-            <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-2xl border border-gray-300 animate-fade-in-up">
-                <h2 class="text-lg font-bold mb-4 text-gray-800 flex items-center"><i class="fas fa-calendar-plus mr-2 text-gold"></i> Agendar Horário</h2>
+            <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-2xl border border-gray-300 animate-fade-in-up" style="background-color: var(--color-bg-secondary); border-color: var(--color-border);">
+                <h2 class="text-lg font-bold mb-4 text-gray-800 flex items-center" style="color: var(--color-text-primary);">
+                    <i class="fas fa-calendar-plus mr-2 text-gold"></i> Agendar Horário
+                </h2>
                 <form action="/appointment" method="POST">
                     <input type="hidden" id="modalDate" name="date">
                     <input type="hidden" id="modalTime" name="time">
 
-                    <div class="mb-4">
-                        <label for="clientSearch" class="block text-sm font-medium text-gray-700">Cliente:</label>
-                        <input type="text" id="clientSearch" class="w-full p-2 border border-gray-300 bg-gray-50 rounded focus:ring-1 focus:ring-gold" placeholder="Digite o nome do cliente..." autocomplete="off" required>
+                    <!-- CLIENTE -->
+                    <div class="mb-4 relative">
+                        <label for="clientSearch" class="block text-sm font-medium text-gray-700" style="color: var(--color-text-secondary);">Cliente:</label>
+                        <input type="text" id="clientSearch" class="w-full p-2 border border-gray-300 bg-gray-50 rounded focus:ring-1 focus:ring-gold" placeholder="Digite o nome do cliente..." autocomplete="off" required style="background-color: var(--color-bg-muted); color: var(--color-text-primary); border-color: var(--color-border);">
                         <input type="hidden" name="clientId" id="clientId">
-                        <ul id="clientSuggestions" class="absolute border border-gray-300 rounded mt-1 bg-white max-h-40 overflow-y-auto w-full z-10 hidden"></ul>
+                        <ul id="clientSuggestions" class="absolute left-0 right-0 mt-1 border border-gray-300 rounded bg-white max-h-40 overflow-y-auto z-50 hidden shadow-lg"></ul>
                     </div>
 
+                    <!-- SERVIÇO / PRODUTO -->
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700">Serviço/Produto:</label>
-                        <input type="text" id="serviceName" class="w-full p-2 border border-gray-300 bg-gray-50 rounded mb-2 focus:ring-1 focus:ring-gold" placeholder="Nome do serviço" required>
-                        <input type="number" id="servicePrice" class="w-full p-2 border border-gray-300 bg-gray-50 rounded mb-2 focus:ring-1 focus:ring-gold" placeholder="Preço (R$)" required step="0.01">
-                        <input type="number" id="serviceDuration" class="w-full p-2 border border-gray-300 bg-gray-50 rounded focus:ring-1 focus:ring-gold" placeholder="Duração (min)" required>
+                        <label class="block text-sm font-medium text-gray-700" style="color: var(--color-text-secondary);">Serviço/Produto:</label>
+                        <select id="serviceSelect" class="w-full p-2 border border-gray-300 bg-gray-50 rounded mb-2 focus:ring-1 focus:ring-gold" style="background-color: var(--color-bg-muted); color: var(--color-text-primary); border-color: var(--color-border);" required>
+                            <option value="">Selecione o serviço</option>
+                            <% if (typeof services !== 'undefined' && services && services.length) { %>
+                                <% services.forEach(function(s) { %>
+                                    <option 
+                                        value="<%= s.id %>" 
+                                        data-name="<%= s.name %>" 
+                                        data-price="<%= s.price %>" 
+                                        data-duration="<%= s.duration %>">
+                                        <%= s.name %>
+                                    </option>
+                                <% }); %>
+                            <% } %>
+                        </select>
+
+                        <div class="flex gap-2">
+                            <input type="number" id="servicePrice" class="w-1/2 p-2 border border-gray-300 bg-gray-50 rounded focus:ring-1 focus:ring-gold" placeholder="Preço (R$)" required step="0.01" style="background-color: var(--color-bg-muted); color: var(--color-text-primary); border-color: var(--color-border);">
+                            <input type="number" id="serviceDuration" class="w-1/2 p-2 border border-gray-300 bg-gray-50 rounded focus:ring-1 focus:ring-gold" placeholder="Duração (min)" required style="background-color: var(--color-bg-muted); color: var(--color-text-primary); border-color: var(--color-border);">
+                        </div>
+
                         <input type="hidden" name="services" id="servicesInput">
                         <input type="hidden" name="duration" id="durationInput">
                     </div>
                     
+                    <!-- PROFISSIONAL -->
                     <div class="mb-4">
-                         <label class="block text-sm font-medium text-gray-700" for="staffId">Profissional:</label>
-                         <select id="staffId" name="staffId" class="w-full p-2 border border-gray-300 bg-gray-50 rounded focus:ring-1 focus:ring-gold" required>
+                         <label class="block text-sm font-medium text-gray-700" for="staffId" style="color: var(--color-text-secondary);">Profissional:</label>
+                         <select id="staffId" name="staffId" class="w-full p-2 border border-gray-300 bg-gray-50 rounded focus:ring-1 focus:ring-gold" required style="background-color: var(--color-bg-muted); color: var(--color-text-primary); border-color: var(--color-border);">
                              <option value="">Selecione o Profissional</option>
-                             <% if (typeof staffList !== 'undefined') { %>
-                                 <% staffList.forEach(staff => { %>
-                                     <option value="<%= staff.id %>"><%= staff.name %></option>
-                                 <% }); %>
-                             <% } %>
+                             <!-- será preenchido dinamicamente conforme o serviço -->
                          </select>
                     </div>
 
                     <div class="flex justify-end gap-4 mt-6">
-                        <button type="button" onclick="fecharModal()" class="text-gray-500 hover:text-gray-700">Cancelar</button>
+                        <button type="button" onclick="fecharModal()" class="text-gray-500 hover:text-gray-700" style="color: var(--color-text-secondary);">Cancelar</button>
                         <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors">Agendar</button>
                     </div>
                 </form>
@@ -594,9 +627,7 @@
             }
         }
         
-        // ======================================================
-        // ===  ALERTA DE AGENDAMENTOS PENDENTES (ATUALIZADO) ===
-        // ======================================================
+        // ALERTA DE AGENDAMENTOS PENDENTES
         const pendingDataElement = document.getElementById('pending-data');
         if (pendingDataElement) {
             try {
@@ -645,7 +676,7 @@
         }
     });
 
-    // Função para pedir o motivo do cancelamento
+    // Motivo do cancelamento
     function promptCancelReason(form) {
         const reason = prompt("Por favor, insira o motivo do cancelamento:");
         if (reason === null || reason.trim() === "") {
@@ -660,15 +691,20 @@
         return true;
     }
 
-    // Lógica do Modal de Agendamento
+    // ========= LÓGICA DO MODAL DE AGENDAMENTO =========
     const modal = document.getElementById('modalAgendamento');
     const clientSearch = document.getElementById('clientSearch');
     const clientSuggestions = document.getElementById('clientSuggestions');
     const clientIdInput = document.getElementById('clientId');
+    const serviceSelect = document.getElementById('serviceSelect');
+    const priceInput = document.getElementById('servicePrice');
+    const durationInput = document.getElementById('serviceDuration');
+    const staffSelect = document.getElementById('staffId');
+
     let clients = [];
     try {
         const raw = document.getElementById('clients-data').dataset.clients;
-        clients = JSON.parse(raw);
+        clients = JSON.parse(raw || '[]');
     } catch(e) { console.error("Erro ao carregar clientes:", e); }
 
     function abrirModal(date, time) {
@@ -682,9 +718,10 @@
         clientSuggestions.classList.add('hidden');
         clientSearch.value = '';
         clientIdInput.value = '';
-        document.getElementById('serviceName').value = '';
-        document.getElementById('servicePrice').value = '';
-        document.getElementById('serviceDuration').value = '';
+        serviceSelect.value = '';
+        priceInput.value = '';
+        durationInput.value = '';
+        staffSelect.innerHTML = '<option value="">Selecione o Profissional</option>';
     }
 
     // Pesquisa de Clientes
@@ -702,10 +739,10 @@
         );
 
         if (filteredClients.length > 0) {
-            clientSuggestions.style.width = clientSearch.offsetWidth + 'px'; 
             filteredClients.forEach(client => {
                 const li = document.createElement('li');
-                li.className = 'p-2 cursor-pointer hover:bg-gray-100 text-gray-800 text-sm';
+                li.className = 'p-2 cursor-pointer text-sm border-b border-gray-100 last:border-0';
+                li.textContent = client.name;
                 li.onclick = () => {
                     clientSearch.value = client.name;
                     clientIdInput.value = client.id;
@@ -716,6 +753,52 @@
             clientSuggestions.classList.remove('hidden');
         } else {
             clientSuggestions.classList.add('hidden');
+        }
+    });
+
+    // ====== Serviço selecionado -> preenche preço/duração + filtra profissionais ======
+    serviceSelect.addEventListener('change', async function() {
+        const opt = this.selectedOptions[0];
+        const serviceId = this.value;
+
+        // Preencher preço e duração pelos data-* do option
+        if (opt) {
+            priceInput.value = opt.dataset.price || '';
+            durationInput.value = opt.dataset.duration || '';
+        } else {
+            priceInput.value = '';
+            durationInput.value = '';
+        }
+
+        // Resetar profissionais
+        staffSelect.innerHTML = '<option value="">Selecione o Profissional</option>';
+
+        if (!serviceId) return;
+
+        try {
+            // IMPORTANTE: garanta que exista a rota:
+            // router.get('/api/admin/staff-by-service/:serviceId', isAuthenticated, clientPortalController.getStaffByService);
+            const res = await fetch(`/api/admin/staff-by-service/${serviceId}`);
+            if (!res.ok) throw new Error('Erro ao buscar profissionais');
+            const staffList = await res.json();
+
+            if (Array.isArray(staffList)) {
+                staffList.forEach(s => {
+                    const optStaff = document.createElement('option');
+                    optStaff.value = s.id;
+                    optStaff.textContent = s.name;
+                    staffSelect.appendChild(optStaff);
+                });
+            }
+        } catch (err) {
+            console.error('Erro ao carregar profissionais por serviço:', err);
+            Swal.fire({
+                icon: 'error',
+                title: 'Erro',
+                text: 'Não foi possível carregar os profissionais para este serviço.',
+                background: 'var(--color-bg-secondary)',
+                color: 'var(--color-text-primary)'
+            });
         }
     });
 
@@ -737,18 +820,34 @@
                 title: 'Cliente Inválido',
                 text: 'Por favor, digite o nome e SELECIONE um cliente da lista antes de agendar.',
                 confirmButtonColor: '#ef4444',
-                background: 'var(--color-bg-secondary)'
+                background: 'var(--color-bg-secondary)',
+                color: 'var(--color-text-primary)'
             });
             clientSearchInput.focus();
             return false;
         }
 
+        const selectedService = serviceSelect.selectedOptions[0];
+        if (!selectedService) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'error',
+                title: 'Serviço obrigatório',
+                text: 'Selecione um serviço antes de agendar.',
+                confirmButtonColor: '#ef4444',
+                background: 'var(--color-bg-secondary)',
+                color: 'var(--color-text-primary)'
+            });
+            serviceSelect.focus();
+            return false;
+        }
 
-        const serviceName = document.getElementById('serviceName').value;
-        const servicePrice = document.getElementById('servicePrice').value;
-        const serviceDuration = document.getElementById('serviceDuration').value;
+        const serviceName = selectedService.dataset.name;
+        const servicePrice = priceInput.value;
+        const serviceDuration = durationInput.value;
 
         const serviceData = [{
+            id: selectedService.value,
             name: serviceName,
             price: parseFloat(servicePrice),
             duration: parseInt(serviceDuration)
@@ -756,7 +855,6 @@
 
         document.getElementById('servicesInput').value = JSON.stringify(serviceData);
         document.getElementById('durationInput').value = serviceDuration;
-
     });
 </script>
 </body>

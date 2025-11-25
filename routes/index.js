@@ -65,6 +65,12 @@ router.get(
 );
 
 router.get(
+  '/api/admin/staff-by-service/:serviceId',
+  isAuthenticated,
+  clientPortalController.getStaffByService
+);
+
+router.get(
   '/api/portal/available-times',
   clientAuthMiddleware,
   clientPortalController.getAvailableTimes
