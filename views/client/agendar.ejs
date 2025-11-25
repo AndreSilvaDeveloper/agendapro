@@ -36,9 +36,11 @@
             --color-bg-secondary: #ffffff;
             --color-bg-muted: #f9fafb;     
             --color-bg-accent-light: #FFFBEB;
+            --color-bg-accent-dark: #fefce8;
             --color-text-primary: #1f2937;
             --color-text-secondary: #4b5563;
             --color-text-accent: #B8860B;
+            --color-text-accent-muted: #b45309;
             --color-border: #e5e7eb;
             --color-input-bg: #ffffff;
             --color-input-border: #e5e7eb;
@@ -53,9 +55,11 @@
             --color-bg-secondary: #374151;
             --color-bg-muted: #4b5563;     
             --color-bg-accent-light: #422c01;
+            --color-bg-accent-dark: #423001;
             --color-text-primary: #f9fafb;
             --color-text-secondary: #d1d5db;
             --color-text-accent: #e0aa1f;
+            --color-text-accent-muted: #fde047;
             --color-border: #4b5563;
             --color-input-bg: #4b5563;
             --color-input-border: #6b7280;
@@ -70,9 +74,11 @@
             --color-bg-secondary: #1f2937;
             --color-bg-muted: #374151;
             --color-bg-accent-light: #422c01;
+            --color-bg-accent-dark: #423001;
             --color-text-primary: #f9fafb;
             --color-text-secondary: #d1d5db;
             --color-text-accent: #e0aa1f;
+            --color-text-accent-muted: #fde047;
             --color-border: #4b5563;
             --color-input-bg: #111827;
             --color-input-border: #374151;
@@ -84,16 +90,16 @@
         
         body { 
             height: 100%; 
-            overflow-y: auto; /* Permite rolagem natural */
+            overflow-y: auto; 
             display: flex; 
             flex-direction: column; 
             background-color: var(--color-bg-primary); 
             color: var(--color-text-primary);
-            /* SVG pattern apenas no light mode (opcional) */
+            /* Imagem de fundo apenas no modo Light para dar textura */
             background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiIHZpZXdCb3g9IjAgMCA0IDQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9InRyYW5zcGFyZW50Ij48L3JlY3Q+PHJlY3Qgd2lkdGg9IjEiIGhlaWdodD0iMSIgZmlsbD0icmdiYSgwLDAsMCwwLjAzKSI+PC9yZWN0Pjwvc3ZnPg==");
         }
         [data-theme^="dark"] body {
-            background-image: none; /* Remove textura no dark mode para limpeza */
+            background-image: none;
         }
         
         /* Mapeamento */
@@ -121,7 +127,6 @@
             outline: none;
         }
         
-        /* Ícones dentro dos inputs */
         .input-group:focus-within .input-icon { color: var(--color-gold-dark); }
         .input-icon { color: var(--color-text-secondary); }
 
@@ -166,23 +171,33 @@
 </head>
 <body class="font-sans antialiased">
 
-    <% /* ===== Helpers ===== */ %>
+    <% /* ===== Helpers (CORRIGIDO PARA PREÇOS) ===== */ %>
     <%
       const toNumber = (v) => {
         if (v === null || v === undefined) return null;
         if (typeof v === 'number') return Number.isFinite(v) ? v : null;
         if (typeof v === 'string') {
-          const cleaned = v.trim().replace(/\s+/g, '').replace(/\./g, '').replace(/,/g, '.');
-          const parsed = parseFloat(cleaned);
+          let s = v.trim().replace(/\s+/g, '').replace(/R\$/g, '');
+          
+          // Se tiver vírgula, assume formato BR (ex: 1.200,50 ou 35,00)
+          if (s.includes(',')) {
+             s = s.replace(/\./g, '').replace(',', '.');
+          } 
+          // Se NÃO tiver vírgula, assume formato US/DB (ex: 1200.50 ou 35.00)
+          // OBS: Não removemos o ponto aqui para não transformar 35.00 em 3500
+          
+          const parsed = parseFloat(s);
           return Number.isNaN(parsed) ? null : parsed;
         }
         return null;
       };
+
       const formatPriceBRL = (v) => {
         const n = toNumber(v);
         const safe = (n === null) ? 0 : n;
         return safe.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       };
+
       const safeId = (obj) => {
         if (!obj) return '';
         if (typeof obj === 'string') return obj;
@@ -448,8 +463,14 @@
                 resetSelect(timeSelect, '-- Carregando horários... --');
                 try {
                     const params = new URLSearchParams({ serviceId, staffId, date });
+                    // Dica para debug do erro 500: olhar a resposta completa no console
                     const response = await fetch(`/api/portal/available-times?${params}`);
-                    if (!response.ok) throw new Error('Erro ao buscar horários.');
+                    
+                    if (!response.ok) {
+                        const errText = await response.text();
+                        console.error('Erro do servidor (500):', errText);
+                        throw new Error('Erro no servidor ao buscar horários.');
+                    }
 
                     const availableSlots = await response.json();
                     if (Array.isArray(availableSlots) && availableSlots.length > 0) {
