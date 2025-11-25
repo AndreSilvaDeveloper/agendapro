@@ -392,7 +392,7 @@ exports.getAvailableTimes = async (req, res) => {
       return res.status(400).json({ error: 'Parâmetros inválidos.' });
     }
 
-    // 2. (ATUALIZADO) Busca de dados essenciais
+    // 1. Busca os dados
     const [service, staffMember] = await Promise.all([
       db.Service.findByPk(serviceId, { attributes: ['duration'] }),
       db.Staff.findByPk(staffId, { attributes: ['workingHours'] })
@@ -402,18 +402,32 @@ exports.getAvailableTimes = async (req, res) => {
       return res.status(404).json({ error: 'Serviço ou profissional não encontrado.' });
     }
 
-    // 3. (ATUALIZADO) Verifica o horário de trabalho (JSONB)
-    const targetDay = dayjs.tz(date, 'YYYY-MM-DD', tz);
-    const dayName = targetDay.format('dddd').toLowerCase();
-    // ATUALIZADO: staffMember.workingHours.get(dayName) -> staffMember.workingHours[dayName]
-    const workSchedule = staffMember.workingHours[dayName]; 
-
-    if (!workSchedule || workSchedule.isOff) {
-      return res.status(200).json([]);
+    // === CORREÇÃO AQUI: BLINDAGEM CONTRA DADOS NULOS ===
+    if (!staffMember.workingHours) {
+        console.warn(`Aviso: O profissional (ID ${staffId}) não tem horários de trabalho configurados.`);
+        // Retorna array vazio em vez de quebrar com erro 500
+        return res.status(200).json([]); 
     }
 
-    // 4. (ATUALIZADO) Pega os agendamentos existentes
-    const startOfDay = targetDay.startOf('day').toDate();
+    const targetDay = dayjs.tz(date, 'YYYY-MM-DD', tz);
+    if (!targetDay.isValid()) {
+        return res.status(400).json({ error: 'Data inválida.' });
+    }
+    
+    const dayName = targetDay.format('dddd').toLowerCase();
+    // Tenta acessar o dia. Se workingHours for nulo, o código acima já barrou.
+    // Se workingHours[dayName] for indefinido, workSchedule será undefined.
+    const workSchedule = staffMember.workingHours[dayName]; 
+
+    // Se não houver configuração para aquele dia OU estiver marcado como folga OU faltar horário de início/fim
+    if (!workSchedule || workSchedule.isOff || !workSchedule.startTime || !workSchedule.endTime) {
+      return res.status(200).json([]);
+    }
+    // ====================================================
+
+    // 4. Pega os agendamentos existentes para verificar conflitos
+    // Usamos UTC para garantir que a busca no banco cubra o dia inteiro corretamente
+    const startOfDay = targetDay.startOf('day').toDate(); 
     const endOfDay = targetDay.endOf('day').toDate();
 
     const existingAppointments = await db.Appointment.findAll({
@@ -426,39 +440,64 @@ exports.getAvailableTimes = async (req, res) => {
       attributes: ['date', 'duration']
     });
 
-    // 5. Gera os "slots" disponíveis (Lógica sem alteração)
-    const serviceDuration = service.duration;
+    // 5. Gera os slots
+    const serviceDuration = service.duration || 60; // Fallback para 60 min se duração for nula
     const slotInterval = 30;
     const availableSlots = [];
-    const openingTime = dayjs.tz(`${date}T${workSchedule.startTime}`, 'YYYY-MM-DDTHH:mm', tz);
-    const closingTime = dayjs.tz(`${date}T${workSchedule.endTime}`, 'YYYY-MM-DDTHH:mm', tz);
+
+    // Cria objetos dayjs para o início e fim do expediente NO DIA ESPECÍFICO
+    const dateString = targetDay.format('YYYY-MM-DD');
+    const openingTime = dayjs.tz(`${dateString}T${workSchedule.startTime}`, 'YYYY-MM-DDTHH:mm', tz);
+    const closingTime = dayjs.tz(`${dateString}T${workSchedule.endTime}`, 'YYYY-MM-DDTHH:mm', tz);
+    
     let currentSlot = openingTime;
 
+    // Loop para gerar horários
     while (currentSlot.isBefore(closingTime)) {
       const slotEnd = currentSlot.add(serviceDuration, 'minute');
+
+      // Se o serviço terminar depois do expediente, para.
       if (slotEnd.isAfter(closingTime)) {
         break;
       }
+
       let isBooked = false;
+      // Verifica colisão com agendamentos existentes
       for (const appt of existingAppointments) {
-        const apptStart = dayjs(appt.date);
+        // Converte a data do banco (UTC) para o objeto dayjs com timezone correto
+        const apptStart = dayjs(appt.date).tz(tz);
         const apptEnd = apptStart.add(appt.duration, 'minute');
+
+        // Lógica de Colisão:
+        // (Slot Novo Inicia ANTES do Fim do Existente) E (Slot Novo Termina DEPOIS do Início do Existente)
         if (currentSlot.isBefore(apptEnd) && slotEnd.isAfter(apptStart)) {
           isBooked = true;
-          break;
+          break; 
         }
       }
+
+      // Se não houver conflito e o horário for futuro (se for hoje)
       if (!isBooked) {
-        availableSlots.push(currentSlot.format('HH:mm'));
+        const now = dayjs().tz(tz);
+        // Se a data selecionada for hoje, só mostra horários futuros
+        if (targetDay.isSame(now, 'day')) {
+             if (currentSlot.isAfter(now)) {
+                 availableSlots.push(currentSlot.format('HH:mm'));
+             }
+        } else {
+             // Se for dia futuro, mostra todos
+             availableSlots.push(currentSlot.format('HH:mm'));
+        }
       }
+
       currentSlot = currentSlot.add(slotInterval, 'minute');
     }
 
-    // 6. Retorna os horários livres
     res.status(200).json(availableSlots);
 
   } catch (err) {
     console.error('API Error: getAvailableTimes', err);
-    res.status(500).json({ error: 'Erro ao buscar horários.' });
+    // Retorna JSON com erro para o frontend tratar, em vez de crashar ou timeout
+    res.status(500).json({ error: 'Erro interno ao calcular horários.' });
   }
 };
