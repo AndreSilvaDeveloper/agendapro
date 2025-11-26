@@ -802,60 +802,62 @@
         }
     });
 
-    // Submissão do formulário de agendamento (junta dados do serviço)
+    // Submissão do formulário de agendamento
     document.querySelector('#modalAgendamento form').addEventListener('submit', function(e) {
-    const clientIdHidden = document.getElementById('clientId');
-    const clientSearchInput = document.getElementById('clientSearch');
-    if (!clientIdHidden || !clientSearchInput) return;
+        const clientIdHidden = document.getElementById('clientId');
+        const clientSearchInput = document.getElementById('clientSearch');
+        
+        // --- 1. Validação do Cliente (Mantém a segurança básica) ---
+        if (!clientIdHidden || !clientSearchInput) return;
+        const clientId = clientIdHidden.value;
 
-    const clientId = clientIdHidden.value;
+        // Se não tiver ID selecionado
+        if (!clientId) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'error',
+                title: 'Cliente Inválido',
+                text: 'Por favor, digite o nome e SELECIONE um cliente da lista antes de agendar.',
+                confirmButtonColor: '#ef4444',
+                background: 'var(--color-bg-secondary)'
+            });
+            clientSearchInput.focus();
+            return false;
+        }
 
-    // Se não tiver ID, é porque não clicou em nenhum item da lista
-    if (!clientId) {
-        e.preventDefault();
-        Swal.fire({
-            icon: 'error',
-            title: 'Cliente Inválido',
-            text: 'Por favor, digite o nome e SELECIONE um cliente da lista antes de agendar.',
-            confirmButtonColor: '#ef4444',
-            background: 'var(--color-bg-secondary)'
-        });
-        clientSearchInput.focus();
-        return false;
-    }
+        // --- 2. Captura dos Dados Customizados (LIVRE) ---
+        
+        // Pega o elemento Select e a opção escolhida para pegar o Nome
+        const selectElement = document.getElementById('serviceSelect');
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        
+        // Pega os valores que o Admin digitou nos inputs (Preço e Duração)
+        // Usamos 'value' direto dos inputs para respeitar o que foi editado manualmente
+        const customPrice = document.getElementById('servicePrice').value;
+        const customDuration = document.getElementById('serviceDuration').value;
+        
+        // Captura o nome do serviço (ou define um genérico se for nulo)
+        const serviceName = selectedOption.getAttribute('data-name') || selectedOption.text;
+        const serviceId = selectElement.value;
 
-    // (Opcional) Confere se o ID existe na lista vinda do servidor, sem comparar nome
-    const clientExists = Array.isArray(clients)
-        ? clients.find(c => c && String(c.id) === String(clientId))
-        : null;
+        // Cria o objeto que o backend espera, mas com os valores DOS INPUTS
+        const serviceData = [{
+            id: serviceId,        // Envia o ID para vincular estatísticas
+            name: serviceName,    // Nome original do serviço
+            price: parseFloat(customPrice), // Preço que você digitou
+            duration: parseInt(customDuration) // Duração que você digitou
+        }];
 
-    if (!clientExists) {
-        e.preventDefault();
-        Swal.fire({
-            icon: 'error',
-            title: 'Cliente Inválido',
-            text: 'O cliente selecionado não foi encontrado na base de dados.',
-            confirmButtonColor: '#ef4444',
-            background: 'var(--color-bg-secondary)'
-        });
-        clientSearchInput.focus();
-        return false;
-    }
-
-    // DAQUI PRA BAIXO mantém igual ao que você já tem (serviço, preço, duração, etc.)
-    const serviceName = document.getElementById('serviceName').value;
-    const servicePrice = document.getElementById('servicePrice').value;
-    const serviceDuration = document.getElementById('serviceDuration').value;
-
-    const serviceData = [{
-        name: serviceName,
-        price: parseFloat(servicePrice),
-        duration: parseInt(serviceDuration)
-    }];
-
-    document.getElementById('servicesInput').value = JSON.stringify(serviceData);
-    document.getElementById('durationInput').value = serviceDuration;
-});
+        // --- 3. Preenchimento dos campos ocultos (Hidden Inputs) ---
+        
+        // Preenche o JSON de serviços
+        document.getElementById('servicesInput').value = JSON.stringify(serviceData);
+        
+        // ESSENCIAL: Preenche a duração global que estava indo vazia no log
+        document.getElementById('durationInput').value = customDuration; 
+        
+        // O formulário segue agora com os dados manuais, sem travas.
+    });
 </script>
 </body>
 </html>

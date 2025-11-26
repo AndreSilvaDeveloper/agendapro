@@ -1,9 +1,4 @@
 // controllers/clientController.js
-// --- REMOVIDO ---
-// const Client = require('../models/Client');
-// const Appointment = require('../models/Appointment');
-
-// --- ADICIONADO ---
 const db = require('../models');
 const { Op } = require('sequelize'); // Para $or, $regex (iLike)
 
@@ -107,8 +102,7 @@ exports.getClientById = async (req, res) => {
     const { id } = req.params;
     const { success, error } = req.query;
 
-    // ATUALIZADO: Client.findOne() -> db.Client.findOne() com 'include'
-    // Inclui os Produtos (de varejo) e seus Pagamentos
+    // 1. Busca Cliente (incluindo produtos)
     const client = await db.Client.findOne({ 
       where: { id: id, organizationId: organizationId },
       include: [
@@ -123,8 +117,9 @@ exports.getClientById = async (req, res) => {
       return res.redirect('/clients?error=Cliente não encontrado');
     }
 
-    // ATUALIZADO: Appointment.find() -> db.Appointment.findAll() com 'include'
-    // Inclui os Serviços/Produtos do agendamento e seus Pagamentos
+    const organization = await db.Organization.findByPk(organizationId);
+
+    // 2. Busca Agendamentos
     const allAppts = await db.Appointment.findAll({
       where: {
         clientId: client.id, // ATUALIZADO: client._id -> client.id
@@ -135,6 +130,14 @@ exports.getClientById = async (req, res) => {
         { model: db.AppointmentProduct, include: [db.AppointmentPayment] }
       ]
     });
+
+    // --- NOVO: Busca Profissionais Ativos (Staff) para o Dropdown ---
+    const staff = await db.Staff.findAll({
+        where: { organizationId: organizationId, isActive: true },
+        attributes: ['id', 'name'],
+        order: [['name', 'ASC']]
+    });
+    // ----------------------------------------------------------------
 
     const midnight = dayjs().tz('America/Sao_Paulo').startOf('day').toDate();
 
@@ -184,12 +187,14 @@ exports.getClientById = async (req, res) => {
     res.render('client', {
       client, // O client já contém client.Products
       appointments: display,
+      staff, // <--- Passa a lista de profissionais para a View
       totalService, totalPaidService,
       totalProduct, totalPaidProduct,
       isHistory: false,
       paidProducts: [],
       error: error || null,
-      success: success || null
+      success: success || null,
+      organization: organization
     });
 
   } catch (err) {

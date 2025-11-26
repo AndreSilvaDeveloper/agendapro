@@ -310,7 +310,7 @@
                         <form action="/appointment" method="POST" onsubmit="return processForm()" class="space-y-6">
                             <input type="hidden" name="clientId" value="<%= client.id %>">
                             
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Data</label>
                                     <input type="date" name="date" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all bg-white text-gray-900">
@@ -319,9 +319,22 @@
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Horário</label>
                                     <input type="time" name="time" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all bg-white text-gray-900">
                                 </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Profissional</label>
+                                    <select name="staffId" id="staffIdSelect" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent bg-white text-gray-900">
+                                        <option value="">Selecione...</option>
+                                        <% if (typeof staff !== 'undefined' && staff.length > 0) { %>
+                                            <% staff.forEach(function(s) { %>
+                                                <option value="<%= s.id %>"><%= s.name %></option>
+                                            <% }); %>
+                                        <% } %>
+                                    </select>
+                                </div>
+
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Duração (min)</label>
-                                    <input type="number" name="duration" placeholder="120" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all bg-white text-gray-900">
+                                    <input type="number" name="duration" placeholder="30" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all bg-white text-gray-900">
                                 </div>
                             </div>
 
@@ -532,20 +545,20 @@
                                     <div class="flex flex-wrap gap-2">
                                         <% if (!isPast) { %>
                                         <button type="button" 
-                                                onclick="sendWhatsAppReminder(this, '<%= client.name %>', '<%= client.phone %>', '<%= a.formatted %>')"
-                                                class="flex items-center space-x-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
+                                            onclick="sendAutomaticReminder(this, '<%= client.name %>', '<%= client.phone %>', '<%= a.formatted %>')"
+                                            class="flex items-center space-x-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors btn-whatsapp-sender">
                                             <i class="fab fa-whatsapp"></i>
-                                            <span class="hidden sm:inline">Lembrar</span>
+                                            <span class="hidden sm:inline">Lembrar (Auto)</span>
                                         </button>
                                         <% } %>
 
                                         <form action="/appointment/<%= a.id %>/edit-datetime" method="POST"
                                               onsubmit='return editDateTime(this, "<%= datePart %>", "<%= timePart %>")'
                                               class="inline">
-                                          <button class="flex items-center space-x-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
-                                            <i class="fas fa-edit"></i>
-                                            <span class="hidden sm:inline">Alterar</span>
-                                          </button>
+                                            <button class="flex items-center space-x-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+                                                <i class="fas fa-edit"></i>
+                                                <span class="hidden sm:inline">Alterar</span>
+                                            </button>
                                         </form>
 
                                         <form action="/appointment/<%= a.id %>/cancel" method="POST" onsubmit="return promptCancelReason(this)" class="inline">
@@ -915,23 +928,63 @@
             if (productsInput) productsInput.value = JSON.stringify(products);
             return true;
         }
-        function sendWhatsAppReminder(button, clientName, clientPhone, apptDateTime) {
+
+        // --- NOVA FUNÇÃO DE ENVIO AUTOMÁTICO WHATSAPP ---
+        async function sendAutomaticReminder(button, clientName, clientPhone, apptDateTime) {
+            const originalContent = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+
+            // Pega os serviços
             const card = button.closest('.p-4.rounded-xl');
-            const services = Array.from(card.querySelectorAll('h6.font-semibold'))
+            let servicesText = '';
+            if(card) {
+                 const services = Array.from(card.querySelectorAll('h6.font-semibold'))
                                   .map(h6 => h6.innerText.trim())
                                   .join(', ');
-            const phone = clientPhone.replace(/\D/g, '');
-            const fullPhone = phone.startsWith('55') ? phone : '55' + phone;
+                 servicesText = services;
+            }
+
+            // 👇 AQUI ESTÁ A MUDANÇA: Usamos a variável do EJS dentro da string JS
+            const orgName = "<%= organization.name %>"; 
+
             let message = `Olá, ${clientName}! ✨\n\n`;
-            message += `Gostaríamos de lembrar do seu horário no Studio Kadosh, ${apptDateTime}.\n\n`;
-            if (services) {
-                message += `Serviços: *${services}*.\n\n`;
+            message += `Gostaríamos de lembrar do seu horário no *${orgName}*: ${apptDateTime}.\n\n`;
+            
+            if (servicesText) {
+                message += `Serviços: *${servicesText}*.\n\n`;
             }
             message += `Por favor, nos avise se precisar remarcar. Estamos te esperando! 😊`;
-            const encodedMessage = encodeURIComponent(message);
-            const waLink = `https://wa.me/${fullPhone}?text=${encodedMessage}`;
-            window.open(waLink, '_blank');
+
+            try {
+                const response = await fetch('/api/send-reminder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        phone: clientPhone,
+                        message: message
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    button.className = "flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg transition-colors";
+                    button.innerHTML = '<i class="fas fa-check"></i> Enviado';
+                } else {
+                    alert('Erro: ' + (data.error || 'Falha ao enviar'));
+                    button.disabled = false;
+                    button.innerHTML = originalContent;
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Erro de conexão.');
+                button.disabled = false;
+                button.innerHTML = originalContent;
+            }
         }
+        // ------------------------------------------------
+
         function pagarValor(form) { 
             const modal = document.getElementById('payment-modal');
             const modalForm = document.getElementById('payment-modal-form');
@@ -1040,6 +1093,37 @@
                 el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
                 observer.observe(el);
             });
+
+            // ... seus scripts anteriores ...
+
+             // Script para carregar profissionais se a lista estiver vazia
+            document.addEventListener('DOMContentLoaded', async function() {
+                const staffSelect = document.getElementById('staffIdSelect');
+                
+                // Só busca se o select existir e tiver apenas 1 opção (a opção padrão "Selecione...")
+                if (staffSelect && staffSelect.options.length <= 1) {
+                    try {
+                        // Tenta buscar de uma rota de API (ajuste a rota '/api/admin/staff' se necessário para a sua real)
+                        // Se você não tiver essa rota, terá que criá-la ou passar a variável 'staff' no res.render do controller
+                        const response = await fetch('/api/admin/equipe'); // Ou '/api/users' dependendo da sua rota
+                        
+                        if (response.ok) {
+                            const staffList = await response.json();
+                            staffList.forEach(member => {
+                                const option = document.createElement('option');
+                                option.value = member.id;
+                                option.textContent = member.name;
+                                staffSelect.appendChild(option);
+                            });
+                        } else {
+                            console.warn("Não foi possível carregar a lista de profissionais via API.");
+                        }
+                    } catch (error) {
+                        console.error("Erro ao buscar profissionais:", error);
+                    }
+                }
+            });
+
         });
     </script>
 </body>
