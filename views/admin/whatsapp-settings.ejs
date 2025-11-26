@@ -11,13 +11,49 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
+    <script>
+        (function() {
+            const THEMES = ["light", "medium-dark", "deep-dark"];
+            const savedTheme = localStorage.getItem('theme');
+            let initialTheme = 'light';
+            if (savedTheme && THEMES.includes(savedTheme)) {
+                initialTheme = savedTheme;
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                initialTheme = 'deep-dark';
+            }
+            document.documentElement.setAttribute('data-theme', initialTheme);
+        })();
+    </script>
+
     <style>
-        :root {
+        /* --- CORES DO TEMA --- */
+        :root, [data-theme="light"] {
             --color-gold: #DAA520;
             --color-bg-primary: #f3f4f6;
+            --color-bg-secondary: #ffffff;
+            --color-text-primary: #1f2937;
         }
-        body { background-color: var(--color-bg-primary); }
+        [data-theme="medium-dark"] {
+            --color-gold: #e0aa1f;
+            --color-bg-primary: #1f2937;
+            --color-bg-secondary: #374151;
+            --color-text-primary: #f9fafb;
+        }
+        [data-theme="deep-dark"] {
+            --color-gold: #e0aa1f;
+            --color-bg-primary: #0a0e14;
+            --color-bg-secondary: #1f2937;
+            --color-text-primary: #f9fafb;
+        }
+
+        body { background-color: var(--color-bg-primary); color: var(--color-text-primary); }
+        .bg-white { background-color: var(--color-bg-secondary); }
+        .text-gray-800, .text-gray-700, .text-gray-600 { color: var(--color-text-primary); }
         
+        .text-gold { color: var(--color-gold); }
+        .bg-gold { background-color: var(--color-gold); }
+        
+        /* Loader */
         .loader {
             border: 4px solid #f3f3f3;
             border-top: 4px solid var(--color-gold);
@@ -28,24 +64,90 @@
             margin: 20px auto;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Scroll */
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background-color: #e5e7eb; border-radius: 20px; }
     </style>
 </head>
 <body class="font-sans antialiased flex flex-col h-full">
 
-    <header class="bg-white shadow-md border-b border-gray-200 shrink-0 h-16 flex items-center px-4 justify-between">
+    <header class="bg-white shadow-md border-b border-gray-200 shrink-0 h-16 flex items-center px-4 justify-between sticky top-0 z-50">
         <div class="flex items-center">
-            <button onclick="history.back()" class="mr-4 text-gray-600 hover:text-yellow-600 transition-colors">
+            <button onclick="history.back()" class="mr-4 text-gray-600 hover:text-gold transition-colors">
                 <i class="fas fa-arrow-left"></i> Voltar
             </button>
-            <h1 class="text-gray-800 text-lg font-bold">Configuração do WhatsApp</h1>
+            <h1 class="text-lg font-bold">Configuração WhatsApp</h1>
         </div>
-        <div class="text-sm text-gray-500">
-            Organização ID: <strong><%= orgId %></strong>
-        </div>
+
+        <nav class="hidden xl:flex items-center space-x-4 text-sm">
+            <a href="/dashboard" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-home mr-1"></i>Dash
+                </a>
+                <a href="/agendamentos-por-dia" class="text-gradient-gold font-semibold">
+                    <i class="fas fa-calendar-alt mr-1"></i>Agenda
+                </a>
+                <a href="/clients" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-users mr-1"></i>Clientes
+                </a>
+                <a href="/admin/servicos" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-cut mr-1"></i>Serviços
+                </a>
+                <a href="/admin/equipe" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-users-cog mr-1"></i>Equipe
+                </a>
+                <a href="/financeiro" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-dollar-sign mr-1"></i>Financeiro
+                </a>
+                <a href="/balanco" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-balance-scale mr-1"></i>Balanço
+                </a>
+                <a href="/expenses" class="text-gray-600 hover:text-gold transition-colors">
+                    <i class="fas fa-receipt mr-1"></i>Despesas
+                </a>
+            
+            <div class="h-4 w-px bg-gray-300 mx-2"></div>
+            
+            <button id="theme-toggle-btn" class="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                <i id="theme-icon-sun" class="fas fa-sun"></i> <i id="theme-icon-moon" class="fas fa-moon hidden"></i> 
+            </button>
+        </nav>
+
+        <button id="menu-button" class="xl:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
+            <i class="fas fa-bars text-gold text-xl"></i>
+        </button>
     </header>
+
+    <div id="mobile-menu" class="hidden fixed inset-0 z-50 flex flex-col p-6 space-y-4 overflow-y-auto xl:hidden" style="background-color: var(--color-bg-primary);">
+        <div class="flex justify-end">
+            <button id="close-menu" class="text-2xl"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="flex flex-col space-y-4 text-center text-lg">
+             <a href="/dashboard" class="mobile-nav-link text-lg py-2 border-b border-gray-700 hover:text-gold">Dashboard</a>
+            <a href="/agendamentos-por-dia" class="mobile-nav-link text-gold text-lg font-bold py-2 hover:text-gold">Agendamentos</a>
+            <a href="/clients" class="mobile-nav-link text-lg py-2 hover:text-gold">Clientes</a>
+            <a href="/admin/servicos" class="mobile-nav-link text-lg py-2 hover:text-gold">Serviços</a>
+            <a href="/admin/equipe" class="mobile-nav-link text-lg py-2 hover:text-gold">Equipe</a>
+            <a href="/financeiro" class="mobile-nav-link text-lg py-2 hover:text-gold">Financeiro</a>
+            <a href="/balanco" class="mobile-nav-link text-lg py-2 hover:text-gold">Balanço</a>
+            <a href="/expenses" class="mobile-nav-link text-lg py-2 hover:text-gold">Despesas</a>
+            <hr class="border-gray-600">
+
+            <button id="theme-toggle-btn-mobile" class="flex items-center justify-center space-x-2 py-2 border border-gray-500 rounded-lg">
+                <i class="fas fa-adjust"></i> <span>Alternar Tema</span>
+            </button>
+
+            <a href="/logout" class="text-red-400 font-bold py-2">Sair</a>
+        </div>
+    </div>
 
     <div class="flex-1 max-w-4xl mx-auto w-full p-6">
         
+        <div class="text-right mb-4 text-sm opacity-70">
+            Org ID: <%= orgId %>
+        </div>
+
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200 mb-8">
             <div class="p-6 border-b border-gray-100">
                 <h2 class="text-xl font-bold text-gray-800 flex items-center">
@@ -59,12 +161,12 @@
                     <i class="fas fa-circle-notch fa-spin text-4xl text-gray-400"></i>
                 </div>
 
-                <h3 id="status-text" class="text-2xl font-bold text-gray-700 mb-2">Verificando...</h3>
-                <p id="status-desc" class="text-gray-500 mb-6">Aguarde enquanto verificamos a conexão com o servidor.</p>
+                <h3 id="status-text" class="text-2xl font-bold mb-2">Verificando...</h3>
+                <p id="status-desc" class="opacity-70 mb-6">Aguarde enquanto verificamos a conexão com o servidor.</p>
 
                 <div id="qr-container" class="hidden bg-white p-4 rounded-xl border-2 border-dashed border-gray-300 inline-block mb-6">
                     <div id="qrcode" class="flex justify-center"></div>
-                    <p class="text-sm text-gray-500 mt-2">Abra o WhatsApp no seu celular > Menu > Aparelhos conectados > Conectar aparelho</p>
+                    <p class="text-sm text-gray-500 mt-2">Abra o WhatsApp > Menu > Aparelhos conectados</p>
                 </div>
 
                 <div id="actions-container">
@@ -79,19 +181,71 @@
             </div>
         </div>
 
-        <div class="bg-blue-50 rounded-xl p-6 border border-blue-100">
+        <div class="bg-blue-50 rounded-xl p-6 border border-blue-100 text-gray-800">
             <h4 class="font-bold text-blue-800 mb-2"><i class="fas fa-info-circle mr-2"></i> Como funciona?</h4>
             <ul class="list-disc list-inside text-blue-700 space-y-1 text-sm">
-                <li>Você precisa escanear o QR Code apenas uma vez.</li>
-                <li>O sistema manterá a conexão ativa para enviar lembretes.</li>
-                <li>Cada estabelecimento tem sua própria conexão separada.</li>
+                <li>Escaneie o QR Code apenas uma vez.</li>
+                <li>O sistema manterá a conexão ativa para os envios automáticos (24h e 3h antes).</li>
+                <li>Cada estabelecimento tem sua própria conexão isolada.</li>
             </ul>
         </div>
     </div>
 
     <script>
+        // === 1. Lógica de Menu e Tema ===
+        const THEMES = ["light", "medium-dark", "deep-dark"];
+        const htmlEl = document.documentElement;
+
+        function getNextTheme(currentTheme) {
+            const currentIndex = THEMES.indexOf(currentTheme);
+            const nextIndex = (currentIndex + 1) % THEMES.length;
+            return THEMES[nextIndex];
+        }
+
+        function updateIcons(theme) {
+            const isLight = theme === 'light';
+            const sun = document.getElementById('theme-icon-sun');
+            const moon = document.getElementById('theme-icon-moon');
+            
+            if(sun) sun.classList.toggle('hidden', !isLight);
+            if(moon) moon.classList.toggle('hidden', isLight);
+        }
+
+        function toggleTheme() {
+            const currentTheme = htmlEl.getAttribute('data-theme') || 'light';
+            const newTheme = getNextTheme(currentTheme);
+            htmlEl.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateIcons(newTheme);
+        }
+
+        // Inicialização UI
+        document.addEventListener('DOMContentLoaded', () => {
+            // Menu Mobile
+            const menuBtn = document.getElementById('menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            const closeMenu = document.getElementById('close-menu');
+
+            if(menuBtn && mobileMenu) {
+                menuBtn.addEventListener('click', () => mobileMenu.classList.remove('hidden'));
+                closeMenu.addEventListener('click', () => mobileMenu.classList.add('hidden'));
+            }
+
+            // Tema Desktop e Mobile
+            const themeBtn = document.getElementById('theme-toggle-btn');
+            const themeBtnMobile = document.getElementById('theme-toggle-btn-mobile');
+            
+            if(themeBtn) themeBtn.addEventListener('click', toggleTheme);
+            if(themeBtnMobile) themeBtnMobile.addEventListener('click', toggleTheme);
+
+            updateIcons(localStorage.getItem('theme') || 'light');
+            
+            // Inicia checagem do WhatsApp
+            checkInitialStatus();
+        });
+
+        // === 2. Lógica WhatsApp (Socket.IO) ===
         const socket = io(); 
-        // Importante: As aspas são necessárias aqui para o EJS renderizar a string
         const orgId = "<%= orgId %>"; 
         
         const statusText = document.getElementById('status-text');
@@ -111,46 +265,40 @@
             if (state === 'CONNECTED' || state === 'AUTHENTICATED') {
                 statusIcon.innerHTML = '<i class="fas fa-check-circle text-5xl text-green-500"></i>';
                 statusText.innerText = 'WhatsApp Conectado';
-                statusText.className = 'text-2xl font-bold text-green-600 mb-2';
                 statusDesc.innerText = 'O sistema está pronto para enviar mensagens.';
                 btnDisconnect.classList.remove('hidden');
             } 
             else if (state === 'DISCONNECTED') {
-                statusIcon.innerHTML = '<i class="fas fa-wifi text-5xl text-gray-400"></i>';
+                statusIcon.innerHTML = '<i class="fas fa-wifi text-5xl opacity-50"></i>';
                 statusText.innerText = 'Desconectado';
-                statusText.className = 'text-2xl font-bold text-gray-700 mb-2';
                 statusDesc.innerText = 'Nenhuma sessão ativa encontrada.';
                 btnConnect.classList.remove('hidden');
             }
             else if (state === 'QR_RECEIVED') {
                 statusIcon.innerHTML = '<div class="loader"></div>';
                 statusText.innerText = 'Escaneie o QR Code';
-                statusText.className = 'text-2xl font-bold text-yellow-600 mb-2';
                 statusDesc.innerText = 'Aguardando leitura pelo celular...';
                 qrContainer.classList.remove('hidden');
             }
             else if (state === 'INITIALIZING') {
                 statusIcon.innerHTML = '<div class="loader"></div>';
                 statusText.innerText = 'Iniciando...';
-                statusText.className = 'text-2xl font-bold text-blue-600 mb-2';
                 statusDesc.innerText = 'Preparando o cliente WhatsApp.';
             }
         }
 
         // Socket Listeners
         socket.on('qr-' + orgId, (qrCodeData) => {
-            console.log('QR Code recebido');
             updateUI('QR_RECEIVED');
             qrcodeDiv.innerHTML = "";
             new QRCode(qrcodeDiv, { text: qrCodeData, width: 256, height: 256 });
         });
 
         socket.on('status-' + orgId, (data) => {
-            console.log('Status mudou:', data.status);
             updateUI(data.status);
         });
 
-        // Ações
+        // Ações API
         async function checkInitialStatus() {
             try {
                 const res = await fetch('/api/whatsapp/status');
@@ -173,8 +321,6 @@
                 updateUI('DISCONNECTED');
             } catch (error) { alert('Erro ao desconectar'); }
         }
-
-        document.addEventListener('DOMContentLoaded', checkInitialStatus);
     </script>
 </body>
 </html>
