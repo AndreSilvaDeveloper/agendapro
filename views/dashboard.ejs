@@ -252,14 +252,36 @@
 
     <main class="flex-1 p-3 overflow-hidden flex flex-col gap-3 max-w-full mx-auto w-full">
         
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 shrink-0">
-            <div class="bg-gold bg-shine-gold rounded-lg p-3 text-white flex flex-col justify-center shadow-sm">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h2 class="text-md font-bold leading-tight">Olá, <%= (typeof org !== 'undefined') ? org.name : 'Admin' %>!</h2>
-                        <p class="text-xs opacity-90 mt-1"><%= new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' }) %></p>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3 shrink-0">
+                <div class="col-span-1 md:col-span-4 bg-gold bg-shine-gold rounded-lg p-3 text-white flex flex-col justify-center shadow-sm">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h2 class="text-md font-bold leading-tight">Olá, <%= (typeof org !== 'undefined') ? org.name : 'Admin' %>!</h2>
+                            <p class="text-xs opacity-90 mt-1"><%= new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' }) %></p>
+                        </div>
+                        <i class="fas fa-crown opacity-30 text-2xl"></i>
                     </div>
-                    <i class="fas fa-crown opacity-30 text-2xl"></i>
+                </div>
+            </div>
+            <div class="col-span-1 md:col-span-4 bg-white rounded-lg p-3 border border-gray-200 shadow-sm flex flex-col justify-center">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs font-bold text-gray-500 uppercase">
+                        <i class="fas fa-link mr-1"></i> Link de Agendamento
+                    </span>
+                    <a href="/salao/<%= org.slug %>" target="_blank" class="text-xs text-blue-500 hover:underline">
+                        Abrir <i class="fas fa-external-link-alt ml-1"></i>
+                    </a>
+                </div>
+                
+                <div class="flex items-center bg-gray-50 rounded border border-gray-200 p-2">
+                    <input type="text" readonly 
+                           value="<%= process.env.BASE_URL || 'http://localhost:3003' %>/salao/<%= org.slug %>" 
+                           class="bg-transparent text-sm text-gray-600 w-full outline-none truncate mr-2"
+                           id="publicLinkInput">
+                    
+                    <button onclick="copyLink()" class="text-gold hover:text-gold-dark transition-colors" title="Copiar Link">
+                        <i class="far fa-copy text-lg"></i>
+                    </button>
                 </div>
             </div>
 
@@ -506,6 +528,17 @@
             const i = document.createElement('input'); i.type='hidden'; i.name='cancellationReason'; i.value=r; form.appendChild(i);
             return true;
         }
+        function copyLink() {
+        const copyText = document.getElementById("publicLinkInput");
+        copyText.select();
+        copyText.setSelectionRange(0, 99999); // Mobile
+        navigator.clipboard.writeText(copyText.value).then(() => {
+            // Feedback visual simples (pode usar SweetAlert se preferir)
+            const btn = document.querySelector('button[onclick="copyLink()"] i');
+            btn.className = "fas fa-check text-green-500";
+            setTimeout(() => { btn.className = "far fa-copy text-lg"; }, 2000);
+        });
+    }
     </script>
 </body>
 </html>
