@@ -1,58 +1,85 @@
 <%- include('../partials/header') %>
-<%- include('../partials/sidebar') %> <main class="main-content">
+<%- include('../partials/sidebar') %> 
+
+<main class="main-content">
   <div class="container-fluid">
-    <div class="row">
+    <div class="row justify-content-center">
       <div class="col-lg-10 col-md-12">
+        
         <div class="card shadow-sm border-0">
           <div class="card-header bg-light">
             <h4 class="mb-0">Configurações da Organização</h4>
             <p class="mb-0 text-muted">
-              Controle o tema e as seções da sua página pública.
+              Personalize o sistema e a automação do seu estabelecimento.
             </p>
           </div>
-          <div class="card-body">
+          <div class="card-body p-4">
             
             <form action="/admin/configuracoes" method="POST">
               
               <fieldset class="mb-4">
-                <legend class="h5">Tema da Aplicação</legend>
-                <p class="text-muted small">
-                  Define o tema (claro ou escuro) para o seu painel 
-                  e para a página pública.
+                <legend class="h5 text-primary"><i class="fas fa-palette mr-2"></i> Tema da Aplicação</legend>
+                <p class="text-muted small mb-3">
+                  Define o esquema de cores (claro ou escuro) para o seu painel e página pública.
                 </p>
                 <div class="form-group">
                   <select name="theme" class="form-select">
-                    <option 
-                      value="light" 
-                      <%= (settings.theme === 'light') ? 'selected' : '' %>
-                    >
-                      Tema Claro
-                    </option>
-                    <option 
-                      value="dark" 
-                      <%= (settings.theme === 'dark') ? 'selected' : '' %>
-                    >
-                      Tema Escuro
-                    </option>
+                    <option value="light" <%= (settings.theme === 'light') ? 'selected' : '' %>>Tema Claro</option>
+                    <option value="dark" <%= (settings.theme === 'dark') ? 'selected' : '' %>>Tema Escuro</option>
                   </select>
                 </div>
               </fieldset>
 
               <hr class="my-4" />
 
-              <fieldset>
-                <legend class="h5">Seções da Página Pública</legend>
-                <p class="text-muted small">
-                  Marque as seções que você deseja exibir 
-                  na sua página pública (<a 
-                    href="/salao/<%= organization.slug %>" 
-                    target="_blank"
-                  >
-                    /salao/<%= organization.slug %>
-                  </a>).
+              <fieldset class="mb-4">
+                <legend class="h5 text-success"><i class="fab fa-whatsapp mr-2"></i> Automação de Mensagens</legend>
+                <p class="text-muted small mb-3">
+                  Configure o texto padrão que será preenchido automaticamente ao clicar no botão "Lembrar" na agenda.
                 </p>
 
-                <div class="form-check form-switch mb-2">
+                <div class="row">
+                  <div class="col-md-8">
+                    <div class="form-group">
+                      <label class="form-label fw-bold">Modelo de Mensagem</label>
+                      <textarea 
+                        name="whatsappTemplate" 
+                        class="form-control" 
+                        rows="6" 
+                        placeholder="Digite sua mensagem aqui..."
+                        style="background-color: #f8f9fa;"
+                      ><%= settings.whatsappTemplate %></textarea>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-4 mt-3 mt-md-0">
+                    <div class="alert alert-info h-100">
+                      <h6 class="alert-heading fw-bold"><i class="fas fa-code"></i> Variáveis:</h6>
+                      <p class="small mb-2">Use os códigos abaixo para substituir pelos dados reais:</p>
+                      <ul class="small list-unstyled mb-0">
+                        <li class="mb-1"><span class="badge bg-light text-dark border">{cliente}</span> Nome do Cliente</li>
+                        <li class="mb-1"><span class="badge bg-light text-dark border">{data}</span> Data (ex: 26/11)</li>
+                        <li class="mb-1"><span class="badge bg-light text-dark border">{hora}</span> Horário (ex: 14:30)</li>
+                        <li class="mb-1"><span class="badge bg-light text-dark border">{servico}</span> Lista de Serviços</li>
+                        <li class="mb-1"><span class="badge bg-light text-dark border">{empresa}</span> Nome do Salão</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </fieldset>
+
+              <hr class="my-4" />
+
+              <fieldset>
+                <legend class="h5 text-primary"><i class="fas fa-globe mr-2"></i> Página Pública (Vitrine)</legend>
+                <p class="text-muted small mb-3">
+                  Marque as seções que você deseja exibir no seu link público: 
+                  <a href="/salao/<%= organization.slug %>" target="_blank" class="fw-bold text-decoration-none">
+                    /salao/<%= organization.slug %> <i class="fas fa-external-link-alt small"></i>
+                  </a>
+                </p>
+
+                <div class="form-check form-switch mb-3">
                   <input 
                     class="form-check-input" 
                     type="checkbox" 
@@ -61,12 +88,10 @@
                     name="showAddress"
                     <%= (settings.showAddress) ? 'checked' : '' %>
                   >
-                  <label class="form-check-label" for="showAddress">
-                    Mostrar Endereço e Mapa
-                  </label>
+                  <label class="form-check-label" for="showAddress">Mostrar Endereço e Mapa</label>
                 </div>
 
-                <div class="form-check form-switch mb-2">
+                <div class="form-check form-switch mb-3">
                   <input 
                     class="form-check-input" 
                     type="checkbox" 
@@ -75,12 +100,10 @@
                     name="showOperatingHours"
                     <%= (settings.showOperatingHours) ? 'checked' : '' %>
                   >
-                  <label class="form-check-label" for="showOperatingHours">
-                    Mostrar Horário de Funcionamento
-                  </label>
+                  <label class="form-check-label" for="showOperatingHours">Mostrar Horário de Funcionamento</label>
                 </div>
                 
-                <div class="form-check form-switch mb-2">
+                <div class="form-check form-switch mb-3">
                   <input 
                     class="form-check-input" 
                     type="checkbox" 
@@ -89,18 +112,16 @@
                     name="showGallery"
                     <%= (settings.showGallery) ? 'checked' : '' %>
                   >
-                  <label class="form-check-label" for="showGallery">
-                    Mostrar Galeria de Fotos
-                  </label>
+                  <label class="form-check-label" for="showGallery">Mostrar Galeria de Fotos</label>
                 </div>
                 
-                </fieldset>
+              </fieldset>
               
-              <div class="mt-4">
-                <button type="submit" class="btn btn-primary">
-                  Salvar Configurações
+              <div class="mt-5 d-flex justify-content-end gap-2">
+                <a href="/dashboard" class="btn btn-secondary px-4">Cancelar</a>
+                <button type="submit" class="btn btn-success px-4 fw-bold">
+                  <i class="fas fa-save mr-1"></i> Salvar Configurações
                 </button>
-                <a href="/dashboard" class="btn btn-secondary">Cancelar</a>
               </div>
 
             </form>

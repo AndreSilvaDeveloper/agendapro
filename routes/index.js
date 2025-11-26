@@ -22,10 +22,14 @@ const financialController = require('../controllers/financialController');
 const serviceController = require('../controllers/serviceController');
 const staffController =require('../controllers/staffController');
 
+const whatsappController = require('../controllers/whatsappController');
+
 // --- Novos Controladores ---
 const settingsController = require('../controllers/settingsController');
 const masterController = require('../controllers/masterController');
 // const { isSuperAdmin } = require('../middleware/authMiddleware'); // Removido, já importado acima
+
+
 
 // --- Controladores Cliente ---
 const clientAuthController = require('../controllers/clientAuthController');
@@ -108,6 +112,15 @@ router.post('/client/:id/product/:pi/edit', isAuthenticated, clientController.ed
 router.post('/client/:id/product/:pi/delete', isAuthenticated, clientController.deleteClientProduct);
 router.post('/client/:id/product/:pi/pay', isAuthenticated, clientController.payClientProduct);
 router.post('/client/:id/product/:pi/remove-payment/:pj', isAuthenticated, clientController.removeClientProductPayment);
+
+router.get('/admin/whatsapp', isAuthenticated, whatsappController.renderSettingsPage);
+
+// API para o Frontend controlar a sessão
+router.get('/api/whatsapp/status', isAuthenticated, whatsappController.getStatus);
+router.post('/api/whatsapp/connect', isAuthenticated, whatsappController.connect);
+router.post('/api/whatsapp/logout', isAuthenticated, whatsappController.logout);
+
+router.post('/api/send-reminder', isAuthenticated, whatsappController.sendReminder);
 
 // --- Rotas Agendamento (Admin) ---
 router.post('/appointment', isAuthenticated, appointmentController.createAppointment);

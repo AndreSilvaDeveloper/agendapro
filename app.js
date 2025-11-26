@@ -3,7 +3,12 @@
 
 require('dotenv').config();
 
+const http = require('http'); // Importar módulo HTTP nativo
+const { Server } = require("socket.io"); // Importar Socket.IO
+
 const express = require('express');
+const whatsappService = require('./services/whatsappService');
+const schedulerService = require('./services/schedulerService');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const path = require('path');
@@ -17,6 +22,9 @@ const SequelizeStore = require('connect-session-sequelize')(session.Store);
 const routes = require('./routes/index');
 
 const app = express();
+
+const server = http.createServer(app); // Criar servidor HTTP com o Express
+const io = new Server(server); // Vincular Socket.IO ao servidor
 
 // Proxy (Vercel/Heroku/etc.)
 app.set('trust proxy', 1);
@@ -99,13 +107,16 @@ const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
     await sequelize.sync({ alter: true }); // Adiciona colunas faltantes
     console.log('🟢 Tabelas principais do PostgreSQL sincronizadas.');
 
+
+   whatsappService.init(io);
+   schedulerService.init();
+
     // 4) Sobe o servidor
     // --- MUDANÇA 2: Adiciona o HOST ao app.listen ---
-    app.listen(PORT, HOST, () => {
-      // O log agora mostra o endereço correto
-      console.log(`🚀 Servidor rodando em: \x1b[36mhttp://${HOST}:${PORT}\x1b[0m`);
-    });
-    // --- FIM DA MUDANÇA 2 ---
+    // const PORT = process.env.PORT || 3000;
+      server.listen(PORT, () => {
+        console.log(`🚀 Servidor rodando em: \x1b[36mhttp://${HOST}:${PORT}\x1b[0m`);
+      });
 
   } catch (err) {
     console.error('🔴 Erro ao iniciar a aplicação:', err);

@@ -1,9 +1,5 @@
 // controllers/appointmentController.js
-// --- REMOVIDO ---
-// const Appointment = require('../models/Appointment');
-// const Client = require('../models/Client');
 
-// --- ADICIONADO ---
 const db = require('../models');
 const { Op } = require('sequelize');
 
@@ -22,7 +18,6 @@ const getOrgId = (req) => req.session.organizationId;
 
 // Função helper (sem alteração - não acessa DB)
 function gerarHorariosDisponiveis(inicio = '07:00', fim = '20:00') {
-  // ... (código original sem alteração) ...
   const slots = [];
   const [hInicio, mInicio] = inicio.split(':').map(Number);
   const [hFim, mFim] = fim.split(':').map(Number);
@@ -36,7 +31,7 @@ function gerarHorariosDisponiveis(inicio = '07:00', fim = '20:00') {
   return slots;
 }
 
-// --- Criar Agendamento (TOTALMENTE REESCRITO) ---
+// --- Criar Agendamento (CORRIGIDO PARA MOBILE) ---
 exports.createAppointment = async (req, res) => {
   const organizationId = getOrgId(req);
   const { clientId, date, time, services, products, force, staffId } = req.body;
@@ -61,7 +56,6 @@ exports.createAppointment = async (req, res) => {
     const parsedProducts = products ? JSON.parse(products) : [];
 
     // 4. Montagem segura do START
-    // *** Aqui garantimos que date/time são válidos ***
     const startDayjs = dayjs.tz(`${date}T${time}`, 'America/Sao_Paulo');
     if (!startDayjs.isValid()) {
       console.error('[createAppointment] Data/hora inválidas recebidas:', { date, time, body: req.body });
@@ -71,48 +65,29 @@ exports.createAppointment = async (req, res) => {
     }
     const start = startDayjs.toDate();
 
-    // 5. Normalização da duração (pensando nos "outros fronts")
-    // *** aceita vários nomes e protege contra NaN ***
+    // 5. Normalização da duração
     const rawDuration =
       req.body.duration ??
-      req.body.totalDuration ??   // caso algum front mande assim
-      req.body.duracao ??         // outro nome possível
+      req.body.totalDuration ??
+      req.body.duracao ??
       null;
 
     let dur = parseInt(rawDuration, 10);
 
     if (Number.isNaN(dur) || dur <= 0) {
-      // Aqui você escolhe a política:
-      //  - ou dá erro amigável
-      //  - ou cai num padrão (ex: 30min) para manter compatibilidade
-      console.warn('[createAppointment] Duração inválida, caindo para 30 minutos.', {
-        rawDuration,
-        body: {
-          clientId,
-          date,
-          time,
-          staffId
-        }
-      });
-      dur = 30; // *** se preferir obrigar, troque por um redirect com erro ***
-      // return res.redirect(`/agendamentos-por-dia?error=${encodeURIComponent('Duração inválida.')}`);
+      console.warn('[createAppointment] Duração inválida, caindo para 30 minutos.', { rawDuration });
+      dur = 30; 
     }
 
     const endDayjs = startDayjs.add(dur, 'minute');
     if (!endDayjs.isValid()) {
-      console.error('[createAppointment] endDayjs inválido mesmo após normalizar duração.', {
-        start: start,
-        dur
-      });
       return res.redirect(
         `/agendamentos-por-dia?error=${encodeURIComponent('Erro ao calcular horário final do agendamento.')}`
       );
     }
     const end = endDayjs.toDate();
 
-    // 6. Verificação de conflito (sem mais 'Invalid date')
-    // Lógica: (appt.start < new.end) AND (appt.end > new.start)
-    // appt.end = date + duration * 1min
+    // 6. Verificação de conflito
     const conflict = await db.Appointment.findOne({
       where: {
         organizationId: organizationId,
@@ -124,24 +99,61 @@ exports.createAppointment = async (req, res) => {
       }
     });
 
+    // --- AQUI ESTÁ A CORREÇÃO PARA O MOBILE ---
+    // Em vez de enviar um script com confirm(), enviamos uma página HTML completa
     if (conflict && !force) {
       const data = { clientId, date, time, duration: dur, services, products, force: true, staffId };
+      
+      // Gera inputs hidden para reenvio seguro dos dados
+      const hiddenInputs = Object.keys(data).map(key => {
+        const val = typeof data[key] === 'object' ? JSON.stringify(data[key]) : data[key];
+        // Escapa aspas duplas para não quebrar o HTML
+        const safeVal = String(val).replace(/"/g, '&quot;');
+        return `<input type="hidden" name="${key}" value="${safeVal}">`;
+      }).join('');
+
       return res.send(`
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Confirmar</title></head><body>
-<script>
-if (confirm("⚠️ Conflito de horário para este profissional. Agendar mesmo assim?")) {
-  const f = document.createElement('form'); f.method='POST'; f.action='/appointment';
-  const data = ${JSON.stringify(data)};
-  for (const k in data) {
-    const i=document.createElement('input'); i.type='hidden'; i.name=k;
-    i.value=typeof data[k]==='string'?data[k]:JSON.stringify(data[k]);
-    f.appendChild(i);
-  }
-  document.body.appendChild(f);
-  f.submit();
-} else history.back();
-</script></body></html>`);
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Conflito de Horário</title>
+          <script src="https://cdn.tailwindcss.com"></script>
+          <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+        </head>
+        <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+          <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full overflow-hidden">
+            <div class="bg-yellow-500 p-6 text-center">
+              <div class="mx-auto w-16 h-16 bg-white rounded-full flex items-center justify-center mb-3 shadow-sm">
+                 <i class="fas fa-exclamation-triangle text-3xl text-yellow-600"></i>
+              </div>
+              <h2 class="text-white text-xl font-bold">Conflito de Horário!</h2>
+            </div>
+            
+            <div class="p-6 text-center">
+              <p class="text-gray-600 mb-6">
+                Este profissional já possui um agendamento que coincide com este horário.
+              </p>
+              
+              <form method="POST" action="/appointment" class="flex flex-col gap-3">
+                ${hiddenInputs}
+                
+                <button type="submit" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-xl transition-colors flex items-center justify-center shadow-md">
+                  <i class="fas fa-check-circle mr-2"></i> Agendar Mesmo Assim
+                </button>
+                
+                <button type="button" onclick="history.back()" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-4 rounded-xl transition-colors">
+                  Cancelar
+                </button>
+              </form>
+            </div>
+          </div>
+        </body>
+        </html>
+      `);
     }
+    // ------------------------------------------
 
     // 7. Criação do agendamento + subitens em transação
     await db.sequelize.transaction(async (t) => {
@@ -192,7 +204,6 @@ if (confirm("⚠️ Conflito de horário para este profissional. Agendar mesmo a
 exports.removeServiceFromAppointment = async (req, res) => {
   try {
     const organizationId = getOrgId(req);
-    // ATENÇÃO: 'id' é o ID do Agendamento, 'idx' DEVE SER o ID do AppointmentService
     const { id, idx } = req.params; 
 
     // 1. Busca o agendamento para checar posse e pegar clientId
@@ -205,9 +216,6 @@ exports.removeServiceFromAppointment = async (req, res) => {
     }
 
     // 2. Destrói o serviço do agendamento
-    // ATUALIZADO: a.services.splice -> db.AppointmentService.destroy
-    // A cláusula 'where' garante que só deletamos o item (idx)
-    // se ele pertencer ao agendamento (id)
     const affectedRows = await db.AppointmentService.destroy({
       where: {
         id: idx,
@@ -234,7 +242,6 @@ exports.cancelAppointment = async (req, res) => {
     const { id } = req.params;
     const { cancellationReason } = req.body;
 
-    // 1. Busca o agendamento primeiro
     const appt = await db.Appointment.findOne({ 
       where: { id: id, organizationId: organizationId } 
     });
@@ -243,13 +250,10 @@ exports.cancelAppointment = async (req, res) => {
       return res.redirect(`/clients?error=${encodeURIComponent('Agendamento não encontrado.')}`);
     }
     
-    // Validação da razão
     if (!cancellationReason || cancellationReason.trim() === '') {
         return res.redirect(`/client/${appt.clientId}?error=${encodeURIComponent('O motivo do cancelamento é obrigatório.')}`);
     }
 
-    // 2. Atualiza a instância
-    // ATUALIZADO: findOneAndUpdate -> instance.update()
     await appt.update({
       status: 'cancelado_pelo_salao',
       cancellationReason: cancellationReason,
@@ -268,11 +272,9 @@ exports.cancelAppointment = async (req, res) => {
 exports.payAppointmentService = async (req, res) => {
   try {
     const organizationId = getOrgId(req);
-    // ATENÇÃO: 'id' é o ID do Agendamento, 'idx' DEVE SER o ID do AppointmentService
     const { id, idx } = req.params;
     const { amount, method, description, paidAt } = req.body;
 
-    // 1. Busca o agendamento para checar posse e pegar clientId
     const a = await db.Appointment.findOne({ 
       where: { id: id, organizationId: organizationId },
       attributes: ['clientId']
@@ -281,7 +283,6 @@ exports.payAppointmentService = async (req, res) => {
       return res.redirect('/clients?error=Agendamento não encontrado');
     }
 
-    // 2. Verifica se o Serviço do Agendamento existe
     const item = await db.AppointmentService.findOne({
       where: { id: idx, appointmentId: id }
     });
@@ -289,7 +290,6 @@ exports.payAppointmentService = async (req, res) => {
         return res.redirect(`/client/${a.clientId}?error=${encodeURIComponent('Serviço não encontrado no agendamento.')}`);
     }
 
-    // Validações (sem alteração)
     const val = parseFloat(amount);
     const methodLower = method.toLowerCase();
     if (isNaN(val) || val <= 0)
@@ -300,14 +300,12 @@ exports.payAppointmentService = async (req, res) => {
       ? dayjs.tz(paidAt, dayjs.ISO_8601, 'America/Sao_Paulo').toDate()
       : new Date();
 
-    // 3. Cria o Pagamento do Agendamento
-    // ATUALIZADO: item.payments.push -> db.AppointmentPayment.create
     await db.AppointmentPayment.create({
       amount: val,
       paidAt: when,
       description: description || '',
       method: methodLower,
-      appointmentServiceId: idx // Linka o pagamento ao serviço do agendamento
+      appointmentServiceId: idx
     });
 
     res.redirect(`/client/${a.clientId}?success=${encodeURIComponent('Pagamento registrado.')}`);
@@ -321,10 +319,8 @@ exports.payAppointmentService = async (req, res) => {
 exports.removeAppointmentPayment = async (req, res) => {
   try {
     const organizationId = getOrgId(req);
-    // ATENÇÃO: 'id'=Appt, 'sIdx'=ApptService, 'pIdx'=ApptPayment
     const { id, sIdx, pIdx } = req.params;
 
-    // 1. Busca o agendamento para checar posse e pegar clientId
     const a = await db.Appointment.findOne({ 
       where: { id: id, organizationId: organizationId },
       attributes: ['clientId']
@@ -333,10 +329,6 @@ exports.removeAppointmentPayment = async (req, res) => {
       return res.redirect('/clients?error=Agendamento não encontrado');
     }
 
-    // 2. Destrói o Pagamento
-    // ATUALIZADO: a.services[...].payments.splice -> db.AppointmentPayment.destroy
-    // A cláusula 'where' garante que só deletamos o pagamento (pIdx)
-    // se ele pertencer ao serviço (sIdx)
     const affectedRows = await db.AppointmentPayment.destroy({
       where: {
         id: pIdx,
@@ -361,7 +353,6 @@ exports.getAgendaPorDia = async (req, res) => {
     const organizationId = getOrgId(req);
     const { date, success, error } = req.query;
 
-    // ... (lógica de 'services', 'days', 'targetDate' sem alteração) ...
     const services = []; // Buscaremos do DB
     const days = [];
     const targetDate = date ? dayjs.tz(date, 'YYYY-MM-DD', 'America/Sao_Paulo') : dayjs().tz('America/Sao_Paulo');
@@ -378,10 +369,7 @@ exports.getAgendaPorDia = async (req, res) => {
     });
     const weekStart = days[0].startOf('day').toDate();
     const weekEnd = days[days.length - 1].endOf('day').toDate();
-    // Fim da lógica inalterada
 
-    // ATUALIZADO: Busca de dados com 'include'
-    // --- MUDANÇA 1: Adicionado 'pendingAppointments' à desestruturação ---
     const [appts, clients, dbServices, staff, pendingAppointments] = await Promise.all([
       db.Appointment.findAll({
         where: {
@@ -410,7 +398,6 @@ exports.getAgendaPorDia = async (req, res) => {
         attributes: ['id', 'name']
       }),
 
-      // --- MUDANÇA 2: Adicionada a query para o alerta de pendentes ---
       db.Appointment.findAll({
         where: {
           organizationId: organizationId,
@@ -418,20 +405,16 @@ exports.getAgendaPorDia = async (req, res) => {
         },
         include: [
           { model: db.Client, attributes: ['id', 'name'] },
-          { model: db.Staff, attributes: ['id', 'name'] }, // <-- A CHAVE DO PROBLEMA
+          { model: db.Staff, attributes: ['id', 'name'] }, 
           { model: db.AppointmentService, attributes: ['name'] },
           { model: db.AppointmentProduct, attributes: ['name'] }
         ],
         order: [['date', 'ASC']]
       })
-      // --- FIM DA MUDANÇA 2 ---
     ]);
     
-    // Processamento dos agendamentos (ATUALIZADO)
     appts.forEach(a => {
-      // ATUALIZADO: a.clientId -> a.Client
       if (!a.Client) {
-        console.warn(`Agendamento ${a.id} (Org: ${organizationId}) sem cliente associado.`);
         return;
       }
 
@@ -441,20 +424,17 @@ exports.getAgendaPorDia = async (req, res) => {
       if (!(key in resultsByDay)) return;
 
       resultsByDay[key].push({
-        id: a.id, // ATUALIZADO: _id -> id
-        clientId: a.Client.id, // ATUALIZADO
-        clientName: a.Client.name, // ATUALIZADO
-        staffName: a.Staff ? a.Staff.name : 'N/D', // ATUALIZADO
+        id: a.id, 
+        clientId: a.Client.id, 
+        clientName: a.Client.name, 
+        staffName: a.Staff ? a.Staff.name : 'N/D', 
         timeFormatted: time,
-        // ATUALIZADO: a.services -> a.AppointmentServices
         servicesNames: (a.AppointmentServices || []).map(s => s.name).join(', '),
         status: a.status,
-        // (Campos adicionados para o modal de edição)
         staffId: a.staffId,
         date: d.format('YYYY-MM-DD')
       });
 
-      // Lógica de remoção de horários (sem alteração)
       const blocos = Math.ceil((a.duration || 0) / 30);
       for (let i = 0; i < blocos; i++) {
         const slot = d.add(i * 30, 'minute').format('HH:mm');
@@ -470,11 +450,9 @@ exports.getAgendaPorDia = async (req, res) => {
       resultsByDay,
       availableByDay,
       clients,
-      services: dbServices, // ATUALIZADO: Passa serviços do DB
-      staff: staff, // Passa equipe do DB
-      // --- MUDANÇA 3: Passa a variável para a view ---
+      services: dbServices,
+      staff: staff, 
       pendingAppointments: pendingAppointments,
-      // --- FIM DA MUDANÇA 3 ---
       success,
       error
     });
@@ -482,9 +460,7 @@ exports.getAgendaPorDia = async (req, res) => {
     console.error("Erro ao buscar agenda:", err);
     res.render('agenda-dia', {
       days: [], resultsByDay: {}, availableByDay: {}, clients: [], services: [], staff: [],
-      // --- MUDANÇA 4: Adiciona a variável no erro ---
       pendingAppointments: [],
-      // --- FIM DA MUDANÇA 4 ---
       error: 'Erro ao carregar a agenda.',
       success: null, date: dayjs().tz('America/Sao_Paulo').format('YYYY-MM-DD')
     });
@@ -495,11 +471,9 @@ exports.getAgendaPorDia = async (req, res) => {
 exports.editAppointmentService = async (req, res) => {
   try {
     const organizationId = getOrgId(req);
-    // ATENÇÃO: 'id'=Appt, 'idx'=ApptService
     const { id, idx } = req.params;
     const { name, price } = req.body;
 
-    // 1. Busca o agendamento para checar posse e pegar clientId
     const a = await db.Appointment.findOne({ 
       where: { id: id, organizationId: organizationId },
       attributes: ['clientId']
@@ -508,8 +482,6 @@ exports.editAppointmentService = async (req, res) => {
         return res.redirect('/clients?error=Agendamento não encontrado');
     }
 
-    // 2. Atualiza o serviço do agendamento
-    // ATUALIZADO: a.services[idx] -> db.AppointmentService.update
     const [affectedRows] = await db.AppointmentService.update(
       { name, price: parseFloat(price) },
       { where: { id: idx, appointmentId: id } }
@@ -532,7 +504,6 @@ exports.editAppointmentDateTime = async (req, res) => {
     const { id } = req.params;
     const { date, time } = req.body;
 
-    // ATUALIZADO: findOne -> findOne
     const a = await db.Appointment.findOne({ 
       where: { id: id, organizationId: organizationId }
     });
@@ -541,9 +512,7 @@ exports.editAppointmentDateTime = async (req, res) => {
     }
 
     const newDate = dayjs.tz(`${date}T${time}`, 'America/Sao_Paulo').toDate();
-    // TODO: Adicionar verificação de conflito aqui
     
-    // ATUALIZADO: a.save() -> a.update()
     await a.update({ date: newDate });
 
     res.redirect(`/client/${a.clientId}?success=${encodeURIComponent('Data/Hora atualizada.')}`);
@@ -560,7 +529,6 @@ exports.confirmAppointment = async (req, res) => {
         const organizationId = getOrgId(req);
         const { id } = req.params;
 
-        // ATUALIZADO: findOneAndUpdate -> findOne + update
         const appt = await db.Appointment.findOne({
             where: {
                 id: id,
@@ -573,7 +541,6 @@ exports.confirmAppointment = async (req, res) => {
             return res.redirect(`/agendamentos-por-dia?error=${encodeURIComponent('Agendamento não encontrado ou já processado.')}`);
         }
         
-        // Atualiza a instância
         await appt.update({ 
             status: 'confirmado',
             clientNotified: false
@@ -594,7 +561,6 @@ exports.cancelAppointmentByAdmin = async (req, res) => {
         const { id } = req.params;
         const { cancellationReason } = req.body;
 
-        // 1. Busca primeiro (ATUALIZADO)
         const appt = await db.Appointment.findOne({ 
           where: { id: id, organizationId: organizationId }
         });
@@ -605,12 +571,10 @@ exports.cancelAppointmentByAdmin = async (req, res) => {
         
         const appointmentDate = dayjs(appt.date).format('YYYY-MM-DD');
 
-        // 2. Validação
         if (!cancellationReason || cancellationReason.trim() === '') {
             return res.redirect(`/agendamentos-por-dia?date=${appointmentDate}&error=${encodeURIComponent('O motivo do cancelamento é obrigatório.')}`);
         }
 
-        // 3. Atualiza (ATUALIZADO)
         await appt.update({
             status: 'cancelado_pelo_salao',
             cancellationReason: cancellationReason,

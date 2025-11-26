@@ -53,13 +53,20 @@ const Appointment = sequelize.define('Appointment', {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: true
+  },
+
+  reminder24hSent: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    allowNull: false
+  },
+  reminder3hSent: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    allowNull: false
   }
-  
-  // Os arrays 'services' e 'products' foram REMOVIDOS.
-  // Eles serão suas próprias tabelas (AppointmentService, AppointmentProduct)
-  // que se ligarão a este Appointment.
-  
 }, {
+  
   timestamps: true,
   indexes: [
     { fields: ['organizationId'] },

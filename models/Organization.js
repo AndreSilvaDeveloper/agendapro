@@ -96,10 +96,13 @@ const Organization = sequelize.define('Organization', {
        * Configurações de visibilidade da página pública
        * (Para a Meta 1)
        */
+      
       showGallery: true,
       showOperatingHours: true,
-      showAddress: true
+      showAddress: true, // adicionada vírgula ausente
       // Você pode adicionar mais chaves aqui no futuro (ex: 'enableReviews: false')
+
+      automaticReminders: true, // Habilita lembretes automáticos por padrão
     }
   }
 
