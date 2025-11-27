@@ -379,7 +379,7 @@ exports.getAgendaPorDia = async (req, res) => {
         },
         order: [['date', 'ASC']],
         include: [
-          { model: db.Client, attributes: ['id', 'name'] },
+          { model: db.Client, attributes: ['id', 'name', 'phone'] },
           { model: db.Staff, attributes: ['id', 'name'] },
           { model: db.AppointmentService, attributes: ['name'] }
         ]
@@ -404,7 +404,7 @@ exports.getAgendaPorDia = async (req, res) => {
           status: 'pendente'
         },
         include: [
-          { model: db.Client, attributes: ['id', 'name'] },
+          { model: db.Client, attributes: ['id', 'name', 'phone'] },
           { model: db.Staff, attributes: ['id', 'name'] }, 
           { model: db.AppointmentService, attributes: ['name'] },
           { model: db.AppointmentProduct, attributes: ['name'] }
@@ -427,6 +427,7 @@ exports.getAgendaPorDia = async (req, res) => {
         id: a.id, 
         clientId: a.Client.id, 
         clientName: a.Client.name, 
+        clientPhone: a.Client.phone,
         staffName: a.Staff ? a.Staff.name : 'N/D', 
         timeFormatted: time,
         servicesNames: (a.AppointmentServices || []).map(s => s.name).join(', '),

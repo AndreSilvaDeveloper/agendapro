@@ -7,6 +7,8 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <script>
         (function() {
             const THEMES = ["light", "medium-dark", "deep-dark"];
@@ -307,6 +309,7 @@
             <div class="xl:col-span-2 space-y-8">
                 
                 <% if (typeof isHistory === 'undefined' || !isHistory) { %>
+                <!-- ... Formulário de Novo Agendamento (sem alterações) ... -->
                 <div class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover animate-fade-in border border-gray-200">
                     <div class="bg-gold p-6 bg-shine-gold">
                         <h2 class="text-xl font-bold text-white flex items-center">
@@ -368,6 +371,7 @@
                     </div>
                 </div>
 
+                <!-- ... Bloco de Produtos (sem alterações) ... -->
                 <div class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover animate-fade-in border border-gray-200">
                     <div class="bg-gold p-6 bg-shine-gold">
                         <h2 class="text-xl font-bold text-white flex items-center">
@@ -376,12 +380,14 @@
                         </h2>
                     </div>
                     <div class="p-6">
+                        <!-- ... Conteúdo de produtos omitido para brevidade (mantém o original) ... -->
+                        <!-- Para brevidade, mantenha o código original dos produtos aqui -->
                         <form action="/client/<%= client.id %>/add-product" method="POST" class="mb-6">
                             <div class="flex flex-col sm:flex-row gap-3">
                                 <input name="name" type="text" placeholder="Nome do produto" required 
-                                       class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent bg-white text-gray-900">
+                                     class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent bg-white text-gray-900">
                                 <input name="price" type="number" step="0.01" placeholder="Preço" required 
-                                       class="sm:w-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent bg-white text-gray-900">
+                                     class="sm:w-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent bg-white text-gray-900">
                                 <button type="submit" class="bg-gold text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity">
                                     <i class="fas fa-plus mr-2"></i>
                                     Adicionar
@@ -403,24 +409,16 @@
                                         <div class="flex items-center space-x-3 mb-2">
                                             <h4 class="font-semibold text-gray-900 text-lg"><%= p.name %></h4>
                                             <% if (isPaid) { %>
-                                                <span class="status-badge status-paid">
-                                                    <i class="fas fa-check-circle mr-1"></i>
-                                                    Pago
-                                                </span>
+                                                <span class="status-badge status-paid"><i class="fas fa-check-circle mr-1"></i> Pago</span>
                                             <% } else { %>
-                                                <span class="status-badge status-pending">
-                                                    <i class="fas fa-clock mr-1"></i>
-                                                    Pendente
-                                                </span>
+                                                <span class="status-badge status-pending"><i class="fas fa-clock mr-1"></i> Pendente</span>
                                             <% } %>
                                         </div>
                                         <div class="flex flex-wrap gap-4 text-sm text-gray-600">
                                             <span><strong>Total:</strong> R$ <%= parseFloat(p.price).toFixed(2) %></span>
                                             <span><strong>Pago:</strong> R$ <%= totalPaid.toFixed(2) %></span>
                                             <% if (remaining > 0) { %>
-                                                <span class="text-red-600 font-semibold">
-                                                    <strong>Restante:</strong> R$ <%= remaining.toFixed(2) %>
-                                                </span>
+                                                <span class="text-red-600 font-semibold"><strong>Restante:</strong> R$ <%= remaining.toFixed(2) %></span>
                                             <% } %>
                                         </div>
                                     </div>
@@ -428,20 +426,17 @@
                                     <div class="flex flex-wrap gap-2">
                                         <form action="/client/<%= client.id %>/product/<%= p.id %>/pay" method="POST" onsubmit="return pagarValor(this)" data-remaining="<%= remaining %>" class="inline">
                                             <button class="flex items-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-opacity">
-                                                <i class="fas fa-credit-card"></i>
-                                                <span>Pagar</span>
+                                                <i class="fas fa-credit-card"></i> <span>Pagar</span>
                                             </button>
                                         </form>
                                         <form action="/client/<%= client.id %>/product/<%= p.id %>/edit" method="POST" onsubmit="return editItem(this, '<%= p.name %>', '<%= p.price %>')" class="inline">
                                             <button class="flex items-center space-x-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
-                                                <i class="fas fa-edit"></i>
-                                                <span>Editar</span>
+                                                <i class="fas fa-edit"></i> <span>Editar</span>
                                             </button>
                                         </form>
                                         <form action="/client/<%= client.id %>/product/<%= p.id %>/delete" method="POST" onsubmit="return confirm('Excluir este produto?')" class="inline">
                                             <button class="flex items-center space-x-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
-                                                <i class="fas fa-trash"></i>
-                                                <span>Excluir</span>
+                                                <i class="fas fa-trash"></i> <span>Excluir</span>
                                             </button>
                                         </form>
                                     </div>
@@ -450,8 +445,7 @@
                                 <% if (p.Payments && p.Payments.length) { %>
                                 <div class="mt-4 pt-4 border-t border-gray-200">
                                     <h5 class="text-sm font-semibold text-gray-700 mb-3 flex items-center">
-                                        <i class="fas fa-history mr-2"></i>
-                                        Histórico de Pagamentos
+                                        <i class="fas fa-history mr-2"></i> Histórico de Pagamentos
                                     </h5>
                                     <div class="space-y-2">
                                         <% p.Payments.forEach((pay) => { %>
@@ -535,6 +529,11 @@
                                 const todayMid = new Date();
                                 todayMid.setHours(0,0,0,0);
                                 const isPast = apptDate < todayMid;
+
+                                // --- CORREÇÃO AQUI: Lista os nomes dos serviços ---
+                                const serviceNames = (a.AppointmentServices && a.AppointmentServices.length > 0) 
+                                    ? a.AppointmentServices.map(s => s.name).join(', ') 
+                                    : 'Serviço';
                             %>
                             <div class="bg-white p-4 rounded-xl border border-gray-200 <%= isPast ? 'opacity-75' : '' %>">
                                 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-3 lg:space-y-0 mb-4">
@@ -550,33 +549,83 @@
                                         </h4>
                                     </div>
 
-                                    <div class="flex flex-wrap gap-2">
-                                        <% if (!isPast) { %>
-                                        <button type="button" 
-                                            onclick="sendAutomaticReminder(this, '<%= client.name %>', '<%= client.phone %>', '<%= a.formatted %>')"
-                                            class="flex items-center space-x-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors btn-whatsapp-sender">
-                                            <i class="fab fa-whatsapp"></i>
-                                            <span class="hidden sm:inline">Lembrar (Auto)</span>
-                                        </button>
-                                        <% } %>
+                                    <div class="flex flex-col gap-2 mt-2">
+    
+                                        <% 
+                                        // --- LÓGICA DE STATUS ---
+                                        const rawStatus = (a.status || '').toString().toLowerCase();
+                                        const rawConfirmed = a.confirmed; 
+                                        const isCancelled = rawStatus.includes('cancel');
+                                        let isConfirmed = false;
+                                        if (rawStatus === 'confirmed' || rawStatus === 'confirmado') isConfirmed = true;
+                                        if (rawConfirmed === true || rawConfirmed === 1 || rawConfirmed === '1' || rawConfirmed === 'true') isConfirmed = true;
+                                        const isPending = !isCancelled && !isConfirmed;
+                                        %>
 
-                                        <form action="/appointment/<%= a.id %>/edit-datetime" method="POST"
-                                              onsubmit='return editDateTime(this, "<%= datePart %>", "<%= timePart %>")'
-                                              class="inline">
-                                            <button class="flex items-center space-x-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
-                                                <i class="fas fa-edit"></i>
-                                                <span class="hidden sm:inline">Alterar</span>
-                                            </button>
-                                        </form>
+                                        <div class="mb-1">
+                                            <% if (isConfirmed) { %>
+                                                <span class="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded border border-green-200 uppercase tracking-wide">
+                                                    <i class="fas fa-check-circle mr-1"></i> Agendamento Confirmado
+                                                </span>
+                                            <% } else if (isCancelled) { %>
+                                                <span class="text-xs font-bold text-red-700 bg-red-100 px-2 py-1 rounded border border-red-200 uppercase tracking-wide">
+                                                    <i class="fas fa-ban mr-1"></i> Cancelado
+                                                </span>
+                                            <% } else { %>
+                                                <span class="text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-1 rounded border border-yellow-200 uppercase tracking-wide">
+                                                    <i class="fas fa-clock mr-1"></i> Aguardando Confirmação
+                                                </span>
+                                            <% } %>
+                                        </div>
 
-                                        <form action="/appointment/<%= a.id %>/cancel" method="POST" onsubmit="return promptCancelReason(this)" class="inline">
-                                            <button class="flex items-center space-x-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
-                                                <i class="fas fa-times"></i>
-                                                <span class="hidden sm:inline">Cancelar</span>
+                                        <div class="flex flex-wrap gap-2">
+                                            <% if (isPending) { %>
+                                                <form action="/admin/appointment/<%= a.id %>/confirm" method="POST" class="inline" onsubmit="return confirmAppointment(this, '<%= serviceNames %>', '<%= a.formatted %>')">
+                                                    <button type="submit" class="flex items-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm font-medium">
+                                                        <i class="fas fa-check"></i>
+                                                        <span class="hidden sm:inline">Aceitar</span>
+                                                    </button>
+                                                </form>
+
+                                                <form action="/admin/appointment/<%= a.id %>/cancel-by-admin" method="POST" class="inline" onsubmit="return cancelAppointment(this, '<%= serviceNames %>', '<%= a.formatted %>')">
+                                                    <button type="submit" class="flex items-center space-x-2 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm font-medium">
+                                                        <i class="fas fa-times"></i>
+                                                        <span class="hidden sm:inline">Recusar</span>
+                                                    </button>
+                                                </form>
+                                            <% } %>
+
+                                            <% if (!isPast && !isCancelled) { %>
+                                            <!-- CORREÇÃO: Passando serviceNames para a função -->
+                                            <button type="button" 
+                                                onclick="sendAutomaticReminder(this, '<%= client.name %>', '<%= client.phone %>', '<%= a.formatted %>', '<%= serviceNames %>')"
+                                                class="flex items-center space-x-2 px-4 py-2 bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100 transition-colors btn-whatsapp-sender">
+                                                <i class="fab fa-whatsapp"></i>
+                                                <span class="hidden sm:inline">Lembrar</span>
                                             </button>
-                                        </form>
+                                            <% } %>
+
+                                            <% if (!isCancelled) { %>
+                                            <form action="/appointment/<%= a.id %>/edit-datetime" method="POST"
+                                                onsubmit='return editDateTimeNew(this, "<%= datePart %>", "<%= timePart %>")'
+                                                class="inline">
+                                                <button type="submit" class="flex items-center space-x-2 px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors">
+                                                    <i class="fas fa-edit"></i>
+                                                    <span class="hidden sm:inline">Alterar</span>
+                                                </button>
+                                            </form>
+                                            <% } %>
+
+                                            <% if (!isCancelled) { %>
+                                            <form action="/appointment/<%= a.id %>/cancel" method="POST" onsubmit="return cancelAppointment(this, '<%= serviceNames %>', '<%= a.formatted %>')" class="inline">
+                                                <button type="submit" class="flex items-center space-x-2 px-3 py-2 bg-gray-100 text-gray-50 rounded-lg hover:bg-gray-200 hover:text-red-600 transition-colors" title="Cancelar Agendamento">
+                                                    <i class="fas fa-ban"></i>
+                                                    <span class="hidden sm:inline">Cancelar</span>
+                                                </button>
+                                            </form>
+                                            <% } %>
+                                        </div>
                                     </div>
-                                </div>
                                 
                                 <% if (a.AppointmentServices && a.AppointmentServices.length) { %>
                                 <div class="border-t border-gray-200 pt-4">
@@ -595,13 +644,9 @@
                                                     <div class="flex items-center space-x-3 mb-2">
                                                         <h6 class="font-semibold text-gray-900"><%= service.name %></h6>
                                                         <% if (isServicePaid) { %>
-                                                            <span class="status-badge status-paid">
-                                                                <i class="fas fa-check-circle mr-1"></i> Pago
-                                                            </span>
+                                                            <span class="status-badge status-paid"><i class="fas fa-check-circle mr-1"></i> Pago</span>
                                                         <% } else { %>
-                                                            <span class="status-badge status-pending">
-                                                                <i class="fas fa-clock mr-1"></i> Pendente
-                                                            </span>
+                                                            <span class="status-badge status-pending"><i class="fas fa-clock mr-1"></i> Pendente</span>
                                                         <% } %>
                                                     </div>
                                                     <div class="text-sm text-gray-600">
@@ -610,9 +655,7 @@
                                                             <span class="ml-4"><strong>Pago:</strong> R$ <%= servicePaid.toFixed(2) %></span>
                                                         <% } %>
                                                         <% if (serviceRemaining > 0) { %>
-                                                            <span class="ml-4 text-red-600 font-semibold">
-                                                                <strong>Restante:</strong> R$ <%= serviceRemaining.toFixed(2) %>
-                                                            </span>
+                                                            <span class="ml-4 text-red-600 font-semibold"><strong>Restante:</strong> R$ <%= serviceRemaining.toFixed(2) %></span>
                                                         <% } %>
                                                     </div>
                                                 </div>
@@ -674,6 +717,8 @@
             </div>
 
             <div class="space-y-6">
+                <!-- ... Resumo Financeiro (sem alterações) ... -->
+                <!-- Manter bloco original do resumo financeiro -->
                 <% if (typeof isHistory === 'undefined' || !isHistory) { %>
                 <div class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover animate-fade-in border border-gray-200">
                     <div class="bg-gold p-6 bg-shine-gold">
@@ -686,50 +731,39 @@
                         <div class="bg-green-50 p-4 rounded-xl border border-green-200">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center space-x-3">
-                                    <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                                        <i class="fas fa-concierge-bell text-green-600"></i>
-                                    </div>
+                                    <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center"><i class="fas fa-concierge-bell text-green-600"></i></div>
                                     <span class="font-medium text-green-800">Total Serviços</span>
                                 </div>
                                 <span class="text-xl font-bold text-green-600">R$ <%= totalService.toFixed(2) %></span>
                             </div>
                         </div>
-
                         <div class="bg-blue-50 p-4 rounded-xl border border-blue-200">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center space-x-3">
-                                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                        <i class="fas fa-check-circle text-blue-600"></i>
-                                    </div>
+                                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center"><i class="fas fa-check-circle text-blue-600"></i></div>
                                     <span class="font-medium text-blue-800">Pago (Serv.)</span>
                                 </div>
                                 <span class="text-xl font-bold text-blue-600">R$ <%= totalPaidService.toFixed(2) %></span>
                             </div>
                         </div>
-
-                        <div class="bg-purple-50 p-4 rounded-xl border border-purple-200">
+                        <!-- ... Demais itens do resumo ... -->
+                        <!-- Omitido para brevidade, mas você deve manter o original -->
+                         <div class="bg-purple-50 p-4 rounded-xl border border-purple-200">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center space-x-3">
-                                    <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                                        <i class="fas fa-box text-purple-600"></i>
-                                    </div>
+                                    <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center"><i class="fas fa-box text-purple-600"></i></div>
                                     <span class="font-medium text-purple-800">Total Produtos</span>
                                 </div>
                                 <span class="text-xl font-bold text-purple-600">R$ <%= totalProduct.toFixed(2) %></span>
                             </div>
                         </div>
-
                         <div class="bg-red-50 p-4 rounded-xl border-2 border-red-200">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center space-x-3">
-                                    <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                                        <i class="fas fa-exclamation-triangle text-red-600"></i>
-                                    </div>
+                                    <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center"><i class="fas fa-exclamation-triangle text-red-600"></i></div>
                                     <span class="font-bold text-red-800">Restante</span>
                                 </div>
-                                <span class="text-2xl font-bold text-red-600">
-                                    R$ <%= (totalService + totalProduct - (totalPaidService + totalPaidProduct)).toFixed(2) %>
-                                </span>
+                                <span class="text-2xl font-bold text-red-600">R$ <%= (totalService + totalProduct - (totalPaidService + totalPaidProduct)).toFixed(2) %></span>
                             </div>
                         </div>
                     </div>
@@ -747,24 +781,20 @@
                         <% if (typeof isHistory === 'undefined' || !isHistory) { %>
                         <button onclick="scrollToElement('form[action=\'/appointment\']')" 
                                 class="w-full bg-gold text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity bg-shine-gold">
-                            <i class="fas fa-calendar-plus mr-2"></i>
-                            Novo Agendamento
+                            <i class="fas fa-calendar-plus mr-2"></i> Novo Agendamento
                         </button>
                         <button onclick="scrollToElement('form[action*=\'/add-product\']')" 
                                 class="w-full bg-gold-light text-gold-dark py-3 rounded-lg font-semibold hover:bg-yellow-100 transition-colors">
-                            <i class="fas fa-plus mr-2"></i>
-                            Adicionar Produto
+                            <i class="fas fa-plus mr-2"></i> Adicionar Produto
                         </button>
                         <a href="/client/<%= client.id %>/historico" 
                            class="block w-full bg-blue-100 text-blue-700 py-3 rounded-lg font-semibold hover:bg-blue-200 transition-colors text-center">
-                            <i class="fas fa-history mr-2"></i>
-                            Ver Histórico Completo
+                            <i class="fas fa-history mr-2"></i> Ver Histórico Completo
                         </a>
                         <% } else { %>
                         <a href="/client/<%= client.id %>" 
                            class="block w-full bg-gold text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity bg-shine-gold text-center">
-                            <i class="fas fa-arrow-left mr-2"></i>
-                            Voltar aos Detalhes
+                            <i class="fas fa-arrow-left mr-2"></i> Voltar aos Detalhes
                         </a>
                         <% } %>
                     </div>
@@ -774,27 +804,23 @@
 
         <div class="mt-8 text-center">
             <button onclick="history.back()" class="bg-gold text-white px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity bg-shine-gold">
-                <i class="fas fa-arrow-left mr-2"></i>
-                Voltar
+                <i class="fas fa-arrow-left mr-2"></i> Voltar
             </button>
         </div>
     </div>
 
+    <!-- Modal de Pagamento (sem alterações) -->
     <div id="payment-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden animate-fade-in">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 m-4">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-2xl font-bold text-gray-900" id="payment-modal-title">Registrar Pagamento</h3>
-                <button onclick="closeModal('payment-modal')" class="text-gray-400 hover:text-gray-600">
-                    <i class="fas fa-times text-2xl"></i>
-                </button>
+                <button onclick="closeModal('payment-modal')" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-2xl"></i></button>
             </div>
-            
             <form id="payment-modal-form" method="POST" class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Valor Pago</label>
                     <input type="number" step="0.01" name="amount" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark bg-white text-gray-900">
                 </div>
-                
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Forma de Pagamento</label>
                     <select name="method" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark bg-white text-gray-900">
@@ -803,24 +829,17 @@
                         <option value="Cartão">Cartão</option>
                     </select>
                 </div>
-    
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Data do Pagamento</label>
                     <input type="date" name="paidAt" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark bg-white text-gray-900">
                 </div>
-    
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Descrição (Opcional)</label>
                     <input type="text" name="description" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark bg-white text-gray-900">
                 </div>
-                
                 <div class="flex justify-end space-x-3 pt-4">
-                    <button type="button" onclick="closeModal('payment-modal')" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                        Cancelar
-                    </button>
-                    <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-opacity">
-                        Salvar Pagamento
-                    </button>
+                    <button type="button" onclick="closeModal('payment-modal')" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">Cancelar</button>
+                    <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-opacity">Salvar Pagamento</button>
                 </div>
             </form>
         </div>
@@ -828,54 +847,53 @@
 
     <script>
         // =================================================
+        // === CONFIGURAÇÕES E TRAVA DE SEGURANÇA ===
+        // =================================================
+        const CLIENT_NAME = "<%= client.name %>";
+        const CLIENT_PHONE = "<%= client.phone %>";
+        const ORG_NAME = "<%= typeof organization !== 'undefined' ? organization.name : 'AgendaPro' %>";
+        
+        let isProcessingGlobal = false;
+
+        // =================================================
         // === LÓGICA DE TEMA ===
         // =================================================
         const THEMES = ["light", "medium-dark", "deep-dark"];
         const htmlEl = document.documentElement;
 
-        function getNextTheme(currentTheme) {
-            const currentIndex = THEMES.indexOf(currentTheme);
-            const nextIndex = (currentIndex + 1) % THEMES.length;
-            return THEMES[nextIndex];
-        }
-
         function updateIcons(theme) {
-            const sunDesktop = document.getElementById('theme-icon-sun');
-            const moonDesktop = document.getElementById('theme-icon-moon');
-            const sunMobile = document.getElementById('theme-icon-sun-mobile'); 
-            const moonMobile = document.getElementById('theme-icon-moon-mobile'); 
-            
             const isLight = theme === 'light';
-
-            if (sunDesktop) sunDesktop.classList.toggle('hidden', !isLight);
-            if (moonDesktop) moonDesktop.classList.toggle('hidden', isLight);
+            const sunD = document.getElementById('theme-icon-sun');
+            const moonD = document.getElementById('theme-icon-moon');
+            const sunM = document.getElementById('theme-icon-sun-mobile'); 
+            const moonM = document.getElementById('theme-icon-moon-mobile'); 
             
-            if (sunMobile) sunMobile.classList.toggle('hidden', !isLight);
-            if (moonMobile) moonMobile.classList.toggle('hidden', isLight);
+            if(sunD) sunD.classList.toggle('hidden', !isLight);
+            if(moonD) moonD.classList.toggle('hidden', isLight);
+            if(sunM) sunM.classList.toggle('hidden', !isLight);
+            if(moonM) moonM.classList.toggle('hidden', isLight);
         }
 
         function toggleTheme() {
             const currentTheme = htmlEl.getAttribute('data-theme') || 'light';
-            const newTheme = getNextTheme(currentTheme);
-
+            const nextIndex = (THEMES.indexOf(currentTheme) + 1) % THEMES.length;
+            const newTheme = THEMES[nextIndex];
             htmlEl.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
             updateIcons(newTheme);
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            const initialTheme = htmlEl.getAttribute('data-theme') || 'light';
-            updateIcons(initialTheme);
-            
-            const toggleButtonDesktop = document.getElementById('theme-toggle-btn');
-            const toggleButtonMobile = document.getElementById('theme-toggle-btn-mobile'); 
-
-            if (toggleButtonDesktop) toggleButtonDesktop.addEventListener('click', toggleTheme);
-            if (toggleButtonMobile) toggleButtonMobile.addEventListener('click', toggleTheme);
+            updateIcons(localStorage.getItem('theme') || 'light');
+            const btnD = document.getElementById('theme-toggle-btn');
+            const btnM = document.getElementById('theme-toggle-btn-mobile'); 
+            if (btnD) btnD.addEventListener('click', toggleTheme);
+            if (btnM) btnM.addEventListener('click', toggleTheme);
         });
-        // =================================================
 
-        // Mobile menu toggle
+        // =================================================
+        // === UTILITÁRIOS ===
+        // =================================================
         const menuButton = document.getElementById('menu-button');
         const mobileMenu = document.getElementById('mobile-menu');
         const closeMenu = document.getElementById('close-menu');
@@ -897,233 +915,269 @@
         }
         function scrollToElement(selector) {
             const element = document.querySelector(selector);
-            if (element) {
-                element.scrollIntoView({behavior: 'smooth'});
-            }
-        }
-        function addService() {
-            const container = document.getElementById('services');
-            if (!container) return;
-            const serviceDiv = document.createElement('div');
-            serviceDiv.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200';
-            serviceDiv.innerHTML = `
-                <div class="flex gap-3">
-                    <input type="text" placeholder="Nome do serviço" 
-                           class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all service-name bg-white text-gray-900">
-                    <input type="number" placeholder="Preço" step="0.01"
-                           class="w-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all service-price bg-white text-gray-900">
-                    <button type="button" onclick="this.parentElement.parentElement.remove()" 
-                            class="px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            `;
-            container.appendChild(serviceDiv);
-        }
-        function processForm() {
-            const services = [], products = [];
-            document.querySelectorAll('.service-name').forEach((el, i) => {
-                const name = el.value.trim();
-                const priceElement = document.querySelectorAll('.service-price')[i];
-                const price = priceElement ? parseFloat(priceElement.value) : 0;
-                if (name && !isNaN(price)) {
-                    services.push({name: name, price: price});
-                }
-            });
-            const servicesInput = document.getElementById('servicesInput');
-            const productsInput = document.getElementById('productsInput');
-            if (servicesInput) servicesInput.value = JSON.stringify(services);
-            if (productsInput) productsInput.value = JSON.stringify(products);
-            return true;
+            if (element) element.scrollIntoView({behavior: 'smooth'});
         }
 
-        // --- NOVA FUNÇÃO DE ENVIO AUTOMÁTICO WHATSAPP ---
-        async function sendAutomaticReminder(button, clientName, clientPhone, apptDateTime) {
-            const originalContent = button.innerHTML;
-            button.disabled = true;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+        // =================================================
+        // === SISTEMA DE ENVIO UNIFICADO ===
+        // =================================================
 
-            // Pega os serviços
-            const card = button.closest('.p-4.rounded-xl');
-            let servicesText = '';
-            if(card) {
-                 const services = Array.from(card.querySelectorAll('h6.font-semibold'))
-                                  .map(h6 => h6.innerText.trim())
-                                  .join(', ');
-                 servicesText = services;
-            }
-
-            // 👇 AQUI ESTÁ A MUDANÇA: Usamos a variável do EJS dentro da string JS
-            const orgName = "<%= typeof organization !== 'undefined' ? organization.name : 'AgendaPro' %>"; 
-
-            let message = `Olá, ${clientName}! ✨\n\n`;
-            message += `Gostaríamos de lembrar do seu horário no *${orgName}*: ${apptDateTime}.\n\n`;
-            
-            if (servicesText) {
-                message += `Serviços: *${servicesText}*.\n\n`;
-            }
-            message += `Por favor, nos avise se precisar remarcar. Estamos te esperando! 😊`;
-
+        async function sendWhatsAppMessage(message) {
             try {
-                const response = await fetch('/api/send-reminder', {
+                await fetch('/api/send-reminder', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        phone: clientPhone,
-                        message: message
-                    })
+                    body: JSON.stringify({ phone: CLIENT_PHONE, message: message })
                 });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    button.className = "flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg transition-colors";
-                    button.innerHTML = '<i class="fas fa-check"></i> Enviado';
-                } else {
-                    alert('Erro: ' + (data.error || 'Falha ao enviar'));
-                    button.disabled = false;
-                    button.innerHTML = originalContent;
-                }
             } catch (error) {
-                console.error(error);
-                alert('Erro de conexão.');
-                button.disabled = false;
-                button.innerHTML = originalContent;
+                console.error("Erro zap:", error);
             }
         }
-        // ------------------------------------------------
+
+        async function handleUnifiedAction(form, actionType, customData = {}) {
+            if (isProcessingGlobal) return false;
+            isProcessingGlobal = true;
+
+            const submitBtn = form.querySelector('button');
+            let originalText = '';
+            if(submitBtn) {
+                originalText = submitBtn.innerHTML;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> ...';
+                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+
+            Swal.fire({
+                title: 'Processando...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            try {
+                const formData = new URLSearchParams(new FormData(form));
+                for (const key in customData) {
+                    formData.append(key, customData[key]);
+                }
+
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error('Erro servidor');
+
+                // CORREÇÃO DA MENSAGEM DE CONFIRMAÇÃO
+                let whatsappMsg = "";
+                if (actionType === 'confirm') {
+                    // Mensagem de confirmação atualizada
+                    whatsappMsg = `Olá *${CLIENT_NAME}*! ✅\nSeu agendamento no *${ORG_NAME}* foi confirmado.\n📅 ${customData.dateTimeStr}\n💇 Serviço: *${customData.serviceName}*\nEstamos te esperando!`;
+                } 
+                else if (actionType === 'cancel') {
+                    whatsappMsg = `Olá *${CLIENT_NAME}*. \n❌Informamos que seu agendamento:\n💇 Serviço: *${customData.serviceName}*\n📅 ${customData.dateTimeStr}\nno *${ORG_NAME}* foi cancelado.\nMotivo: ${customData.cancellationReason || 'Não informado'}.`;
+                }
+                else if (actionType === 'edit_time') {
+                    const [y, m, d] = customData.date.split('-');
+                    whatsappMsg = `Olá *${CLIENT_NAME}*! 🗓️\nSeu agendamento foi reagendado para *${d}/${m}/${y}* às *${customData.time}*.`;
+                }
+                else if (actionType === 'payment') {
+                    whatsappMsg = `Olá *${CLIENT_NAME}*! 💲\nRecebemos seu pagamento de *R$ ${customData.amount}* referente a *${customData.itemName}*. Obrigado!`;
+                }
+
+                if (whatsappMsg) await sendWhatsAppMessage(whatsappMsg);
+
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Sucesso!',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
+                window.location.reload();
+
+            } catch (error) {
+                console.error(error);
+                isProcessingGlobal = false;
+                if(submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+                Swal.fire('Erro', 'Houve um problema ao processar.', 'error');
+            }
+        }
+
+        // =================================================
+        // === INTERCEPTADORES ===
+        // =================================================
+
+        function confirmAppointment(form, serviceName, dateTimeStr) {
+            handleUnifiedAction(form, 'confirm', { serviceName, dateTimeStr });
+            return false;
+        }
+
+        function cancelAppointment(form, serviceName, dateTimeStr) {
+            if (isProcessingGlobal) return false;
+            
+            Swal.fire({
+                title: 'Cancelar?',
+                text: 'Motivo (enviado ao cliente):',
+                input: 'text',
+                inputPlaceholder: 'Ex: Imprevisto...',
+                showCancelButton: true,
+                confirmButtonText: 'Sim, Cancelar',
+                cancelButtonText: 'Voltar',
+                confirmButtonColor: '#d33'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const reason = result.value || 'Cancelado pelo estabelecimento';
+                    handleUnifiedAction(form, 'cancel', { cancellationReason: reason, serviceName, dateTimeStr });
+                }
+            });
+            return false;
+        }
+
+        function editDateTimeNew(form, oldDateStr, oldTimeStr) {
+            if (isProcessingGlobal) return false;
+
+            const [d, m, y] = oldDateStr.split('/');
+            const isoDate = `${y}-${m}-${d}`;
+
+            Swal.fire({
+                title: 'Alterar Data/Hora',
+                html: `
+                    <label class="block text-left text-sm font-bold mb-1">Nova Data:</label>
+                    <input type="date" id="swal-date" class="swal2-input m-0 w-full mb-3" value="${isoDate}">
+                    <label class="block text-left text-sm font-bold mb-1">Novo Horário:</label>
+                    <input type="time" id="swal-time" class="swal2-input m-0 w-full" value="${oldTimeStr}">
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Salvar',
+                cancelButtonText: 'Cancelar',
+                preConfirm: () => {
+                    const date = document.getElementById('swal-date').value;
+                    const time = document.getElementById('swal-time').value;
+                    if (!date || !time) Swal.showValidationMessage('Preencha tudo');
+                    return { date, time };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    handleUnifiedAction(form, 'edit_time', { date: result.value.date, time: result.value.time });
+                }
+            });
+            return false;
+        }
+
+        let currentPaymentForm = null;
+        let currentItemName = '';
 
         function pagarValor(form) { 
-            const modal = document.getElementById('payment-modal');
+            currentPaymentForm = form;
+            const card = form.closest('.bg-white.p-4');
+            const titleEl = card.querySelector('h4, h6');
+            currentItemName = titleEl ? titleEl.innerText : 'Item';
+            
+            const remaining = parseFloat(form.dataset.remaining);
             const modalForm = document.getElementById('payment-modal-form');
-            const remainingAmount = parseFloat(form.dataset.remaining);
-            modalForm.action = form.action; 
             
-            // Tenta encontrar o titulo do serviço ou produto
-            let title = 'Item';
-            const titleEl = form.closest('.p-4, .bg-white').querySelector('h4, h6');
-            if(titleEl) title = titleEl.innerText;
-            
-            modal.querySelector('#payment-modal-title').innerText = `Pagar: ${title}`;
-            const amountInput = modalForm.querySelector('input[name="amount"]');
-            if (remainingAmount && !isNaN(remainingAmount)) {
-                amountInput.value = remainingAmount.toFixed(2);
-            } else {
-                amountInput.value = '';
-                amountInput.placeholder = '0.00';
-            }
+            document.getElementById('payment-modal-title').innerText = `Pagar: ${currentItemName}`;
+            modalForm.querySelector('input[name="amount"]').value = remaining ? remaining.toFixed(2) : '';
             modalForm.querySelector('input[name="paidAt"]').value = getTodayIso();
-            modalForm.querySelector('input[name="description"]').value = '';
+            
             openModal('payment-modal');
             return false; 
         }
+
+        document.getElementById('payment-modal-form').onsubmit = function(e) {
+            e.preventDefault();
+            if(!currentPaymentForm || isProcessingGlobal) return;
+            
+            this.action = currentPaymentForm.action;
+            const amountVal = this.querySelector('input[name="amount"]').value;
+            closeModal('payment-modal');
+
+            handleUnifiedAction(this, 'payment', { amount: amountVal, itemName: currentItemName });
+        };
+
+        // --- CORREÇÃO DA FUNÇÃO DE ENVIO MANUAL (COM NOME DO SERVIÇO) ---
+        async function sendAutomaticReminder(button, clientName, clientPhone, apptDateTime, serviceName) {
+            if(isProcessingGlobal) return;
+            isProcessingGlobal = true;
+
+            const originalContent = button.innerHTML;
+            button.disabled = true; 
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
+            
+            // Mensagem atualizada conforme solicitado
+            const message = `Olá, *${clientName}*! ✨\nLembrete de agendamento no *${ORG_NAME}*: ${apptDateTime}.\nServiço: *${serviceName}*.\nEsperamos você! 😊`;
+
+            try {
+                const res = await fetch('/api/send-reminder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: clientPhone, message })
+                });
+                if (res.ok) {
+                    button.className = "flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg transition-colors";
+                    button.innerHTML = '<i class="fas fa-check"></i> Enviado';
+                } else {
+                    button.disabled = false; button.innerHTML = originalContent;
+                    Swal.fire('Erro', 'Falha ao enviar', 'error');
+                }
+            } catch (e) {
+                button.disabled = false; button.innerHTML = originalContent;
+            } finally {
+                isProcessingGlobal = false;
+            }
+        }
+
+        function addService() {
+            const container = document.getElementById('services');
+            if (!container) return;
+            const div = document.createElement('div');
+            div.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200';
+            div.innerHTML = `<div class="flex gap-3"><input type="text" placeholder="Nome" class="flex-1 p-3 border border-gray-300 rounded-lg service-name"><input type="number" placeholder="Preço" step="0.01" class="w-32 p-3 border border-gray-300 rounded-lg service-price"><button type="button" onclick="this.parentElement.parentElement.remove()" class="px-3 py-2 bg-red-100 text-red-700 rounded-lg"><i class="fas fa-trash"></i></button></div>`;
+            container.appendChild(div);
+        }
+
+        function processForm() {
+            const services = [];
+            document.querySelectorAll('.service-name').forEach((el, i) => {
+                const name = el.value.trim();
+                const price = parseFloat(document.querySelectorAll('.service-price')[i].value);
+                if (name && !isNaN(price)) services.push({name, price});
+            });
+            document.getElementById('servicesInput').value = JSON.stringify(services);
+            document.getElementById('productsInput').value = JSON.stringify([]);
+            return true;
+        }
+
         function editItem(form, oldName, oldPrice) {
             const nome = prompt('Novo nome:', oldName);
             if (nome === null) return false;
             const preco = prompt('Novo preço:', oldPrice);
             if (preco === null) return false;
-            const i1 = document.createElement('input');
-            i1.type = 'hidden'; i1.name = 'name'; i1.value = nome;
-            form.appendChild(i1);
-            const i2 = document.createElement('input');
-            i2.type = 'hidden'; i2.name = 'price'; i2.value = preco;
-            form.appendChild(i2);
-            return true;
-        }
-        function editClient(form, oldName, oldPhone) {
-            const nome = prompt('Novo nome do cliente:', oldName);
-            if (nome === null) return false;
-            const telefone = prompt('Novo telefone:', oldPhone);
-            if (telefone === null) return false;
-            const i1 = document.createElement('input');
-            i1.type = 'hidden'; i1.name = 'name'; i1.value = nome;
-            form.appendChild(i1);
-            const i2 = document.createElement('input');
-            i2.type = 'hidden'; i2.name = 'phone'; i2.value = telefone;
-            form.appendChild(i2);
-            return true;
-        }
-        function editDateTime(form, oldDate, oldTime) {
-            const [day, month, year] = oldDate.split('/');
-            const formattedOld = `${day}/${month}/${year}`;
-            const userDate = prompt('Nova data (DD/MM/YYYY):', formattedOld);
-            if (userDate === null) return false;
-            const dateMatch = userDate.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-            if (!dateMatch) {
-                alert('Data inválida. Use DD/MM/YYYY.');
-                return false;
-            }
-            const [, d, m, y] = dateMatch;
-            const isoDate = `${y}-${m}-${d}`;
-            const userTime = prompt('Novo horário (HH:MM):', oldTime);
-            if (userTime === null) return false;
-            if (!/^\d{2}:\d{2}$/.test(userTime)) {
-                alert('Horário inválido. Use HH:MM.');
-                return false;
-            }
-            const i1 = document.createElement('input');
-            i1.type = 'hidden'; i1.name = 'date'; i1.value = isoDate;
-            form.appendChild(i1);
-            const i2 = document.createElement('input');
-            i2.type = 'hidden'; i2.name = 'time'; i2.value = userTime;
-            form.appendChild(i2);
-            return true;
-        }
-        function promptCancelReason(form) {
-            const reason = prompt("Por favor, insira o motivo do cancelamento (será visível para o cliente):");
-            if (reason === null) {
-                return false; 
-            }
-            if (reason.trim() === "") {
-                alert("O motivo do cancelamento é obrigatório.");
-                return false; 
-            }
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'cancellationReason';
-            input.value = reason.trim();
-            form.appendChild(input);
-            return true; 
-        }
-        document.addEventListener('DOMContentLoaded', function() {
-            const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -50px 0px' };
-            const observer = new IntersectionObserver(function(entries) {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.style.opacity = '1';
-                        entry.target.style.transform = 'translateY(0)';
-                    }
-                });
-            });
-            document.querySelectorAll('.animate-fade-in').forEach(el => {
-                el.style.opacity = '0';
-                el.style.transform = 'translateY(20px)';
-                el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-                observer.observe(el);
-            });
-
-            // Script para carregar profissionais se a lista estiver vazia
-            const staffSelect = document.getElementById('staffIdSelect');
             
-            // Só busca se o select existir e tiver apenas 1 opção (a opção padrão "Selecione...")
-            if (staffSelect && staffSelect.options.length <= 1) {
-                // Tenta buscar de uma rota de API
-                fetch('/api/admin/equipe') // Ajuste conforme sua rota real
-                    .then(response => {
-                        if (response.ok) return response.json();
-                        throw new Error('Falha ao carregar equipe');
-                    })
-                    .then(staffList => {
-                        staffList.forEach(member => {
-                            const option = document.createElement('option');
-                            option.value = member.id;
-                            option.textContent = member.name;
-                            staffSelect.appendChild(option);
-                        });
-                    })
-                    .catch(error => {
-                        console.warn("Não foi possível carregar a lista de profissionais via API.", error);
+            const i1 = document.createElement('input'); i1.type = 'hidden'; i1.name = 'name'; i1.value = nome; form.appendChild(i1);
+            const i2 = document.createElement('input'); i2.type = 'hidden'; i2.name = 'price'; i2.value = preco; form.appendChild(i2);
+            return true;
+        }
+        
+        function editClient(form, oldName, oldPhone) {
+            const nome = prompt('Nome:', oldName); if(!nome) return false;
+            const fone = prompt('Telefone:', oldPhone); if(!fone) return false;
+            const i1 = document.createElement('input'); i1.type = 'hidden'; i1.name = 'name'; i1.value = nome; form.appendChild(i1);
+            const i2 = document.createElement('input'); i2.type = 'hidden'; i2.name = 'phone'; i2.value = fone; form.appendChild(i2);
+            return true;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const sel = document.getElementById('staffIdSelect');
+            if (sel && sel.options.length <= 1) {
+                fetch('/api/admin/equipe').then(r=>r.json()).then(lst => {
+                    lst.forEach(m => {
+                        const o = document.createElement('option'); o.value = m.id; o.textContent = m.name; sel.appendChild(o);
                     });
+                }).catch(e=>{});
             }
         });
     </script>

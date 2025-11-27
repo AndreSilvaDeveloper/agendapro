@@ -298,158 +298,125 @@
         <div id="dashboard-data" class="hidden" data-pending='<%- JSON.stringify(pendingAppointments || []) %>'></div>
     </main>
 
-    <script>
-        // === CONTROLE DE TEMA ===
-        const htmlEl = document.documentElement;
-        function updateIcons(theme) {
-            const isLight = theme === 'light';
-            document.getElementById('theme-icon-sun').classList.toggle('hidden', !isLight);
-            document.getElementById('theme-icon-moon').classList.toggle('hidden', isLight);
+   <script>
+    const ORG_NAME = "<%= (typeof org !== 'undefined') ? org.name : 'AgendaPro' %>";
+
+    // === CONFIGURAÇÕES VISUAIS ===
+    const htmlEl = document.documentElement;
+    function updateIcons(t){const l=t==='light';const s=document.getElementById('theme-icon-sun');const m=document.getElementById('theme-icon-moon');const mi=document.getElementById('theme-icon-indicator-mobile');if(s)s.classList.toggle('hidden',!l);if(m)m.classList.toggle('hidden',l);if(mi)mi.className=l?"fas fa-sun text-orange-500":"fas fa-moon text-blue-400";}
+    function toggleTheme(){const ts=["light","medium-dark","deep-dark"];const c=htmlEl.getAttribute('data-theme')||'light';const n=ts[(ts.indexOf(c)+1)%ts.length];htmlEl.setAttribute('data-theme',n);localStorage.setItem('theme',n);updateIcons(n);}
+    const bt=document.getElementById('theme-toggle-btn');const btm=document.getElementById('theme-toggle-btn-mobile');if(bt)bt.addEventListener('click',toggleTheme);if(btm)btm.addEventListener('click',toggleTheme);updateIcons(localStorage.getItem('theme')||'light');
+    const mb=document.getElementById('menu-button');const mm=document.getElementById('mobile-menu');const cm=document.getElementById('close-menu');if(mb)mb.addEventListener('click',()=>{mm.classList.remove('hidden');document.body.style.overflow='hidden'});if(cm)cm.addEventListener('click',()=>{mm.classList.add('hidden');document.body.style.overflow=''});
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const input = document.getElementById('publicLinkInput');
+        if(input) { input.value = window.location.origin + input.getAttribute('data-path'); }
+    });
+    function openDynamicLink() { const i = document.getElementById('publicLinkInput'); if(i) window.open(i.value, '_blank'); }
+    function copyLink() { const t = document.getElementById("publicLinkInput"); t.select(); navigator.clipboard?navigator.clipboard.writeText(t.value):document.execCommand('copy'); const b = document.querySelector('button[title="Copiar"]'); const o = b.innerHTML; b.innerHTML = '<i class="fas fa-check text-green-600"></i>'; setTimeout(() => b.innerHTML = o, 2000); }
+
+    // === ENVIO WHATSAPP ===
+    async function sendWhatsAppMessage(phone, message) {
+        if(!phone) return;
+        try {
+            await fetch('/api/send-reminder', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone, message })
+            });
+        } catch (error) { console.error("Erro Zap:", error); }
+    }
+
+    // === FUNÇÃO DE AÇÃO (ATUALIZADA COM NOVOS MODELOS DE MENSAGEM) ===
+    async function handleAlertAction(event, form, type, cName, cPhone, serviceName, dateStr, timeStr) {
+        event.preventDefault(); 
+        const btn = form.querySelector('button');
+        let originalContent = '';
+        if(btn) { originalContent = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>'; }
+
+        let cancelReason = '';
+        if (type === 'cancel') {
+            const { value: reason } = await Swal.fire({
+                title: 'Cancelar?', input: 'text', inputPlaceholder: 'Motivo...', showCancelButton: true, confirmButtonColor: '#d33'
+            });
+            if (!reason && reason !== "") { if(btn) { btn.disabled = false; btn.innerHTML = originalContent; } return false; }
+            cancelReason = reason || 'Cancelado pelo estabelecimento';
+        }
+
+        try {
+            const formData = new URLSearchParams(new FormData(form));
+            if(cancelReason) formData.append('cancellationReason', cancelReason);
+            const res = await fetch(form.action, { method: 'POST', body: formData });
+            if(!res.ok) throw new Error('Erro');
+
+            // --- MONTAGEM DA MENSAGEM ---
+            let msg = '';
             
-            const mobIcon = document.getElementById('theme-icon-indicator-mobile');
-            if(mobIcon) mobIcon.className = isLight ? "fas fa-sun text-orange-500" : "fas fa-moon text-blue-400";
-        }
-        function toggleTheme() {
-            const themes = ["light", "medium-dark", "deep-dark"];
-            const current = htmlEl.getAttribute('data-theme') || 'light';
-            const next = themes[(themes.indexOf(current) + 1) % themes.length];
-            htmlEl.setAttribute('data-theme', next);
-            localStorage.setItem('theme', next);
-            updateIcons(next);
-        }
-        document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
-        document.getElementById('theme-toggle-btn-mobile').addEventListener('click', toggleTheme);
-        updateIcons(localStorage.getItem('theme') || 'light');
-
-        // === MENU MOBILE ===
-        const menuBtn = document.getElementById('menu-button');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const closeMenu = document.getElementById('close-menu');
-        function toggleMenu(show) {
-            if(show) { mobileMenu.classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
-            else { mobileMenu.classList.add('hidden'); document.body.style.overflow = ''; }
-        }
-        if(menuBtn) menuBtn.addEventListener('click', () => toggleMenu(true));
-        if(closeMenu) closeMenu.addEventListener('click', () => toggleMenu(false));
-
-        // =========================================================================
-        // === SOLUÇÃO DEFINITIVA PARA LINK E DNS (CORRIGIDO PARA O SEU ERRO) ===
-        // =========================================================================
-        
-        // 1. Ao carregar a página, calcula o domínio atual (seja localhost ou render)
-        document.addEventListener('DOMContentLoaded', function() {
-            const input = document.getElementById('publicLinkInput');
-            if(input) {
-                // Recupera o final do link salvo no data-path
-                const path = input.getAttribute('data-path');
-                // Pega o domínio atual do navegador (ex: http://localhost:3003 ou https://seuapp.onrender.com)
-                const currentOrigin = window.location.origin;
-                // Atualiza o input com o link completo correto
-                input.value = currentOrigin + path;
+            if(type === 'confirm') {
+                // Modelo de Confirmação
+                msg = `Olá *${cName}*! ✅\nSeu agendamento no *${ORG_NAME}* foi confirmado.\n📅 ${dateStr} às ${timeStr}\n💇 Serviço: *${serviceName}*\nEstamos te esperando!`;
+            } 
+            else if (type === 'cancel') {
+                // Modelo de Cancelamento
+                msg = `Olá *${cName}*. ❌\nInformamos que seu agendamento:\n💇 Serviço: *${serviceName}*\n📅 ${dateStr} às ${timeStr}\nno *${ORG_NAME}* foi cancelado.\nMotivo: ${cancelReason}.`;
             }
-        });
 
-        // 2. Função para abrir o link (Funciona no Mobile e burla bloqueio de pop-up)
-        function openDynamicLink() {
-            const input = document.getElementById('publicLinkInput');
-            if(input && input.value) {
-                const url = input.value;
-                // Tenta abrir em nova aba
-                const newWindow = window.open(url, '_blank');
-                // Se falhar (bloqueador de pop-up), força abertura na mesma aba
-                if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
-                    window.location.href = url;
-                }
-            }
+            if(cPhone) await sendWhatsAppMessage(cPhone, msg);
+
+            await Swal.fire({ icon: 'success', title: 'Feito!', timer: 1500, showConfirmButton: false });
+            window.location.reload();
+        } catch(e) {
+            Swal.fire('Erro', 'Falha ao processar.', 'error');
+            if(btn) { btn.disabled = false; btn.innerHTML = originalContent; }
         }
+    }
 
-        // 3. Função de Copiar
-        function copyLink() {
-            const copyText = document.getElementById("publicLinkInput");
-            copyText.select();
-            copyText.setSelectionRange(0, 99999);
-            
-            if (navigator.clipboard && window.isSecureContext) {
-                 navigator.clipboard.writeText(copyText.value).then(showCheckIcon);
-            } else {
-                 document.execCommand('copy');
-                 showCheckIcon();
-            }
-        }
-        function showCheckIcon() {
-            const btn = document.querySelector('button[title="Copiar"]');
-            const oldContent = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-check text-green-600"></i>';
-            setTimeout(() => btn.innerHTML = oldContent, 2000);
-        }
-
-        // =========================================================================
-        // === ALERTAS DE PENDÊNCIA (ESTILO ANTIGO RESTAURADO) ===
-        // =========================================================================
-        
-        function promptCancelReason(form) {
-            const r = prompt("Motivo do cancelamento:");
-            if(!r || r.trim() === "") return false;
-            const i = document.createElement('input'); i.type='hidden'; i.name='cancellationReason'; i.value=r; form.appendChild(i);
-            return true;
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const dataEl = document.getElementById('dashboard-data');
-            if(!dataEl) return;
-
-            try {
-                const pending = JSON.parse(dataEl.dataset.pending || '[]');
-                if (pending.length > 0) {
-                    let html = '<div class="text-left text-sm max-h-60 overflow-y-auto space-y-3 p-1 custom-scroll">';
-                    pending.forEach(appt => {
-                        const dateObj = new Date(appt.date);
-                        const dateStr = dateObj.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
-                        const timeStr = appt.time || dateObj.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-                        const cName = appt.Client ? appt.Client.name : 'Cliente';
-                        const sName = (appt.AppointmentServices && appt.AppointmentServices[0]) ? appt.AppointmentServices[0].name : 'Serviço';
-                        const pId = appt.id;
-                        
-                        html += `
-                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-sm">
-                            <div class="flex justify-between items-start mb-2">
-                                <div>
-                                    <strong class="text-gray-800 block">${cName}</strong> 
-                                    <span class="text-xs text-gray-500">${sName}</span>
-                                </div>
-                                <div class="text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-1 rounded">
-                                    ${dateStr} - ${timeStr}
-                                </div>
-                            </div>
-                            <div class="flex gap-2">
-                                <form action="/admin/appointment/${pId}/confirm" method="POST" class="flex-1">
-                                    <button class="w-full bg-green-100 text-green-700 py-1.5 rounded text-xs hover:bg-green-200 font-bold transition flex items-center justify-center">
-                                        <i class="fas fa-check mr-1"></i> Aceitar
-                                    </button>
-                                </form>
-                                <form action="/admin/appointment/${pId}/cancel-by-admin" method="POST" class="flex-1" onsubmit="return promptCancelReason(this)">
-                                    <button class="w-full bg-red-100 text-red-700 py-1.5 rounded text-xs hover:bg-red-200 font-bold transition flex items-center justify-center">
-                                        <i class="fas fa-times mr-1"></i> Recusar
-                                    </button>
-                                </form>
-                            </div>
-                        </div>`;
-                    });
-                    html += '</div>';
+    // === POPUP PENDÊNCIAS ===
+    document.addEventListener('DOMContentLoaded', function() {
+        const dataEl = document.getElementById('dashboard-data');
+        if(!dataEl) return;
+        try {
+            const pending = JSON.parse(dataEl.dataset.pending || '[]');
+            if (pending.length > 0) {
+                let html = '<div class="text-left text-sm max-h-60 overflow-y-auto space-y-3 p-1 custom-scroll">';
+                pending.forEach(appt => {
+                    const dt = new Date(appt.date);
+                    const dateStr = dt.toLocaleDateString('pt-BR'); 
+                    const timeStr = dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                     
-                    Swal.fire({
-                        title: `<div class="flex items-center justify-center gap-2 text-lg text-yellow-600 font-bold"><i class="fas fa-bell"></i> ${pending.length} Pendente(s)</div>`,
-                        html: html,
-                        showConfirmButton: false,
-                        showCloseButton: true,
-                        width: '400px',
-                        padding: '1em',
-                        background: 'var(--color-bg-secondary)',
-                        color: 'var(--color-text-primary)'
-                    });
-                }
-            } catch(e) { console.error(e); }
-        });
-    </script>
+                    const cName = (appt.Client && appt.Client.name) || 'Cliente';
+                    const cPhone = (appt.Client && appt.Client.phone) ? appt.Client.phone : '';
+                    const sName = (appt.AppointmentServices && appt.AppointmentServices[0]) ? appt.AppointmentServices[0].name : 'Serviço';
+                    const pId = appt.id;
+                    
+                    html += `
+                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-sm">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <strong class="text-gray-800 block">${cName}</strong> 
+                                <span class="text-xs text-gray-500">${sName}</span>
+                                ${cPhone === '' ? '<span class="text-[10px] text-red-500 font-bold ml-1">(Sem Zap)</span>' : ''}
+                            </div>
+                            <div class="text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-1 rounded">
+                                ${dateStr} - ${timeStr}
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <form action="/admin/appointment/${pId}/confirm" method="POST" class="flex-1" 
+                                  onsubmit="return handleAlertAction(event, this, 'confirm', '${cName}', '${cPhone}', '${sName}', '${dateStr}', '${timeStr}')">
+                                <button class="w-full bg-green-100 text-green-700 py-1.5 rounded text-xs hover:bg-green-200 font-bold"><i class="fas fa-check"></i> Aceitar</button>
+                            </form>
+                            <form action="/admin/appointment/${pId}/cancel-by-admin" method="POST" class="flex-1"
+                                  onsubmit="return handleAlertAction(event, this, 'cancel', '${cName}', '${cPhone}', '${sName}', '${dateStr}', '${timeStr}')">
+                                <button class="w-full bg-red-100 text-red-700 py-1.5 rounded text-xs hover:bg-red-200 font-bold"><i class="fas fa-times"></i> Recusar</button>
+                            </form>
+                        </div>
+                    </div>`;
+                });
+                html += '</div>';
+                Swal.fire({ title: `<div class="text-lg text-yellow-600 font-bold"><i class="fas fa-bell"></i> ${pending.length} Pendente(s)</div>`, html: html, showConfirmButton: false, showCloseButton: true, width: '400px' });
+            }
+        } catch(e) { console.error(e); }
+    });
+</script>
 </body>
 </html>

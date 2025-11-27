@@ -1,6 +1,5 @@
 // controllers/dashboardController.js
 
-// --- ADICIONADO ---
 const db = require('../models');
 const { Op } = require('sequelize'); // Importa os Operadores
 
@@ -35,83 +34,77 @@ exports.getDashboard = async (req, res) => {
       todosClientes,
       pendingAppointments
     ] = await Promise.all([
-      // 1. Busca a organização (ATUALIZADO)
-      db.Organization.findByPk(organizationId, { raw: true }), // raw: true equivale ao lean()
+      // 1. Busca a organização
+      db.Organization.findByPk(organizationId, { raw: true }),
 
-      // 2. Busca agendamentos de HOJE (ATUALIZADO)
+      // 2. Busca agendamentos de HOJE
       db.Appointment.findAll({
         where: {
           organizationId: organizationId,
-          date: { [Op.between]: [hojeStart, hojeEnd] } // $gte/$lte -> Op.between
+          date: { [Op.between]: [hojeStart, hojeEnd] }
         },
-        // ATUALIZADO: populate('clientId') -> include
         include: [
-          { model: db.Client, attributes: ['id', 'name'] },
-          { model: db.AppointmentService, attributes: ['name'] }, // P/ "service: ..."
-          { model: db.AppointmentProduct, attributes: ['name'] } // P/ "service: ..."
+          { model: db.Client, attributes: ['id', 'name', 'phone'] }, // Adicionado phone por garantia
+          { model: db.AppointmentService, attributes: ['name'] },
+          { model: db.AppointmentProduct, attributes: ['name'] }
         ],
-        order: [['date', 'ASC']] // sort('date') -> order
+        order: [['date', 'ASC']]
       }),
 
-      // 3. Busca agendamentos de AMANHÃ (ATUALIZADO)
+      // 3. Busca agendamentos de AMANHÃ
       db.Appointment.findAll({
         where: {
           organizationId: organizationId,
           date: { [Op.between]: [amanhaStart, amanhaEnd] }
         },
         include: [
-          { model: db.Client, attributes: ['id', 'name'] },
+          { model: db.Client, attributes: ['id', 'name', 'phone'] },
           { model: db.AppointmentService, attributes: ['name'] },
           { model: db.AppointmentProduct, attributes: ['name'] }
         ],
         order: [['date', 'ASC']]
       }),
 
-      // 4. Busca TODOS os agendamentos (para receita) (ATUALIZADO)
+      // 4. Busca TODOS os agendamentos (para receita)
       db.Appointment.findAll({ 
         where: { organizationId: organizationId },
-        // Inclui os serviços/produtos E seus respectivos pagamentos
         include: [
           { 
             model: db.AppointmentService, 
-            include: [db.AppointmentPayment] // Aninhado
+            include: [db.AppointmentPayment]
           },
           { 
             model: db.AppointmentProduct, 
-            include: [db.AppointmentPayment] // Aninhado
+            include: [db.AppointmentPayment]
           }
         ]
       }),
 
-      // 5. Busca TODOS os clientes (para receita) (ATUALIZADO)
+      // 5. Busca TODOS os clientes (para receita)
       db.Client.findAll({ 
         where: { organizationId: organizationId },
-        // Inclui os produtos de varejo E seus respectivos pagamentos
         include: [
           { 
             model: db.Product, 
-            include: [db.Payment] // Aninhado
+            include: [db.Payment]
           }
         ]
       }),
 
-      // 6. Busca todos os pendentes para o alerta (ATUALIZADO)
+      // 6. Busca todos os pendentes para o alerta (AQUI ESTAVA O ERRO)
       db.Appointment.findAll({
         where: {
           organizationId: organizationId,
           status: 'pendente'
         },
-        // ATUALIZADO: populate('clientId', 'name') / populate('staffId', 'name')
         include: [
-          { model: db.Client, attributes: ['id', 'name'] },
+          // CORREÇÃO: Adicionado 'phone' aqui!
+          { model: db.Client, attributes: ['id', 'name', 'phone'] }, 
           { model: db.Staff, attributes: ['id', 'name'] },
-          // --- MUDANÇA AQUI: Adicionado include de serviços ---
           { model: db.AppointmentService, attributes: ['name'] },
           { model: db.AppointmentProduct, attributes: ['name'] }
-          // --- FIM DA MUDANÇA ---
         ],
         order: [['date', 'ASC']]
-        // Não usamos raw: true aqui, passamos as instâncias do Sequelize
       })
     ]);
 
@@ -121,18 +114,12 @@ exports.getDashboard = async (req, res) => {
       return res.redirect('/login');
     }
 
-    // Processa agendamentos de HOJE (ATUALIZADO)
+    // Processa agendamentos de HOJE
     const proximosHoje = [...new Map(
       rawHoje
-        // ATUALIZADO: a.clientId -> a.Client
-        // ATUALIZADO: a.services -> a.AppointmentServices
-        // ATUALIZADO: a.products -> a.AppointmentProducts
         .filter(a => a.Client && ((a.AppointmentServices || []).length || (a.AppointmentProducts || []).length))
         .map(a => {
           const time = dayjs(a.date).tz('America/Sao_Paulo').format('HH:mm');
-          // ATUALIZADO: a.clientId._id -> a.Client.id
-          // ATUALIZADO: a.clientId.name -> a.Client.name
-          // ATUALIZADO: a.services[0]?.name -> a.AppointmentServices[0]?.name
           const serviceName = (a.AppointmentServices && a.AppointmentServices[0]?.name) || 
                               (a.AppointmentProducts && a.AppointmentProducts[0]?.name) || 
                               '—';
@@ -145,7 +132,7 @@ exports.getDashboard = async (req, res) => {
         })
     ).values()];
 
-    // Processa agendamentos de AMANHÃ (ATUALIZADO - lógica idêntica)
+    // Processa agendamentos de AMANHÃ
     const proximosAmanha = [...new Map(
       rawAmanha
         .filter(a => a.Client && ((a.AppointmentServices || []).length || (a.AppointmentProducts || []).length))
@@ -163,18 +150,15 @@ exports.getDashboard = async (req, res) => {
         })
     ).values()];
 
-    // Calcula Receitas (ATUALIZADO)
+    // Calcula Receitas
     let receitaHoje = 0, receitaSemana = 0, receitaMes = 0;
     
-    // Itera sobre agendamentos
     todosAgendamentos.forEach(a => {
-      // ATUALIZADO: a.services -> a.AppointmentServices, a.products -> a.AppointmentProducts
       const items = [
         ...(a.AppointmentServices || []), 
         ...(a.AppointmentProducts || [])
       ];
       items.forEach(item => {
-        // ATUALIZADO: item.payments -> item.AppointmentPayments
         (item.AppointmentPayments || []).forEach(p => {
           const pago = dayjs(p.paidAt).tz('America/Sao_Paulo');
           if (pago.isSame(ref, 'day')) receitaHoje += parseFloat(p.amount);
@@ -184,11 +168,8 @@ exports.getDashboard = async (req, res) => {
       });
     });
 
-    // Itera sobre clientes (para vendas de varejo)
     todosClientes.forEach(c => {
-      // ATUALIZADO: c.products -> c.Products
       (c.Products || []).forEach(prod => {
-        // ATUALIZADO: prod.payments -> prod.Payments
         (prod.Payments || []).forEach(p => {
           const pago = dayjs(p.paidAt).tz('America/Sao_Paulo');
           if (pago.isSame(ref, 'day')) receitaHoje += parseFloat(p.amount);
@@ -205,7 +186,7 @@ exports.getDashboard = async (req, res) => {
       receitaHoje,
       receitaSemana,
       receitaMes,
-      pendingAppointments: pendingAppointments, // Passa as instâncias direto
+      pendingAppointments: pendingAppointments,
       error: null
     });
 

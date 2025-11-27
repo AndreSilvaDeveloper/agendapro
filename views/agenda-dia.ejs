@@ -2,7 +2,7 @@
 <html lang="pt-BR" class="h-full" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <title>Agenda Semanal – <%= (typeof org !== 'undefined') ? org.name : 'AgendaPro' %></title>    
+    <title>Agenda Semanal – <%= (typeof org !== 'undefined') ? org.name : 'Minha Agenda' %></title>    
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -241,10 +241,23 @@
 
                                                 <% if (r.status === 'pendente') { %>
                                                     <div class="mt-3 grid grid-cols-2 gap-2">
-                                                        <form action="/admin/appointment/<%= r.id %>/confirm" method="POST">
+                                                        <form action="/admin/appointment/<%= r.id %>/confirm" method="POST" 
+                                                            data-cname="<%= r.clientName %>"
+                                                            data-cphone="<%= r.clientPhone || (r.Client ? r.Client.phone : '') %>"
+                                                            data-sname="<%= r.servicesNames || 'Serviço' %>"
+                                                            data-date="<%= d.format('DD/MM/YYYY') %>"
+                                                            data-time="<%= r.timeFormatted %>"
+                                                            onsubmit="return handleAction(event, this, 'confirm')">
                                                             <button class="w-full py-2 bg-green-100 text-green-700 rounded font-bold text-xs hover:bg-green-200 transition">Confirmar</button>
                                                         </form>
-                                                        <form action="/admin/appointment/<%= r.id %>/cancel-by-admin" method="POST" onsubmit="return promptCancelReason(this)">
+                                                        
+                                                        <form action="/admin/appointment/<%= r.id %>/cancel-by-admin" method="POST" 
+                                                            data-cname="<%= r.clientName %>"
+                                                            data-cphone="<%= r.clientPhone || (r.Client ? r.Client.phone : '') %>"
+                                                            data-sname="<%= r.servicesNames || 'Serviço' %>"
+                                                            data-date="<%= d.format('DD/MM/YYYY') %>"
+                                                            data-time="<%= r.timeFormatted %>"
+                                                            onsubmit="return handleAction(event, this, 'cancel')">
                                                             <button class="w-full py-2 bg-red-100 text-red-700 rounded font-bold text-xs hover:bg-red-200 transition">Cancelar</button>
                                                         </form>
                                                     </div>
@@ -360,182 +373,153 @@
     <div id="pending-data" class="hidden" data-pending='<%- JSON.stringify(typeof pendingAppointments !== "undefined" ? pendingAppointments : []) %>'></div>
 
     <script>
-        const htmlEl = document.documentElement;
-        function updateIcons(theme) {
-            const isLight = theme === 'light';
-            document.getElementById('theme-icon-sun').classList.toggle('hidden', !isLight);
-            document.getElementById('theme-icon-moon').classList.toggle('hidden', isLight);
-        }
-        function toggleTheme() {
-            const themes = ["light", "medium-dark", "deep-dark"];
-            const current = htmlEl.getAttribute('data-theme') || 'light';
-            const next = themes[(themes.indexOf(current) + 1) % themes.length];
-            htmlEl.setAttribute('data-theme', next);
-            localStorage.setItem('theme', next);
-            updateIcons(next);
-        }
-        document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
-        document.getElementById('theme-toggle-btn-mobile').addEventListener('click', toggleTheme);
-        updateIcons(localStorage.getItem('theme') || 'light');
+    // ▼▼▼ ALTERE O TEXTO ABAIXO ('NOME DA SUA BARBEARIA AQUI') PARA O NOME DA SUA LOJA ▼▼▼
+    const ORG_NAME = "<%= (typeof org !== 'undefined' && org.name) ? org.name : 'NOME DA SUA BARBEARIA AQUI' %>";
+    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+    
+    // VISUAL
+    const htmlEl = document.documentElement;
+    function updateIcons(t){const l=t==='light';const s=document.getElementById('theme-icon-sun');const m=document.getElementById('theme-icon-moon');if(s)s.classList.toggle('hidden',!l);if(m)m.classList.toggle('hidden',l);}
+    function toggleTheme(){const ts=["light","medium-dark","deep-dark"];const c=htmlEl.getAttribute('data-theme')||'light';const n=ts[(ts.indexOf(c)+1)%ts.length];htmlEl.setAttribute('data-theme',n);localStorage.setItem('theme',n);updateIcons(n);}
+    const bt=document.getElementById('theme-toggle-btn');const btm=document.getElementById('theme-toggle-btn-mobile');if(bt)bt.addEventListener('click',toggleTheme);if(btm)btm.addEventListener('click',toggleTheme);updateIcons(localStorage.getItem('theme')||'light');
+    const mb=document.getElementById('menu-button');const mm=document.getElementById('mobile-menu');const cm=document.getElementById('close-menu');if(mb)mb.addEventListener('click',()=>{mm.classList.remove('hidden');document.body.style.overflow='hidden'});if(cm)cm.addEventListener('click',()=>{mm.classList.add('hidden');document.body.style.overflow=''});
+    document.addEventListener('DOMContentLoaded', () => { const d = document.getElementById('date'); if (d && !d.value) { const def = document.querySelector('main').dataset.defaultDate; d.value = def || new Date().toISOString().split('T')[0]; } });
 
-        const menuBtn = document.getElementById('menu-button');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const closeMenu = document.getElementById('close-menu');
-        if(menuBtn) menuBtn.addEventListener('click', () => { mobileMenu.classList.remove('hidden'); document.body.style.overflow = 'hidden'; });
-        if(closeMenu) closeMenu.addEventListener('click', () => { mobileMenu.classList.add('hidden'); document.body.style.overflow = ''; });
+    // ZAP
+    async function sendWhatsAppMessage(phone, message) {
+        if(!phone) return;
+        try { await fetch('/api/send-reminder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone, message }) }); } catch (error) { console.error("Erro Zap:", error); }
+    }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const dateInput = document.getElementById('date');
-            if (dateInput && !dateInput.value) {
-                const def = document.querySelector('main').dataset.defaultDate;
-                if(def) dateInput.value = def;
-                else dateInput.valueAsDate = new Date();
+    // === AÇÃO UNIFICADA (VERSÃO CORRIGIDA DATA-ATTRIBUTES) ===
+    async function handleAction(event, form, type) {
+        event.preventDefault(); 
+
+        // Pega os dados direto dos atributos do form (resolve o erro do editor)
+        const cName = form.dataset.cname;
+        const cPhone = form.dataset.cphone;
+        const sName = form.dataset.sname;
+        const dateStr = form.dataset.date;
+        const timeStr = form.dataset.time;
+
+        const btn = form.querySelector('button');
+        let originalText = '';
+        if(btn) { originalText = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; }
+
+        let cancelReason = '';
+        if (type === 'cancel') {
+            const { value: reason } = await Swal.fire({ title: 'Cancelar?', input: 'text', inputPlaceholder: 'Motivo...', showCancelButton: true, confirmButtonColor: '#d33' });
+            if (!reason && reason !== "") { if(btn) { btn.disabled = false; btn.innerHTML = originalText; } return false; }
+            cancelReason = reason || 'Cancelado pelo estabelecimento';
+        }
+
+        try {
+            const formData = new URLSearchParams(new FormData(form));
+            if(cancelReason) formData.append('cancellationReason', cancelReason);
+            const res = await fetch(form.action, { method: 'POST', body: formData });
+            if(!res.ok) throw new Error('Erro');
+
+            // --- MENSAGEM ---
+            let msg = '';
+            if(type === 'confirm') {
+                msg = `Olá *${cName}*! ✅\nSeu agendamento no *${ORG_NAME}* foi confirmado.\n📅 ${dateStr} às ${timeStr}\n💇 Serviço: *${sName}*\nEstamos te esperando!`;
+            } 
+            else if (type === 'cancel') {
+                msg = `Olá *${cName}*. ❌\nInformamos que seu agendamento:\n💇 Serviço: *${sName}*\n📅 ${dateStr} às ${timeStr}\nno *${ORG_NAME}* foi cancelado.\nMotivo: ${cancelReason}.`;
             }
-        });
 
-        // === ALERTAS DE PENDENTES (LÓGICA RESTAURADA) ===
-        function promptCancelReason(form) {
-            const r = prompt("Motivo do cancelamento:");
-            if(!r || r.trim() === "") return false;
-            const i = document.createElement('input'); i.type='hidden'; i.name='cancellationReason'; i.value=r; form.appendChild(i);
-            return true;
+            if(cPhone) await sendWhatsAppMessage(cPhone, msg);
+
+            await Swal.fire({ icon: 'success', title: 'Sucesso!', timer: 1500, showConfirmButton: false });
+            window.location.reload();
+        } catch(e) {
+            console.error(e);
+            Swal.fire('Erro', 'Falha ao processar.', 'error');
+            if(btn) { btn.disabled = false; btn.innerHTML = originalText; }
         }
+    }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const dataEl = document.getElementById('pending-data');
-            if(!dataEl) return;
-
-            try {
-                const pending = JSON.parse(dataEl.dataset.pending || '[]');
-                if (pending.length > 0) {
-                    let html = '<div class="text-left text-sm max-h-60 overflow-y-auto space-y-3 p-1 custom-scroll">';
-                    pending.forEach(appt => {
-                        const dateObj = new Date(appt.date);
-                        const dateStr = dateObj.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
-                        const timeStr = appt.time || dateObj.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-                        const cName = appt.Client ? appt.Client.name : 'Cliente';
-                        const sName = (appt.AppointmentServices && appt.AppointmentServices[0]) ? appt.AppointmentServices[0].name : 'Serviço';
-                        const pId = appt.id;
-                        
-                        html += `
-                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-sm">
-                            <div class="flex justify-between items-start mb-2">
-                                <div>
-                                    <strong class="text-gray-800 block">${cName}</strong> 
-                                    <span class="text-xs text-gray-500">${sName}</span>
-                                </div>
-                                <div class="text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-1 rounded">
-                                    ${dateStr} - ${timeStr}
-                                </div>
-                            </div>
-                            <div class="flex gap-2">
-                                <form action="/admin/appointment/${pId}/confirm" method="POST" class="flex-1">
-                                    <button class="w-full bg-green-100 text-green-700 py-1.5 rounded text-xs hover:bg-green-200 font-bold transition flex items-center justify-center">
-                                        <i class="fas fa-check mr-1"></i> Aceitar
-                                    </button>
-                                </form>
-                                <form action="/admin/appointment/${pId}/cancel-by-admin" method="POST" class="flex-1" onsubmit="return promptCancelReason(this)">
-                                    <button class="w-full bg-red-100 text-red-700 py-1.5 rounded text-xs hover:bg-red-200 font-bold transition flex items-center justify-center">
-                                        <i class="fas fa-times mr-1"></i> Recusar
-                                    </button>
-                                </form>
-                            </div>
-                        </div>`;
-                    });
-                    html += '</div>';
+    // === POPUP PENDÊNCIAS (HORÁRIO CORRIGIDO) ===
+    document.addEventListener('DOMContentLoaded', function() {
+        const dataEl = document.getElementById('pending-data');
+        if(!dataEl) return;
+        try {
+            const pending = JSON.parse(dataEl.dataset.pending || '[]');
+            if (pending.length > 0) {
+                let html = '<div class="text-left text-sm max-h-60 overflow-y-auto space-y-3 p-1 custom-scroll">';
+                pending.forEach(appt => {
+                    const dt = new Date(appt.date);
+                    const dateStr = dt.toLocaleDateString('pt-BR'); 
+                    const timeStr = dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                     
-                    Swal.fire({
-                        title: `<div class="flex items-center justify-center gap-2 text-lg text-yellow-600 font-bold"><i class="fas fa-bell"></i> ${pending.length} Pendente(s)</div>`,
-                        html: html,
-                        showConfirmButton: false,
-                        showCloseButton: true,
-                        width: '400px',
-                        padding: '1em',
-                        background: 'var(--color-bg-secondary)',
-                        color: 'var(--color-text-primary)'
-                    });
-                }
-            } catch(e) { console.error(e); }
-        });
-
-        const modal = document.getElementById('modalAgendamento');
-        let clients = [];
-        try { clients = JSON.parse(document.getElementById('clients-data').dataset.clients); } catch(e){}
-
-        function abrirModal(date, time) {
-            document.getElementById('modalDate').value = date;
-            document.getElementById('modalTime').value = time;
-            modal.classList.remove('hidden');
-        }
-        function fecharModal() { modal.classList.add('hidden'); }
-
-        const clientSearch = document.getElementById('clientSearch');
-        const suggestions = document.getElementById('clientSuggestions');
-        clientSearch.addEventListener('input', function() {
-            const val = this.value.toLowerCase();
-            suggestions.innerHTML = '';
-            if(val.length < 2) { suggestions.classList.add('hidden'); return; }
-            
-            const filtered = clients.filter(c => c.name.toLowerCase().includes(val) || (c.phone && c.phone.includes(val)));
-            if(filtered.length > 0) {
-                suggestions.classList.remove('hidden');
-                filtered.forEach(c => {
-                    const li = document.createElement('li');
-                    li.className = 'p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-100';
-                    li.innerText = c.name;
-                    li.onclick = () => {
-                        clientSearch.value = c.name;
-                        document.getElementById('clientId').value = c.id;
-                        suggestions.classList.add('hidden');
-                    };
-                    suggestions.appendChild(li);
+                    const cName = (appt.Client && appt.Client.name) || 'Cliente';
+                    const cPhone = (appt.Client && appt.Client.phone) ? appt.Client.phone : '';
+                    const sName = (appt.AppointmentServices && appt.AppointmentServices[0]) ? appt.AppointmentServices[0].name : 'Serviço';
+                    const pId = appt.id;
+                    
+                    html += `
+                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-sm">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <strong class="text-gray-800 block">${cName}</strong> 
+                                <span class="text-xs text-gray-500">${sName}</span>
+                                ${cPhone === '' ? '<span class="text-[10px] text-red-500 font-bold ml-1">(Sem Zap)</span>' : ''}
+                            </div>
+                            <div class="text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-1 rounded">${dateStr} - ${timeStr}</div>
+                        </div>
+                        <div class="flex gap-2">
+                            <form action="/admin/appointment/${pId}/confirm" method="POST" class="flex-1"
+                                  data-cname="${cName}" data-cphone="${cPhone}" data-sname="${sName}" data-date="${dateStr}" data-time="${timeStr}"
+                                  onsubmit="return handleAction(event, this, 'confirm')">
+                                <button class="w-full bg-green-100 text-green-700 py-1.5 rounded text-xs hover:bg-green-200 font-bold"><i class="fas fa-check"></i> Aceitar</button>
+                            </form>
+                            <form action="/admin/appointment/${pId}/cancel-by-admin" method="POST" class="flex-1"
+                                  data-cname="${cName}" data-cphone="${cPhone}" data-sname="${sName}" data-date="${dateStr}" data-time="${timeStr}"
+                                  onsubmit="return handleAction(event, this, 'cancel')">
+                                <button class="w-full bg-red-100 text-red-700 py-1.5 rounded text-xs hover:bg-red-200 font-bold"><i class="fas fa-times"></i> Recusar</button>
+                            </form>
+                        </div>
+                    </div>`;
                 });
-            } else suggestions.classList.add('hidden');
-        });
+                html += '</div>';
+                Swal.fire({ title: `<div class="text-lg text-yellow-600 font-bold"><i class="fas fa-bell"></i> ${pending.length} Pendente(s)</div>`, html: html, showConfirmButton: false, showCloseButton: true, width: '400px' });
+            }
+        } catch(e) { console.error(e); }
+    });
 
-        const svcSelect = document.getElementById('serviceSelect');
-        const staffSelect = document.getElementById('staffId');
-        
+    const modal = document.getElementById('modalAgendamento');
+    let clients = [];
+    try { clients = JSON.parse(document.getElementById('clients-data').dataset.clients); } catch(e){}
+    function abrirModal(d,t){ document.getElementById('modalDate').value=d; document.getElementById('modalTime').value=t; modal.classList.remove('hidden'); }
+    function fecharModal(){ modal.classList.add('hidden'); }
+    const clientSearch = document.getElementById('clientSearch'); const suggestions = document.getElementById('clientSuggestions');
+    if(clientSearch) {
+        clientSearch.addEventListener('input', function() {
+            const val = this.value.toLowerCase(); suggestions.innerHTML = '';
+            if(val.length < 2) { suggestions.classList.add('hidden'); return; }
+            const filtered = clients.filter(c => c.name.toLowerCase().includes(val) || (c.phone && c.phone.includes(val)));
+            if(filtered.length > 0) { suggestions.classList.remove('hidden'); filtered.forEach(c => { const li = document.createElement('li'); li.className = 'p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-100'; li.innerText = c.name; li.onclick = () => { clientSearch.value = c.name; document.getElementById('clientId').value = c.id; suggestions.classList.add('hidden'); }; suggestions.appendChild(li); }); } else suggestions.classList.add('hidden');
+        });
+    }
+    const svcSelect = document.getElementById('serviceSelect'); const staffSelect = document.getElementById('staffId');
+    if(svcSelect) {
         svcSelect.addEventListener('change', async function() {
             const opt = this.selectedOptions[0];
-            if(opt) {
-                document.getElementById('servicePrice').value = opt.dataset.price;
-                document.getElementById('serviceDuration').value = opt.dataset.duration;
-            }
-            staffSelect.innerHTML = '<option>Carregando...</option>';
-            if(!this.value) return;
-
-            try {
-                const res = await fetch(`/api/admin/staff-by-service/${this.value}`);
-                const staff = await res.json();
-                staffSelect.innerHTML = '<option value="">Selecione o Profissional</option>';
-                staff.forEach(s => {
-                    const o = document.createElement('option'); o.value = s.id; o.textContent = s.name; staffSelect.appendChild(o);
-                });
-            } catch(e) { 
-                staffSelect.innerHTML = '<option value="">Erro ao carregar</option>'; 
-            }
+            if(opt) { document.getElementById('servicePrice').value = opt.dataset.price; document.getElementById('serviceDuration').value = opt.dataset.duration; }
+            staffSelect.innerHTML = '<option>Carregando...</option>'; if(!this.value) return;
+            try { const res = await fetch(`/api/admin/staff-by-service/${this.value}`); const staff = await res.json(); staffSelect.innerHTML = '<option value="">Selecione o Profissional</option>'; staff.forEach(s => { const o = document.createElement('option'); o.value = s.id; o.textContent = s.name; staffSelect.appendChild(o); }); } catch(e) { staffSelect.innerHTML = '<option value="">Erro</option>'; }
         });
-
-        document.querySelector('#modalAgendamento form').addEventListener('submit', function(e) {
-            if(!document.getElementById('clientId').value) {
-                e.preventDefault();
-                alert('Selecione um cliente da lista.');
-                return;
-            }
+    }
+    const modalForm = document.querySelector('#modalAgendamento form');
+    if(modalForm) {
+        modalForm.addEventListener('submit', function(e) {
+            if(!document.getElementById('clientId').value) { e.preventDefault(); alert('Selecione cliente.'); return; }
             const opt = svcSelect.selectedOptions[0];
-            const price = document.getElementById('servicePrice').value;
-            const dur = document.getElementById('serviceDuration').value;
-            
-            const data = [{
-                id: svcSelect.value,
-                name: opt.dataset.name || opt.text,
-                price: parseFloat(price),
-                duration: parseInt(dur)
-            }];
+            const data = [{ id: svcSelect.value, name: opt.dataset.name||opt.text, price: parseFloat(document.getElementById('servicePrice').value), duration: parseInt(document.getElementById('serviceDuration').value) }];
             document.getElementById('servicesInput').value = JSON.stringify(data);
-            document.getElementById('durationInput').value = dur;
+            document.getElementById('durationInput').value = document.getElementById('serviceDuration').value;
         });
-    </script>
+    }
+</script>
 </body>
 </html>
