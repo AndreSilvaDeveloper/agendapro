@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title><%= client.name %> – Detalhes</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
@@ -34,7 +34,7 @@
             --color-gold-accent: #DAA520;
             --color-bg-primary: #f3f4f6;
             --color-bg-secondary: #ffffff;
-            --color-bg-muted: #f9fafb;     
+            --color-bg-muted: #f9fafb;      
             --color-bg-accent-light: #FFFBEB;
             --color-bg-accent-dark: #fefce8;
             --color-text-primary: #1f2937;
@@ -51,7 +51,7 @@
             --color-gold-accent: #DAA520;
             --color-bg-primary: #1f2937;
             --color-bg-secondary: #374151;
-            --color-bg-muted: #4b5563;     
+            --color-bg-muted: #4b5563;      
             --color-bg-accent-light: #422c01;
             --color-bg-accent-dark: #423001;
             --color-text-primary: #f9fafb;
@@ -90,18 +90,19 @@
             overflow-y: auto; 
             display: flex;
             flex-direction: column;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         } 
         
         /* Mapeamento de Classes Tailwind */
-        .bg-white, .bg-gray-800 { background-color: var(--color-bg-secondary); }
-        .bg-gray-50, .bg-gray-700\/50, .bg-gray-100 { background-color: var(--color-bg-muted); }
-        .bg-gold-light, .bg-gold { background-color: var(--color-bg-accent-light); }
+        .bg-white, .bg-gray-800 { background-color: var(--color-bg-secondary) !important; }
+        .bg-gray-50, .bg-gray-700\/50, .bg-gray-100 { background-color: var(--color-bg-muted) !important; }
+        .bg-gold-light, .bg-gold { background-color: var(--color-bg-accent-light) !important; }
         
-        .border-gray-200, .border-gray-300, .border-gray-700, .border-gray-100 { border-color: var(--color-border); }
+        .border-gray-200, .border-gray-300, .border-gray-700, .border-gray-100 { border-color: var(--color-border) !important; }
         
-        .text-gray-900, .text-gray-800 { color: var(--color-text-primary); }
-        .text-gray-700, .text-gray-600, .text-gray-500 { color: var(--color-text-secondary); }
-        .text-gold { color: var(--color-text-accent); }
+        .text-gray-900, .text-gray-800 { color: var(--color-text-primary) !important; }
+        .text-gray-700, .text-gray-600, .text-gray-500 { color: var(--color-text-secondary) !important; }
+        .text-gold { color: var(--color-text-accent) !important; }
         
         /* Link Mobile */
         .mobile-nav-link { 
@@ -158,8 +159,15 @@
 
     </style>
 </head>
-<body class="font-sans antialiased">
+<body class="flex flex-col min-h-screen">
     
+    <% if (locals.originalAdminSession) { %>
+      <div class="bg-yellow-400 text-yellow-900 text-center text-xs py-2 font-bold sticky top-0 z-[60]">
+        <i class="fas fa-user-secret"></i> Modo Admin: Visualizando <%= (typeof org !== 'undefined') ? org.name : '' %>
+        <a href="/master/stop-impersonation" class="underline ml-2">Sair</a>
+      </div>
+    <% } %>
+
     <header class="bg-white shadow-md border-b border-gray-200 shrink-0 h-16 flex items-center z-50 sticky top-0">
         <div class="w-full max-w-full px-4 flex items-center justify-between">
             
@@ -222,7 +230,7 @@
             <button id="close-menu" class="text-2xl" style="color: var(--color-text-primary);"><i class="fas fa-times"></i></button>
         </div>
         <div class="flex flex-col space-y-3 text-center">
-            <a href="/dashboard" class="mobile-nav-link text-lg py-2 hover:text-gold">Dashboard</a>
+            <a href="/dashboard" class="mobile-nav-link text-lg py-2 border-b border-gray-700 hover:text-gold">Dashboard</a>
             <a href="/agendamentos-por-dia" class="mobile-nav-link text-lg py-2 hover:text-gold">Agendamentos</a>
             <a href="/clients" class="mobile-nav-link text-gold text-lg font-bold py-2 border-b border-gray-700">Clientes</a>
             <a href="/admin/servicos" class="mobile-nav-link text-lg py-2 hover:text-gold">Serviços</a>
@@ -946,7 +954,7 @@
             }
 
             // 👇 AQUI ESTÁ A MUDANÇA: Usamos a variável do EJS dentro da string JS
-            const orgName = "<%= organization.name %>"; 
+            const orgName = "<%= typeof organization !== 'undefined' ? organization.name : 'AgendaPro' %>"; 
 
             let message = `Olá, ${clientName}! ✨\n\n`;
             message += `Gostaríamos de lembrar do seu horário no *${orgName}*: ${apptDateTime}.\n\n`;
@@ -1094,36 +1102,29 @@
                 observer.observe(el);
             });
 
-            // ... seus scripts anteriores ...
-
-             // Script para carregar profissionais se a lista estiver vazia
-            document.addEventListener('DOMContentLoaded', async function() {
-                const staffSelect = document.getElementById('staffIdSelect');
-                
-                // Só busca se o select existir e tiver apenas 1 opção (a opção padrão "Selecione...")
-                if (staffSelect && staffSelect.options.length <= 1) {
-                    try {
-                        // Tenta buscar de uma rota de API (ajuste a rota '/api/admin/staff' se necessário para a sua real)
-                        // Se você não tiver essa rota, terá que criá-la ou passar a variável 'staff' no res.render do controller
-                        const response = await fetch('/api/admin/equipe'); // Ou '/api/users' dependendo da sua rota
-                        
-                        if (response.ok) {
-                            const staffList = await response.json();
-                            staffList.forEach(member => {
-                                const option = document.createElement('option');
-                                option.value = member.id;
-                                option.textContent = member.name;
-                                staffSelect.appendChild(option);
-                            });
-                        } else {
-                            console.warn("Não foi possível carregar a lista de profissionais via API.");
-                        }
-                    } catch (error) {
-                        console.error("Erro ao buscar profissionais:", error);
-                    }
-                }
-            });
-
+            // Script para carregar profissionais se a lista estiver vazia
+            const staffSelect = document.getElementById('staffIdSelect');
+            
+            // Só busca se o select existir e tiver apenas 1 opção (a opção padrão "Selecione...")
+            if (staffSelect && staffSelect.options.length <= 1) {
+                // Tenta buscar de uma rota de API
+                fetch('/api/admin/equipe') // Ajuste conforme sua rota real
+                    .then(response => {
+                        if (response.ok) return response.json();
+                        throw new Error('Falha ao carregar equipe');
+                    })
+                    .then(staffList => {
+                        staffList.forEach(member => {
+                            const option = document.createElement('option');
+                            option.value = member.id;
+                            option.textContent = member.name;
+                            staffSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => {
+                        console.warn("Não foi possível carregar a lista de profissionais via API.", error);
+                    });
+            }
         });
     </script>
 </body>

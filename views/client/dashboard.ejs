@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-BR" class="h-full" data-theme="light">
+<html lang="pt-BR" data-theme="light">
 <head>
     <meta charset="UTF-8" />
     <title>Minha Área – <%= orgName %></title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -13,7 +13,6 @@
             const THEMES = ["light", "medium-dark", "deep-dark"];
             const savedTheme = localStorage.getItem('theme');
             let initialTheme = 'light';
-
             if (savedTheme && THEMES.includes(savedTheme)) {
                 initialTheme = savedTheme;
             } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -24,477 +23,288 @@
     </script>
 
     <style>
-        /* ================================================= */
-        /* === 1. DEFINIÇÃO DAS CORES PARA TRÊS TEMAS === */
-        /* ================================================= */
-
-        /* --- TEMA 1: LIGHT --- */
+        /* === TEMAS === */
         :root, [data-theme="light"] {
-            --color-gold-light: #ffd700;
-            --color-gold-dark: #b8860b;
-            --color-gold-accent: #daa520;
-            --color-bg-primary: #f3f4f6;
-            --color-bg-secondary: #ffffff;
-            --color-bg-muted: #f9fafb;     
-            --color-bg-accent-light: #FFFBEB;
-            --color-bg-accent-dark: #fefce8;
-            --color-text-primary: #1f2937;
-            --color-text-secondary: #4b5563;
-            --color-text-accent: #B8860B;
-            --color-text-accent-muted: #b45309;
-            --color-border: #e5e7eb;
-            --color-svg-fill: #f3f4f6; /* Cor do fundo do SVG */
+            --color-gold-light: #ffd700; --color-gold-dark: #b8860b; --color-gold-accent: #daa520;
+            --color-bg-primary: #f3f4f6; --color-bg-secondary: #ffffff; --color-bg-muted: #f9fafb;     
+            --color-bg-accent-light: #FFFBEB; --color-bg-accent-dark: #fefce8;
+            --color-text-primary: #1f2937; --color-text-secondary: #4b5563; --color-text-accent: #B8860B; --color-border: #e5e7eb;
         }
-
-        /* --- TEMA 2: MEDIUM DARK --- */
         [data-theme="medium-dark"] {
-            --color-gold-light: #FFD700;
-            --color-gold-dark: #e0aa1f;
-            --color-gold-accent: #DAA520;
-            --color-bg-primary: #1f2937;
-            --color-bg-secondary: #374151;
-            --color-bg-muted: #4b5563;     
-            --color-bg-accent-light: #422c01;
-            --color-bg-accent-dark: #423001;
-            --color-text-primary: #f9fafb;
-            --color-text-secondary: #d1d5db;
-            --color-text-accent: #e0aa1f;
-            --color-text-accent-muted: #fde047;
-            --color-border: #4b5563;
-            --color-svg-fill: #1f2937;
+            --color-gold-light: #FFD700; --color-gold-dark: #e0aa1f; --color-gold-accent: #DAA520;
+            --color-bg-primary: #1f2937; --color-bg-secondary: #374151; --color-bg-muted: #4b5563;     
+            --color-bg-accent-light: #422c01; --color-bg-accent-dark: #423001;
+            --color-text-primary: #f9fafb; --color-text-secondary: #d1d5db; --color-text-accent: #e0aa1f; --color-border: #4b5563;
         }
-
-        /* --- TEMA 3: DEEP DARK --- */
         [data-theme="deep-dark"] {
-            --color-gold-light: #FFD700;
-            --color-gold-dark: #e0aa1f;
-            --color-gold-accent: #DAA520;
-            --color-bg-primary: #0a0e14;
-            --color-bg-secondary: #1f2937;
-            --color-bg-muted: #374151;
-            --color-bg-accent-light: #422c01;
-            --color-bg-accent-dark: #423001;
-            --color-text-primary: #f9fafb;
-            --color-text-secondary: #d1d5db;
-            --color-text-accent: #e0aa1f;
-            --color-text-accent-muted: #fde047;
-            --color-border: #4b5563;
-            --color-svg-fill: #0a0e14;
+            --color-gold-light: #FFD700; --color-gold-dark: #e0aa1f; --color-gold-accent: #DAA520;
+            --color-bg-primary: #0a0e14; --color-bg-secondary: #1f2937; --color-bg-muted: #374151;
+            --color-bg-accent-light: #422c01; --color-bg-accent-dark: #423001;
+            --color-text-primary: #f9fafb; --color-text-secondary: #d1d5db; --color-text-accent: #e0aa1f; --color-border: #4b5563;
         }
 
-        /* ================================================= */
-        /* === 2. ESTILOS BASE (Mapeamento) === */
-        /* ================================================= */
+        /* === CORREÇÃO DE SCROLL E LAYOUT === */
+        html, body {
+            min-height: 100%;
+            /* Removemos overflow: hidden para permitir rolagem natural */
+            overflow-x: hidden; 
+        }
         
         body { 
-            height: 100%; 
-            overflow: hidden; 
             display: flex; 
             flex-direction: column; 
             background-color: var(--color-bg-primary); 
             color: var(--color-text-primary);
-            /* Textura SVG opcional - pode ser removida se conflitar com dark mode */
-            /* background-image: url("data:image/svg+xml;..."); */ 
+            font-family: 'Segoe UI', sans-serif;
         } 
         
         /* Mapeamento */
-        .bg-white { background-color: var(--color-bg-secondary); }
-        .bg-gray-100 { background-color: var(--color-bg-primary); }
-        .bg-gray-50 { background-color: var(--color-bg-muted); }
-        .bg-gold { background-color: var(--color-gold-accent); }
+        .bg-white { background-color: var(--color-bg-secondary) !important; }
+        .bg-gray-100, .bg-gray-50 { background-color: var(--color-bg-muted) !important; }
+        .bg-gold { background-color: var(--color-gold-accent) !important; }
+        .border-gray-200 { border-color: var(--color-border) !important; }
+        .text-gray-900 { color: var(--color-text-primary) !important; }
+        .text-gray-500, .text-gray-600, .text-gray-700 { color: var(--color-text-secondary) !important; }
+        .text-gold { color: var(--color-text-accent) !important; }
 
-        .border-gray-100, .border-gray-200 { border-color: var(--color-border); }
-        
-        .text-gray-900, .text-gray-800 { color: var(--color-text-primary); }
-        .text-gray-600, .text-gray-700, .text-gray-500 { color: var(--color-text-secondary); }
-        .text-gold { color: var(--color-text-accent); }
-        .text-gold-dark { color: var(--color-text-accent); }
-        
-        /* Scroll */
-        .custom-scroll::-webkit-scrollbar { width: 6px; }
-        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-        .custom-scroll::-webkit-scrollbar-thumb { background-color: var(--color-border); border-radius: 20px; }
-        .custom-scroll:hover::-webkit-scrollbar-thumb { background-color: var(--color-gold-accent); }
+        /* Cards */
+        .list-item-card {
+            background-color: var(--color-bg-secondary);
+            border: 1px solid var(--color-border);
+            transition: transform 0.2s;
+        }
+        .list-item-card:active { transform: scale(0.98); }
 
-        .compact-body { flex-grow: 1; overflow-y: auto; min-height: 0; }
-
-        /* --- ESTILOS ESPECÍFICOS DA PÁGINA --- */
-
-        /* Status Tags */
+        /* Status Tag */
         .status-tag {
             padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
             font-size: 0.75rem;
             font-weight: 600;
-            border-radius: 9999px;
-            border-width: 1px;
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             white-space: nowrap;
         }
-        .status-pendente { background-color: rgba(251, 191, 36, 0.2); color: #b45309; border-color: rgba(251, 191, 36, 0.4); }
-        [data-theme^="dark"] .status-pendente { color: #fcd34d; }
-
-        .status-confirmado { background-color: rgba(52, 211, 153, 0.2); color: #15803d; border-color: rgba(52, 211, 153, 0.4); }
-        [data-theme^="dark"] .status-confirmado { color: #4ade80; }
-
-        .status-concluido { background-color: var(--color-bg-muted); color: var(--color-text-secondary); border-color: var(--color-border); }
-
-        .status-cancelado { background-color: rgba(248, 113, 113, 0.2); color: #b91c1c; border-color: rgba(248, 113, 113, 0.4); }
+        .status-pendente { background-color: rgba(251, 191, 36, 0.2); color: #d97706; border: 1px solid rgba(251, 191, 36, 0.3); }
+        [data-theme^="dark"] .status-pendente { color: #fbbf24; }
+        .status-confirmado { background-color: rgba(52, 211, 153, 0.2); color: #059669; border: 1px solid rgba(52, 211, 153, 0.3); }
+        [data-theme^="dark"] .status-confirmado { color: #34d399; }
+        .status-cancelado { background-color: rgba(248, 113, 113, 0.2); color: #dc2626; border: 1px solid rgba(248, 113, 113, 0.3); }
         [data-theme^="dark"] .status-cancelado { color: #f87171; }
 
-        .status-tag i { margin-right: 0.375rem; }
-
-        /* Lista Items */
-        .list-item-card {
-            opacity: 0;
-            animation: fadeInUp 0.5s ease-out forwards;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            background-color: var(--color-bg-secondary); /* Garante fundo correto */
-            border-color: var(--color-border);
-        }
-        
-        /* Ajuste para background vermelho do produto pendente */
-        .list-item-card.bg-red-50 { 
-            background-color: rgba(254, 242, 242, 0.5); /* Opacidade para dark mode */
-        }
-        [data-theme^="dark"] .list-item-card.bg-red-50 { 
-            background-color: rgba(127, 29, 29, 0.2); 
-            border-color: rgba(185, 28, 28, 0.4);
-        }
-        
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .list-item-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        }
-
-        /* Efeito Shine */
-        .bg-shine-gold { position: relative; overflow: hidden; background-color: var(--color-gold-accent); }
+        /* Shine Effect */
+        .bg-shine-gold { position: relative; overflow: hidden; background-color: var(--color-gold-accent) !important; }
         .bg-shine-gold::after {
             content: ""; position: absolute; top: -10%; left: -75%; width: 50%; height: 120%;
-            background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.4) 50%, rgba(255, 255, 255, 0) 100%);
-            transform: skewX(-25deg); animation: bg-shine 5s infinite linear;
+            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
+            transform: skewX(-25deg); animation: bg-shine 6s infinite linear;
         }
         @keyframes bg-shine { 0% { left: -75%; } 100% { left: 125%; } }
-
-        .text-gradient-gold {
-            background: linear-gradient(90deg, #b8860b, #ffd700, #daa520, #ffd700, #b8860b);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-fill-color: transparent;
-            background-size: 200% auto;
-            animation: text-shine 4s linear infinite;
-        }
-        @keyframes text-shine { from { background-position: 200% center; } to { background-position: 0% center; } }
-
-        .text-white { color: #ffffff !important; } /* Força branco em elementos bg-gold */
-
+        .text-gradient-gold { background: linear-gradient(90deg, #b8860b, #ffd700, #daa520); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .text-white { color: #ffffff !important; }
     </style>
 </head>
-<body class="font-sans antialiased">
+<body class="antialiased">
     
-    <header class="bg-white shadow-sm sticky top-0 z-10 border-b border-gray-100 shrink-0 h-16 flex items-center">
+    <header class="bg-white shadow-sm sticky top-0 z-20 border-b border-gray-100 h-16 flex items-center">
         <nav class="container mx-auto max-w-7xl px-4 flex justify-between items-center">
             <div>
                 <h1 class="text-xl font-bold text-gradient-gold"><%= orgName %></h1>
-                <p class="text-xs text-gray-600">Minha Área Pessoal</p>
+                <p class="text-xs text-gray-500">Minha Área</p>
             </div>
-            
-            <div class="flex items-center gap-4">
-                <button id="theme-toggle-btn" class="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600">
+            <div class="flex items-center gap-3">
+                <button id="theme-toggle-btn" class="p-2 rounded-full hover:bg-gray-100 transition text-gray-600">
                     <i id="theme-icon-sun" class="fas fa-sun"></i> <i id="theme-icon-moon" class="fas fa-moon hidden"></i> 
                 </button>
-
-                <a href="/portal/logout" class="text-red-600 hover:text-red-700 transition-colors flex items-center gap-2 font-medium text-sm">
-                    <span class="hidden sm:inline">Sair</span>
-                    <i class="fas fa-sign-out-alt fa-lg"></i>
-                </a>
+                <a href="/portal/logout" class="text-red-500 hover:text-red-700 font-medium text-sm"><i class="fas fa-sign-out-alt"></i> Sair</a>
             </div>
         </nav>
     </header>
 
-    <main class="flex-1 p-4 overflow-hidden flex flex-col gap-4 max-w-7xl mx-auto w-full">
+    <main class="flex-1 p-4 w-full max-w-3xl mx-auto flex flex-col gap-5 pb-10">
         
-        <section class="bg-gold rounded-2xl shadow-lg overflow-hidden shrink-0 p-6 bg-shine-gold">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-2xl font-bold text-white">
-                        Bem-vindo(a), <span class="font-extrabold"><%= clientName %></span>! 👋
-                    </h1>
-                    <p class="text-yellow-50 mt-1 text-sm">
-                        Aqui você acompanha seus agendamentos e compras.
-                    </p>
-                </div>
-                <div class="hidden sm:block">
-                    <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                        <i class="fas fa-user text-xl text-white"></i>
-                    </div>
-                </div>
-            </div>
+        <section class="bg-gold rounded-2xl shadow-lg p-6 bg-shine-gold text-white relative">
+            <h1 class="text-xl font-bold leading-tight">
+                Bem-vindo(a),<br>
+                <span class="text-2xl"><%= clientName %>!</span> 👋
+            </h1>
+            <p class="text-white/90 mt-2 text-sm">Aqui você acompanha seus agendamentos e compras.</p>
         </section>
 
         <% if (typeof error !== 'undefined' && error) { %>
-        <div class="p-3 bg-red-50 border border-red-200 rounded-xl shrink-0">
-            <p class="text-sm text-red-800 font-medium flex items-center">
-                <i class="fas fa-exclamation-triangle mr-2"></i><%= error %>
-            </p>
-        </div>
+            <div class="p-4 bg-red-50 border-l-4 border-red-500 rounded-md text-red-800 text-sm font-medium shadow-sm">
+                <i class="fas fa-exclamation-circle mr-2"></i><%= error %>
+            </div>
         <% } %> 
         <% if (typeof success !== 'undefined' && success) { %>
-        <div class="p-3 bg-green-50 border border-green-200 rounded-xl shrink-0">
-            <p class="text-sm text-green-800 font-medium flex items-center">
+            <div class="p-4 bg-green-50 border-l-4 border-green-500 rounded-md text-green-800 text-sm font-medium shadow-sm">
                 <i class="fas fa-check-circle mr-2"></i><%= success %>
-            </p>
-        </div>
+            </div>
         <% } %>
 
-        <a href="/portal/agendar" class="block w-full bg-gold text-white text-center py-3 px-6 rounded-xl font-bold text-lg hover:opacity-90 transition-all shadow-lg bg-shine-gold shrink-0 flex items-center justify-center">
-            <i class="fas fa-calendar-plus mr-2"></i>
-            <span>Novo Agendamento</span>
+        <a href="/portal/agendar" class="w-full bg-gold text-white text-center py-4 rounded-xl font-bold text-lg shadow-md hover:brightness-110 transition-all bg-shine-gold flex items-center justify-center">
+            <i class="fas fa-calendar-plus mr-2"></i> Novo Agendamento
         </a>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0">
+        <div class="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
+            <div class="p-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
+                <i class="fas fa-calendar-check text-gold text-lg"></i>
+                <h2 class="font-bold text-gray-800">Próximos</h2>
+            </div>
             
-            <div class="flex flex-col gap-4 min-h-0">
-                
-                <div class="bg-white rounded-2xl shadow-lg border border-gray-200 flex flex-col flex-1 min-h-0">
-                    <div class="p-4 border-b border-gray-200 shrink-0 flex items-center space-x-3 bg-gray-50">
-                        <i class="fas fa-calendar-check text-lg text-gold-dark"></i>
-                        <h2 class="text-lg font-bold text-gray-800">Próximos</h2>
+            <div class="p-4 space-y-3">
+                <% if (proximosAgendamentos.length === 0) { %>
+                    <div class="text-center py-6 text-gray-400">
+                        <i class="far fa-calendar text-3xl mb-2 opacity-50"></i>
+                        <p class="text-sm">Nenhum agendamento futuro.</p>
                     </div>
-
-                    <div class="compact-body custom-scroll p-4 space-y-3">
-                        <% if (proximosAgendamentos.length === 0) { %>
-                        <div class="text-center py-8 text-gray-500">
-                            <i class="fas fa-calendar-check text-3xl mb-2 opacity-50 text-yellow-500"></i>
-                            <p class="text-sm">Nenhum agendamento futuro.</p>
-                        </div>
-                        <% } else { %>
-                            <% proximosAgendamentos.forEach((appt, index) => { %>
-                            <div class="list-item-card p-3 rounded-xl border border-gray-200" data-delay-index="<%= index %>">
-                                <div class="flex items-start justify-between">
-                                    <div class="space-y-1">
-                                        <h3 class="text-md font-bold text-gold"><%= appt.date %> às <%= appt.time %></h3>
-                                        <p class="text-xs text-gray-700 flex items-center">
-                                            <i class="fas fa-cut mr-1 text-gold"></i> <%= appt.services %>
-                                        </p>
-                                        <p class="text-xs text-gray-500 flex items-center">
-                                            <i class="fas fa-user mr-1 text-gold"></i> <%= appt.staffName %>
-                                        </p>
-                                    </div>
+                <% } else { %>
+                    <% proximosAgendamentos.forEach((appt) => { %>
+                        <div class="list-item-card p-4 rounded-xl shadow-sm">
+                            <div class="flex flex-col gap-2">
+                                <div class="flex flex-wrap justify-between items-start gap-2">
+                                    <h3 class="text-lg font-bold text-gold">
+                                        <%= appt.date %> <span class="text-sm text-gray-500 font-normal">às</span> <%= appt.time %>
+                                    </h3>
                                     <span class="status-tag <% if (appt.status === 'pendente') { %> status-pendente <% } else { %> status-confirmado <% } %>">
-                                        <i class="fas <%= appt.status === 'pendente' ? 'fa-clock' : 'fa-check-circle' %>"></i>
                                         <%= appt.status === 'pendente' ? 'Pendente' : 'Confirmado' %>
                                     </span>
                                 </div>
-                            </div>
-                            <% }); %>
-                        <% } %>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-2xl shadow-lg border border-gray-200 flex flex-col flex-1 min-h-0">
-                    <div class="p-4 border-b border-gray-200 shrink-0 flex items-center space-x-3 bg-gray-50">
-                        <i class="fas fa-history text-lg text-gold-dark"></i>
-                        <h2 class="text-lg font-bold text-gray-800">Histórico</h2>
-                    </div>
-                    <div class="compact-body custom-scroll p-4 space-y-3">
-                        <% if (historicoAgendamentos.length === 0) { %>
-                            <div class="text-center py-8 text-gray-500">
-                                <p class="text-sm">Nenhum histórico disponível.</p>
-                            </div>
-                        <% } else { %>
-                            <% historicoAgendamentos.forEach((appt, index) => { %>
-                            <div class="list-item-card p-3 rounded-xl border border-gray-200" data-delay-index="<%= index %>">
-                                <div class="flex items-start justify-between">
-                                    <div class="space-y-1">
-                                        <h3 class="text-sm font-semibold text-gray-900"><%= appt.date %> - <%= appt.time %></h3>
-                                        <p class="text-xs text-gray-600"><%= appt.services %></p>
-                                    </div>
-                                    <span class="status-tag <% if (appt.status.startsWith('cancelado')) { %> status-cancelado <% } else { %> status-concluido <% } %>">
-                                        <i class="fas <%= appt.status.startsWith('cancelado') ? 'fa-times-circle' : 'fa-check-double' %>"></i>
-                                        <%= appt.status.startsWith('cancelado') ? 'Cancelado' : 'Concluído' %>
-                                    </span>
-                                </div>
-                            </div>
-                            <% }); %>
-                        <% } %>
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="flex flex-col gap-4 min-h-0">
-                
-                <% if (produtosPendentes.length > 0) { %>
-                <div class="bg-white rounded-2xl shadow-lg border border-gray-200 flex flex-col shrink-0" style="max-height: 50%;">
-                    <div class="p-4 border-b border-gray-200 shrink-0 flex items-center space-x-3 bg-gray-50">
-                        <i class="fas fa-shopping-bag text-lg text-red-600"></i>
-                        <h2 class="text-lg font-bold text-gray-800">A Pagar</h2>
-                    </div>
-                    <div class="compact-body custom-scroll p-4 space-y-3">
-                        <% produtosPendentes.forEach((prod, index) => { %>
-                        <div class="list-item-card p-3 rounded-xl border border-red-200 bg-red-50" data-delay-index="<%= index %>">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <h3 class="text-sm font-bold text-gray-900"><%= prod.name %></h3>
-                                    <p class="text-xs text-red-700 font-bold mt-1">
-                                        Restante: R$ <%= (prod.price - prod.totalPaid).toFixed(2).replace('.', ',') %>
+                                
+                                <div class="border-t border-gray-100 pt-2 mt-1">
+                                    <p class="text-sm text-gray-800 font-medium flex items-center">
+                                        <i class="fas fa-cut w-5 text-center text-gold mr-1"></i> <%= appt.services %>
+                                    </p>
+                                    <p class="text-xs text-gray-500 flex items-center mt-1">
+                                        <i class="fas fa-user w-5 text-center text-gray-400 mr-1"></i> <%= appt.staffName %>
                                     </p>
                                 </div>
-                                <span class="status-tag status-pendente">Pendente</span>
                             </div>
                         </div>
-                        <% }); %>
-                    </div>
-                </div>
+                    <% }); %>
                 <% } %>
-
-                <div class="bg-white rounded-2xl shadow-lg border border-gray-200 flex flex-col flex-1 min-h-0">
-                    <div class="p-4 border-b border-gray-200 shrink-0 flex items-center space-x-3 bg-gray-50">
-                        <i class="fas fa-archive text-lg text-gold-dark"></i>
-                        <h2 class="text-lg font-bold text-gray-800">Meus Produtos</h2>
-                    </div>
-                    <div class="compact-body custom-scroll p-4 space-y-3">
-                         <% if (historicoProdutos.length === 0) { %>
-                            <div class="text-center py-8 text-gray-500">
-                                <p class="text-sm">Nenhum produto comprado.</p>
-                            </div>
-                        <% } else { %>
-                            <% historicoProdutos.forEach((prod, index) => { %>
-                            <div class="list-item-card p-3 rounded-xl border border-gray-200" data-delay-index="<%= index %>">
-                                <div class="flex justify-between items-center">
-                                    <h3 class="text-sm font-semibold text-gray-900"><%= prod.name %></h3>
-                                    <span class="status-tag status-concluido">Pago</span>
-                                </div>
-                                <p class="text-xs text-gray-500 mt-1">R$ <%= prod.price.toFixed(2).replace('.', ',') %></p>
-                            </div>
-                            <% }); %>
-                        <% } %>
-                    </div>
-                </div>
-
             </div>
         </div>
+
+        <div class="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
+            <div class="p-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
+                <i class="fas fa-history text-gray-400 text-lg"></i>
+                <h2 class="font-bold text-gray-800">Histórico</h2>
+            </div>
+            <div class="p-4 space-y-3 max-h-80 overflow-y-auto custom-scroll">
+                <% if (historicoAgendamentos.length === 0) { %>
+                    <div class="text-center py-6 text-gray-400">
+                        <p class="text-sm">Histórico vazio.</p>
+                    </div>
+                <% } else { %>
+                    <% historicoAgendamentos.forEach((appt) => { %>
+                        <div class="list-item-card p-3 rounded-xl border-l-4 border-gray-300">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm font-bold text-gray-700"><%= appt.date %></span>
+                                <span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">
+                                    <%= appt.status.startsWith('cancelado') ? 'Cancelado' : 'Concluído' %>
+                                </span>
+                            </div>
+                            <p class="text-xs text-gray-500 truncate"><%= appt.services %></p>
+                        </div>
+                    <% }); %>
+                <% } %>
+            </div>
+        </div>
+
+        <% if (produtosPendentes.length > 0 || historicoProdutos.length > 0) { %>
+        <div class="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
+            <div class="p-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
+                <i class="fas fa-shopping-bag text-gold text-lg"></i>
+                <h2 class="font-bold text-gray-800">Meus Produtos</h2>
+            </div>
+            <div class="p-4 space-y-3">
+                <% if (produtosPendentes.length > 0) { %>
+                    <p class="text-xs font-bold text-red-500 uppercase mb-2">Pendentes</p>
+                    <% produtosPendentes.forEach((prod) => { %>
+                        <div class="list-item-card p-3 rounded-xl border-l-4 border-red-400 bg-red-50">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-gray-800"><%= prod.name %></span>
+                                <span class="text-sm font-bold text-red-600">Restam R$ <%= (prod.price - prod.totalPaid).toFixed(2).replace('.', ',') %></span>
+                            </div>
+                        </div>
+                    <% }); %>
+                <% } %>
+                
+                <% if (historicoProdutos.length > 0) { %>
+                    <p class="text-xs font-bold text-gray-400 uppercase mt-4 mb-2">Pagos</p>
+                    <% historicoProdutos.forEach((prod) => { %>
+                        <div class="list-item-card p-3 rounded-xl opacity-75">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-700"><%= prod.name %></span>
+                                <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Pago</span>
+                            </div>
+                        </div>
+                    <% }); %>
+                <% } %>
+            </div>
+        </div>
+        <% } %>
+
     </main>
+
+    <footer class="text-center py-6 pb-10 text-gray-500 text-xs">
+        <p>© <%= new Date().getFullYear() %> <%= orgName %></p>
+    </footer>
 
     <div id="client-dashboard-data" class="hidden" data-notifications='<%- JSON.stringify(typeof notifications !== "undefined" ? notifications : []) %>'></div>
 
-    <footer class="text-center py-4 shrink-0">
-      <p class="text-xs text-gray-600">
-        <i class="fas fa-crown mr-1 text-gold"></i>
-        <%= orgName %> © <%= new Date().getFullYear() %>
-      </p>
-    </footer>
-
     <script>
-        // =================================================
-        // === LÓGICA DE TEMA ===
-        // =================================================
-        const THEMES = ["light", "medium-dark", "deep-dark"];
+        // === TEMA ===
         const htmlEl = document.documentElement;
-
-        function getNextTheme(currentTheme) {
-            const currentIndex = THEMES.indexOf(currentTheme);
-            const nextIndex = (currentIndex + 1) % THEMES.length;
-            return THEMES[nextIndex];
-        }
-
         function updateIcons(theme) {
             const sun = document.getElementById('theme-icon-sun');
             const moon = document.getElementById('theme-icon-moon');
             if (!sun || !moon) return;
-
             const isLight = theme === 'light';
-            if (isLight) {
-                sun.classList.remove('hidden');
-                moon.classList.add('hidden');
-            } else {
-                sun.classList.add('hidden');
-                moon.classList.remove('hidden');
-            }
+            sun.classList.toggle('hidden', !isLight);
+            moon.classList.toggle('hidden', isLight);
         }
-
         function toggleTheme() {
-            const currentTheme = htmlEl.getAttribute('data-theme') || 'light';
-            const newTheme = getNextTheme(currentTheme);
-
-            htmlEl.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateIcons(newTheme);
+            const themes = ["light", "medium-dark", "deep-dark"];
+            const current = htmlEl.getAttribute('data-theme') || 'light';
+            const next = themes[(themes.indexOf(current) + 1) % themes.length];
+            htmlEl.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+            updateIcons(next);
         }
+        document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
+        updateIcons(localStorage.getItem('theme') || 'light');
 
+        // === NOTIFICAÇÕES (SWEETALERT) ===
         document.addEventListener('DOMContentLoaded', function() {
-            const initialTheme = htmlEl.getAttribute('data-theme') || 'light';
-            updateIcons(initialTheme);
-            
-            const toggleButton = document.getElementById('theme-toggle-btn');
-            if (toggleButton) toggleButton.addEventListener('click', toggleTheme);
-
-            // Script de Animação
-            document.querySelectorAll(".animate-fade-in").forEach((el, index) => {
-                const baseDelay = parseFloat(el.style.animationDelay) || 0;
-                el.style.animationDelay = `${baseDelay + (index * 0.05)}s`;
-            });
-            document.querySelectorAll('.list-item-card').forEach((el) => {
-                const index = el.dataset.delayIndex;
-                if (index) el.style.animationDelay = `${index * 75}ms`;
-            });
-
-            // SweetAlert Notificações
             try {
-                const dataElement = document.getElementById("client-dashboard-data");
-                if (dataElement) {
-                    const notificationsString = dataElement.dataset.notifications;
-                    if (notificationsString && notificationsString !== "undefined") {
-                        const notificationList = JSON.parse(notificationsString);
-                        if (notificationList.length > 0) {
-                            let alertHTML = '<div style="text-align: left; max-height: 400px; overflow-y: auto; padding-right: 15px;">';
-                            notificationList.forEach((notif) => {
-                                let icon = "fas fa-info-circle";
-                                let bgColor = "var(--color-bg-accent-light)";
-                                let borderColor = "var(--color-border)";
-                                let titleColor = "var(--color-text-accent)";
+                const dataEl = document.getElementById("client-dashboard-data");
+                const notifs = JSON.parse(dataEl.dataset.notifications || '[]');
+                
+                if (notifs.length > 0) {
+                    let html = '<div class="text-left space-y-2">';
+                    notifs.forEach(n => {
+                        let color = n.type === 'confirmado' ? 'text-green-600' : 'text-red-600';
+                        let icon = n.type === 'confirmado' ? 'fa-check-circle' : 'fa-info-circle';
+                        html += `<div class="p-3 bg-gray-50 rounded border border-gray-200 flex items-start gap-3">
+                                    <i class="fas ${icon} ${color} mt-1"></i>
+                                    <span class="text-sm text-gray-700">${n.message}</span>
+                                 </div>`;
+                    });
+                    html += '</div>';
 
-                                if (notif.type === "confirmado") {
-                                    icon = "fas fa-check-circle";
-                                    bgColor = "rgba(52, 211, 153, 0.2)";
-                                    titleColor = "#16a34a";
-                                } else if (notif.type === "cancelado") {
-                                    icon = "fas fa-times-circle";
-                                    bgColor = "rgba(248, 113, 113, 0.2)";
-                                    titleColor = "#dc2626";
-                                }
-
-                                alertHTML += `
-                                    <div style="padding: 12px; border: 1px solid ${borderColor}; background: ${bgColor}; border-radius: 8px; margin-bottom: 12px;">
-                                        <div style="display: flex; align-items: center; font-weight: 600; font-size: 1.0em; color: ${titleColor};">
-                                            <i class="${icon}" style="margin-right: 10px;"></i>
-                                            <span style="color: var(--color-text-primary)">${notif.message}</span>
-                                        </div>
-                                    </div>`;
-                            });
-                            alertHTML += "</div>";
-
-                            Swal.fire({
-                                iconHtml: '<i class="fas fa-bell fa-beat" style="color: var(--color-gold-dark); font-size: 2.5em;"></i>',
-                                title: `<span style="color: var(--color-text-primary)">Você tem ${notificationList.length} nova(s) atualização(ões)!</span>`,
-                                html: alertHTML,
-                                showCloseButton: true,
-                                confirmButtonText: "Entendido!",
-                                confirmButtonColor: "var(--color-gold-dark)",
-                                width: "500px",
-                                background: "var(--color-bg-secondary)",
-                                color: "var(--color-text-primary)"
-                            });
-                        }
-                    }
+                    Swal.fire({
+                        title: 'Atualizações',
+                        html: html,
+                        confirmButtonColor: '#DAA520',
+                        confirmButtonText: 'OK',
+                        background: 'var(--color-bg-secondary)',
+                        color: 'var(--color-text-primary)'
+                    });
                 }
-            } catch (e) { console.error(e); }
+            } catch(e) {}
         });
     </script>
 </body>
