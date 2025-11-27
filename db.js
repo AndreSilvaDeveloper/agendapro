@@ -30,6 +30,11 @@ if (isProduction) {
 const sequelize = new Sequelize(DATABASE_URL, {
   dialect: 'postgres',
   logging: false, // Mude para true se quiser ver as queries em produção
+
+  ssl: {
+      require: true,
+      rejectUnauthorized: false // Necessário para conexões externas na Render
+    },
   
   // --- MUDANÇA 3: Passa as opções do dialeto ---
   dialectOptions: dialectOptions,
