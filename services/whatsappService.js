@@ -34,35 +34,18 @@ const getClient = async (orgId) => {
 
     console.log(`Iniciando nova sessão WhatsApp para Org: ${orgId}`);
 
-    // Onde vão ficar os arquivos de auth do wwebjs (tokens etc.)
+    // Onde o LocalAuth vai salvar as sessões
     const sessionPath = process.env.WA_SESSION_PATH
         ? process.env.WA_SESSION_PATH
         : './.wwebjs_auth';
 
-    // Onde vão ficar os perfis de Chrome/Chromium (user-data-dir)
     const isProd = process.env.NODE_ENV === 'production';
-    const baseProfileDir = isProd
-        ? '/tmp/wwebjs_profiles'
-        : path.join(process.cwd(), '.wwebjs_profiles');
-
-    // Garante que a pasta base existe
-    try {
-        fs.mkdirSync(baseProfileDir, { recursive: true });
-    } catch (e) {
-        console.error('Erro ao criar pasta base de perfis do Chrome:', e.message || e);
-    }
-
-    // Perfil específico da organização (evita conflito e lock de profile)
-    const userDataDir = path.join(baseProfileDir, `org_${orgId}`);
 
     // Configura Puppeteer:
-    // - Em ambiente com PUPPETEER_EXECUTABLE_PATH (Docker/Render), usa Chrome externo
-    // - Localmente, usa o Chromium baixado pelo Puppeteer
-    const useExternalChrome = !!process.env.PUPPETEER_EXECUTABLE_PATH;
-
+    // - NÃO passamos userDataDir (LocalAuth não permite)
+    // - Chromium/Chrome é escolhido pelo próprio Puppeteer
     const puppeteerConfig = {
         headless: true,
-        userDataDir, // <- perfil isolado por organização
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -73,10 +56,6 @@ const getClient = async (orgId) => {
             '--disable-gpu'
         ]
     };
-
-    if (useExternalChrome) {
-        puppeteerConfig.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
-    }
 
     const client = new Client({
         authStrategy: new LocalAuth({
