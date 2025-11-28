@@ -1,11 +1,28 @@
+// services/whatsappService.js
 const { Client, LocalAuth } = require('whatsapp-web.js');
+const fs = require('fs');
+const path = require('path');
 
-// Armazena as sessões ativas: { 'org_1': Client, 'org_2': Client }
+// Armazena as sessões ativas: { '1': Client, '2': Client }
 const sessions = new Map();
 let io; // Instância do Socket.IO
 
+// Inicializa o serviço com a instância do Socket.IO
 const init = (socketIoInstance) => {
     io = socketIoInstance;
+};
+
+// Função auxiliar para destruir um client sem logout (ex: erro, restart do servidor)
+const destroyClient = async (orgId) => {
+    if (sessions.has(orgId)) {
+        const client = sessions.get(orgId);
+        try {
+            await client.destroy();
+        } catch (e) {
+            console.error(`Erro ao destruir client da Org ${orgId}:`, e.message || e);
+        }
+        sessions.delete(orgId);
+    }
 };
 
 // Função para iniciar ou recuperar uma sessão específica
@@ -15,47 +32,49 @@ const getClient = async (orgId) => {
         return sessions.get(orgId);
     }
 
-    // Se não existe, cria uma nova
     console.log(`Iniciando nova sessão WhatsApp para Org: ${orgId}`);
 
-
-    const sessionPath = process.env.WA_SESSION_PATH 
-        ? process.env.WA_SESSION_PATH 
+    const sessionPath = process.env.WA_SESSION_PATH
+        ? process.env.WA_SESSION_PATH
         : './.wwebjs_auth';
 
-    
-    const client = new Client({
-        authStrategy: new LocalAuth({ 
-            clientId: `session-${orgId}`,
-            dataPath: process.env.WA_SESSION_PATH || './.wwebjs_auth'
-        }),
-        puppeteer: {
-        // O caminho vem do Docker. Se não achar, usa o padrão do sistema.
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable',
+    // Configura Puppeteer:
+    // - Em ambiente com PUPPETEER_EXECUTABLE_PATH (Docker/Render), usa Chrome externo
+    // - Localmente, usa o Chromium baixado pelo Puppeteer
+    const useExternalChrome = !!process.env.PUPPETEER_EXECUTABLE_PATH;
+
+    const puppeteerConfig = {
         headless: true,
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage', // <--- ESSE É O MAIS IMPORTANTE PARA DOCKER
+            '--disable-dev-shm-usage',
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
             '--no-zygote',
-            '--single-process', 
             '--disable-gpu'
         ]
-    }
-});
+    };
 
-    // Configurar Eventos do Cliente
-    
+    if (useExternalChrome) {
+        puppeteerConfig.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    }
+
+    const client = new Client({
+        authStrategy: new LocalAuth({
+            clientId: `session-${orgId}`,
+            dataPath: sessionPath
+        }),
+        puppeteer: puppeteerConfig
+    });
+
     // 1. QR Code recebido
     client.on('qr', (qr) => {
         console.log(`QR Code gerado para Org ${orgId}`);
-        // Emite o QR Code apenas para o navegador que estiver "ouvindo" o canal dessa org
-        if (io) io.emit(`qr-${orgId}`, qr); 
+        if (io) io.emit(`qr-${orgId}`, qr);
     });
 
-    // 2. Cliente Pronto
+    // 2. Cliente pronto
     client.on('ready', () => {
         console.log(`WhatsApp da Org ${orgId} está pronto!`);
         if (io) io.emit(`status-${orgId}`, { status: 'CONNECTED' });
@@ -67,21 +86,56 @@ const getClient = async (orgId) => {
         if (io) io.emit(`status-${orgId}`, { status: 'AUTHENTICATED' });
     });
 
-    // 4. Desconectado (pelo celular)
+    // 4. Desconectado (pelo celular ou logout)
     client.on('disconnected', (reason) => {
         console.log(`Org ${orgId} desconectada:`, reason);
-        if (io) io.emit(`status-${orgId}`, { status: 'DISCONNECTED' });
-        // Remove da memória e destroi o cliente para liberar RAM
+
+        // Se foi logout explícito, apagamos a pasta daquela sessão
+        if (reason === 'LOGOUT') {
+            const sessionDir = path.join(sessionPath, `session-${orgId}`);
+            try {
+                fs.rmSync(sessionDir, { recursive: true, force: true });
+                console.log(`Sessão da Org ${orgId} apagada em disco após LOGOUT (${sessionDir}).`);
+            } catch (e) {
+                console.error(`Erro ao remover pasta de sessão da Org ${orgId}:`, e.message || e);
+            }
+        }
+
+        if (io) {
+            io.emit(`status-${orgId}`, {
+                status: 'DISCONNECTED',
+                reason
+            });
+        }
         destroyClient(orgId);
     });
 
-    // Inicializa
+    // 5. Erro geral no client (inclui erros de Puppeteer/Frame)
+    client.on('error', (err) => {
+        console.error(`Erro no client WhatsApp da Org ${orgId}:`, err);
+        if (io) {
+            io.emit(`status-${orgId}`, {
+                status: 'ERROR',
+                error: err.message || String(err)
+            });
+        }
+        destroyClient(orgId);
+    });
+
+    // Inicializa o client
     try {
         await client.initialize();
-        sessions.set(orgId, client); // Salva na memória
+        sessions.set(orgId, client);
         return client;
     } catch (err) {
         console.error(`Erro ao iniciar sessão ${orgId}:`, err);
+        if (io) {
+            io.emit(`status-${orgId}`, {
+                status: 'ERROR_INIT',
+                error: err.message || String(err)
+            });
+        }
+        await destroyClient(orgId);
         return null;
     }
 };
@@ -91,14 +145,13 @@ const logoutClient = async (orgId) => {
     if (sessions.has(orgId)) {
         const client = sessions.get(orgId);
         try {
-            await client.logout(); // Sai do WhatsApp Web
-            await client.destroy(); // Fecha o navegador
-            sessions.delete(orgId); // Remove da lista
+            await client.logout();   // Sai do WhatsApp Web
+            await client.destroy();  // Fecha o navegador
+            sessions.delete(orgId);
             if (io) io.emit(`status-${orgId}`, { status: 'DISCONNECTED' });
             return true;
         } catch (error) {
             console.error('Erro ao fazer logout:', error);
-            // Mesmo com erro, tentamos destruir
             sessions.delete(orgId);
             return false;
         }
@@ -106,24 +159,12 @@ const logoutClient = async (orgId) => {
     return false;
 };
 
-// Função auxiliar para destruir sem logout (ex: reiniciar server)
-const destroyClient = async (orgId) => {
-    if (sessions.has(orgId)) {
-        const client = sessions.get(orgId);
-        try {
-            await client.destroy();
-        } catch (e) {}
-        sessions.delete(orgId);
-    }
-};
-
-// Verifica status atual
+// Verifica status atual da sessão em memória
 const getStatus = (orgId) => {
     if (sessions.has(orgId)) {
         const client = sessions.get(orgId);
-        // info e state podem não estar disponíveis imediatamente, verificação básica
         if (client.info) return 'CONNECTED';
-        return 'INITIALIZING'; 
+        return 'INITIALIZING';
     }
     return 'DISCONNECTED';
 };

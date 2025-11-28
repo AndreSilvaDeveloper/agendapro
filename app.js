@@ -3,6 +3,16 @@
 
 require('dotenv').config();
 
+// 🔥 Captura erros globais para não derrubar o servidor
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🔥 Unhandled Rejection em promessa:', promise, 'motivo:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('🔥 Uncaught Exception:', err);
+  // Não chamamos process.exit() aqui para o servidor continuar rodando
+});
+
 const http = require('http'); // Importar módulo HTTP nativo
 const { Server } = require("socket.io"); // Importar Socket.IO
 
@@ -26,18 +36,16 @@ const app = express();
 const server = http.createServer(app); // Criar servidor HTTP com o Express
 const io = new Server(server); // Vincular Socket.IO ao servidor
 
-// Proxy (Vercel/Heroku/etc.)
+// Proxy (Render/Heroku/etc.)
 app.set('trust proxy', 1);
 
 // Ambiente
 const isProd = process.env.NODE_ENV === 'production';
 
 // Store de sessão no PostgreSQL
-// IMPORTANTE: use `tableName` (string) ou passe um Model em `table`.
-// Como string: `tableName: 'Session'`
 const sessionStore = new SequelizeStore({
   db: sequelize,
-  tableName: 'Session',                     // ✅ CORRIGIDO (antes estava `table: 'Session'`)
+  tableName: 'Session',
   checkExpirationInterval: 15 * 60 * 1000,  // limpa sessões expiradas a cada 15 min
   expiration: 14 * 24 * 60 * 60 * 1000      // 14 dias
 });
@@ -75,10 +83,9 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Rotas
-// (carregadas ANTES de sync para que models usados nos controllers já estejam importados)
 app.use('/', routes);
 
-// Tratamento de erro
+// Tratamento de erro de rota/controller
 app.use((err, req, res, next) => {
   console.error('⛔️ ERRO:', err.stack || err);
   res.status(err.status || 500).send('Erro interno no servidor');
@@ -86,13 +93,8 @@ app.use((err, req, res, next) => {
 
 // Inicialização
 const PORT = process.env.PORT || 3003;
-// --- MUDANÇA 1: Definir o HOST ---
-// '0.0.0.0' é necessário para a nuvem; 'localhost' é para desenvolvimento local
 const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
-// --- FIM DA MUDANÇA 1 ---
 
-
-// Sobe tudo em sequência segura
 (async () => {
   try {
     // 1) Testa conexão com o banco
@@ -104,19 +106,17 @@ const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
     console.log('🟢 Tabela de Sessão sincronizada.');
 
     // 3) Sincroniza seus models (User, Client, etc.)
-    await sequelize.sync({ alter: true }); // Adiciona colunas faltantes
+    await sequelize.sync({ alter: true });
     console.log('🟢 Tabelas principais do PostgreSQL sincronizadas.');
 
+    // 4) Inicializa serviços
+    whatsappService.init(io);
+    schedulerService.init();
 
-   whatsappService.init(io);
-   schedulerService.init();
-
-    // 4) Sobe o servidor
-    // --- MUDANÇA 2: Adiciona o HOST ao app.listen ---
-    // const PORT = process.env.PORT || 3000;
-      server.listen(PORT, () => {
-        console.log(`🚀 Servidor rodando em: \x1b[36mhttp://${HOST}:${PORT}\x1b[0m`);
-      });
+    // 5) Sobe o servidor
+    server.listen(PORT, () => {
+      console.log(`🚀 Servidor rodando em: \x1b[36mhttp://${HOST}:${PORT}\x1b[0m`);
+    });
 
   } catch (err) {
     console.error('🔴 Erro ao iniciar a aplicação:', err);
