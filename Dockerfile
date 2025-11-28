@@ -1,9 +1,9 @@
-# 1. Usa uma imagem Node.js leve como base
+# 1. Base Node.js
 FROM node:20-slim
 
-# 2. Instala as dependências (git incluso)
+# 2. Instala dependências do sistema (Chrome + Git + Bibliotecas)
 RUN apt-get update \
-    && apt-get install -y wget gnupg git \
+    && apt-get install -y wget gnupg git ca-certificates \
     && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
     && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
     && apt-get update \
@@ -11,28 +11,19 @@ RUN apt-get update \
       --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# === A CORREÇÃO MÁGICA AQUI ===
-# Força o git a usar HTTPS mesmo se pedirem SSH
-RUN git config --global url."https://github.com/".insteadOf git@github.com:
-RUN git config --global url."https://github.com/".insteadOf ssh://git@github.com/
-RUN git config --global url."https://github.com/".insteadOf git://github.com/
-
-
-# 3. Configura variáveis de ambiente
+# 3. Variáveis do Puppeteer
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 
-# 4. Define o diretório de trabalho
 WORKDIR /usr/src/app
 
-# 5. Copia e instala dependências
-COPY package*.json ./
+# 4. Instalação das dependências do Node
+COPY package.json ./
+# IMPORTANTE: Não copiamos o package-lock.json aqui para forçar uma instalação limpa
+# IMPORTANTE 2: --no-git-tag-version evita problemas com tags do git
+RUN npm install --omit=optional
 
-RUN rm -f package-lock.json && npm cache clean --force && npm install
-
-RUN npm install
-
-# 6. Copia o resto do código
+# 5. Copia o resto do projeto
 COPY . .
 
 EXPOSE 3000
