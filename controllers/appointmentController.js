@@ -353,13 +353,21 @@ exports.getAgendaPorDia = async (req, res) => {
     const organizationId = getOrgId(req);
     const { date, success, error } = req.query;
 
-    const services = []; // Buscaremos do DB
+    const services = [];
     const days = [];
-    const targetDate = date ? dayjs.tz(date, 'YYYY-MM-DD', 'America/Sao_Paulo') : dayjs().tz('America/Sao_Paulo');
-    let currentDay = targetDate.startOf('isoWeek').add(1, 'day'); // Terça
+
+    const targetDate = date
+      ? dayjs.tz(date, 'YYYY-MM-DD', 'America/Sao_Paulo')
+      : dayjs().tz('America/Sao_Paulo');
+
+    let currentDay = targetDate.startOf('isoWeek').add(1, 'day');
     if (currentDay.day() === 0) currentDay = currentDay.add(2, 'day');
     else if (currentDay.day() === 1) currentDay = currentDay.add(1, 'day');
-    for (let i = 0; i < 5; i++) { days.push(currentDay.add(i, 'day')); }
+
+    for (let i = 0; i < 5; i++) {
+      days.push(currentDay.add(i, 'day'));
+    }
+
     const resultsByDay = {};
     const availableByDay = {};
     days.forEach(d => {
@@ -367,10 +375,18 @@ exports.getAgendaPorDia = async (req, res) => {
       resultsByDay[key] = [];
       availableByDay[key] = gerarHorariosDisponiveis();
     });
+
     const weekStart = days[0].startOf('day').toDate();
     const weekEnd = days[days.length - 1].endOf('day').toDate();
 
-    const [appts, clients, dbServices, staff, pendingAppointments] = await Promise.all([
+    const [
+      appts,
+      clients,
+      dbServices,
+      staff,
+      pendingAppointments,
+      organization
+    ] = await Promise.all([
       db.Appointment.findAll({
         where: {
           organizationId: organizationId,
@@ -384,10 +400,10 @@ exports.getAgendaPorDia = async (req, res) => {
           { model: db.AppointmentService, attributes: ['name'] }
         ]
       }),
-      db.Client.findAll({ 
-        where: { organizationId: organizationId }, 
-        attributes: ['id', 'name'], 
-        order: [['name', 'ASC']] 
+      db.Client.findAll({
+        where: { organizationId: organizationId },
+        attributes: ['id', 'name'],
+        order: [['name', 'ASC']]
       }),
       db.Service.findAll({
         where: { organizationId: organizationId, isActive: true },
@@ -397,7 +413,6 @@ exports.getAgendaPorDia = async (req, res) => {
         where: { organizationId: organizationId, isActive: true },
         attributes: ['id', 'name']
       }),
-
       db.Appointment.findAll({
         where: {
           organizationId: organizationId,
@@ -405,18 +420,19 @@ exports.getAgendaPorDia = async (req, res) => {
         },
         include: [
           { model: db.Client, attributes: ['id', 'name', 'phone'] },
-          { model: db.Staff, attributes: ['id', 'name'] }, 
+          { model: db.Staff, attributes: ['id', 'name'] },
           { model: db.AppointmentService, attributes: ['name'] },
           { model: db.AppointmentProduct, attributes: ['name'] }
         ],
         order: [['date', 'ASC']]
+      }),
+      db.Organization.findByPk(organizationId, {
+        attributes: ['id', 'name'] // ou 'fantasyName', se for esse o campo
       })
     ]);
-    
+
     appts.forEach(a => {
-      if (!a.Client) {
-        return;
-      }
+      if (!a.Client) return;
 
       const d = dayjs(a.date).tz('America/Sao_Paulo');
       const key = d.format('YYYY-MM-DD');
@@ -424,11 +440,11 @@ exports.getAgendaPorDia = async (req, res) => {
       if (!(key in resultsByDay)) return;
 
       resultsByDay[key].push({
-        id: a.id, 
-        clientId: a.Client.id, 
-        clientName: a.Client.name, 
+        id: a.id,
+        clientId: a.Client.id,
+        clientName: a.Client.name,
         clientPhone: a.Client.phone,
-        staffName: a.Staff ? a.Staff.name : 'N/D', 
+        staffName: a.Staff ? a.Staff.name : 'N/D',
         timeFormatted: time,
         servicesNames: (a.AppointmentServices || []).map(s => s.name).join(', '),
         status: a.status,
@@ -440,7 +456,7 @@ exports.getAgendaPorDia = async (req, res) => {
       for (let i = 0; i < blocos; i++) {
         const slot = d.add(i * 30, 'minute').format('HH:mm');
         if (availableByDay[key]) {
-           availableByDay[key] = availableByDay[key].filter(s => s !== slot);
+          availableByDay[key] = availableByDay[key].filter(s => s !== slot);
         }
       }
     });
@@ -452,21 +468,31 @@ exports.getAgendaPorDia = async (req, res) => {
       availableByDay,
       clients,
       services: dbServices,
-      staff: staff, 
-      pendingAppointments: pendingAppointments,
+      staff,
+      pendingAppointments,
       success,
-      error
+      error,
+      org: organization,              // <- aqui o org vem do banco
+      user: req.session.user
     });
   } catch (err) {
     console.error("Erro ao buscar agenda:", err);
     res.render('agenda-dia', {
-      days: [], resultsByDay: {}, availableByDay: {}, clients: [], services: [], staff: [],
+      days: [],
+      resultsByDay: {},
+      availableByDay: {},
+      clients: [],
+      services: [],
+      staff: [],
       pendingAppointments: [],
       error: 'Erro ao carregar a agenda.',
-      success: null, date: dayjs().tz('America/Sao_Paulo').format('YYYY-MM-DD')
+      success: null,
+      date: dayjs().tz('America/Sao_Paulo').format('YYYY-MM-DD'),
+      org: req.session.user ? req.session.user.Organization : null
     });
   }
 };
+
 
 // --- Editar Serviço / Data/Hora (ATUALIZADO) ---
 exports.editAppointmentService = async (req, res) => {
