@@ -22,27 +22,29 @@ const getClient = async (orgId) => {
     const sessionPath = process.env.WA_SESSION_PATH 
         ? process.env.WA_SESSION_PATH 
         : './.wwebjs_auth';
-        
+
     
     const client = new Client({
         authStrategy: new LocalAuth({ 
-            clientId: `session-${orgId}` // Cria uma pasta separada para cada org (.wwebjs_auth/session-1)
+            clientId: `session-${orgId}`,
+            dataPath: process.env.WA_SESSION_PATH || './.wwebjs_auth'
         }),
         puppeteer: {
-            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH, 
-            headless: true,
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
-                '--single-process', 
-                '--disable-gpu'
-            ]
-        }
-    });
+        // O caminho vem do Docker. Se não achar, usa o padrão do sistema.
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable',
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage', // <--- ESSE É O MAIS IMPORTANTE PARA DOCKER
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process', 
+            '--disable-gpu'
+        ]
+    }
+});
 
     // Configurar Eventos do Cliente
     
