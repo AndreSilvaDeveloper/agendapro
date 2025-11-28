@@ -1,174 +1,198 @@
 // services/whatsappService.js
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const fs = require('fs');
+'use strict';
+
 const path = require('path');
+const { Client, LocalAuth } = require('whatsapp-web.js');
 
-// Armazena as sessões ativas: { '1': Client, '2': Client }
+// Sessões já prontas: { '1': Client, '2': Client }
 const sessions = new Map();
-let io; // Instância do Socket.IO
 
-// Inicializa o serviço com a instância do Socket.IO
+// Promessas de inicialização em andamento (para evitar 2 Chrome no mesmo profile)
+const sessionPromises = new Map();
+
+let io; // Instância do Socket.IO (recebida do app.js)
+
+// --------------------------------------------------
+// Inicialização com Socket.IO (chamado em app.js)
+// --------------------------------------------------
 const init = (socketIoInstance) => {
-    io = socketIoInstance;
+  io = socketIoInstance;
 };
 
-// Função auxiliar para destruir um client sem logout (ex: erro, restart do servidor)
-const destroyClient = async (orgId) => {
-    if (sessions.has(orgId)) {
-        const client = sessions.get(orgId);
-        try {
-            await client.destroy();
-        } catch (e) {
-            console.error(`Erro ao destruir client da Org ${orgId}:`, e.message || e);
-        }
-        sessions.delete(orgId);
+// --------------------------------------------------
+// Função interna que cria o client (sem inicializar)
+// --------------------------------------------------
+const createClient = (orgId) => {
+  const baseSessionPath = process.env.WA_SESSION_PATH
+    ? path.resolve(process.env.WA_SESSION_PATH)
+    : path.resolve(__dirname, '..', '.wwebjs_auth');
+
+  const authStrategy = new LocalAuth({
+    clientId: `session-${orgId}`,
+    dataPath: baseSessionPath
+  });
+
+  // Se estiver no Render, usamos o binário indicado pela env.
+  // Em dev local, normalmente NÃO define PUPPETEER_EXECUTABLE_PATH
+  // e o whatsapp-web.js usa o Chromium/Chrome padrão.
+  const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || undefined;
+
+  const client = new Client({
+    authStrategy,
+    puppeteer: {
+      headless: true,
+      executablePath,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-gpu'
+      ].filter(Boolean)
     }
+  });
+
+  // ----------------- Eventos -----------------
+
+  // QR Code recebido
+  client.on('qr', (qr) => {
+    console.log(`QR Code gerado para Org ${orgId}`);
+    if (io) io.emit(`qr-${orgId}`, qr);
+  });
+
+  // Autenticado
+  client.on('authenticated', () => {
+    console.log(`Org ${orgId} autenticada`);
+    if (io) io.emit(`status-${orgId}`, { status: 'AUTHENTICATED' });
+  });
+
+  // Pronto
+  client.on('ready', () => {
+    console.log(`WhatsApp da Org ${orgId} está pronto!`);
+    if (io) io.emit(`status-${orgId}`, { status: 'CONNECTED' });
+  });
+
+  // Desconectado (celular/deslogou)
+  client.on('disconnected', (reason) => {
+    console.log(`Org ${orgId} desconectada:`, reason);
+    if (io) io.emit(`status-${orgId}`, { status: 'DISCONNECTED' });
+    destroyClient(orgId);
+  });
+
+  return client;
 };
 
-// Função para iniciar ou recuperar uma sessão específica
+// --------------------------------------------------
+// getClient com trava de concorrência
+// --------------------------------------------------
 const getClient = async (orgId) => {
-    // Se já existe uma sessão para essa organização, retorna ela
-    if (sessions.has(orgId)) {
-        return sessions.get(orgId);
-    }
+  // 1) Já tem sessão pronta na memória
+  if (sessions.has(orgId)) {
+    return sessions.get(orgId);
+  }
 
+  // 2) Já tem inicialização em andamento → reaproveita a mesma Promise
+  if (sessionPromises.has(orgId)) {
+    return sessionPromises.get(orgId);
+  }
+
+  // 3) Cria uma nova Promise de inicialização e guarda em sessionPromises
+  const initPromise = (async () => {
     console.log(`Iniciando nova sessão WhatsApp para Org: ${orgId}`);
 
-    // Onde o LocalAuth vai salvar as sessões
-    const sessionPath = process.env.WA_SESSION_PATH
-        ? process.env.WA_SESSION_PATH
-        : './.wwebjs_auth';
+    const client = createClient(orgId);
 
-    const isProd = process.env.NODE_ENV === 'production';
-
-    // Configura Puppeteer:
-    // - NÃO passamos userDataDir (LocalAuth não permite)
-    // - Chromium/Chrome é escolhido pelo próprio Puppeteer
-    const puppeteerConfig = {
-        headless: true,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--disable-gpu'
-        ]
-    };
-
-    const client = new Client({
-        authStrategy: new LocalAuth({
-            clientId: `session-${orgId}`,
-            dataPath: sessionPath
-        }),
-        puppeteer: puppeteerConfig
-    });
-
-    // 1. QR Code recebido
-    client.on('qr', (qr) => {
-        console.log(`QR Code gerado para Org ${orgId}`);
-        if (io) io.emit(`qr-${orgId}`, qr);
-    });
-
-    // 2. Cliente pronto
-    client.on('ready', () => {
-        console.log(`WhatsApp da Org ${orgId} está pronto!`);
-        if (io) io.emit(`status-${orgId}`, { status: 'CONNECTED' });
-    });
-
-    // 3. Autenticado
-    client.on('authenticated', () => {
-        console.log(`Org ${orgId} autenticada`);
-        if (io) io.emit(`status-${orgId}`, { status: 'AUTHENTICATED' });
-    });
-
-    // 4. Desconectado (pelo celular ou logout)
-    client.on('disconnected', (reason) => {
-        console.log(`Org ${orgId} desconectada:`, reason);
-
-        // Se foi logout explícito, apagamos a pasta daquela sessão de auth
-        if (reason === 'LOGOUT') {
-            const sessionDir = path.join(sessionPath, `session-${orgId}`);
-            try {
-                fs.rmSync(sessionDir, { recursive: true, force: true });
-                console.log(`Sessão da Org ${orgId} apagada em disco após LOGOUT (${sessionDir}).`);
-            } catch (e) {
-                console.error(`Erro ao remover pasta de sessão da Org ${orgId}:`, e.message || e);
-            }
-        }
-
-        if (io) {
-            io.emit(`status-${orgId}`, {
-                status: 'DISCONNECTED',
-                reason
-            });
-        }
-        destroyClient(orgId);
-    });
-
-    // 5. Erro geral no client (inclui erros de Puppeteer/Frame)
-    client.on('error', (err) => {
-        console.error(`Erro no client WhatsApp da Org ${orgId}:`, err);
-        if (io) {
-            io.emit(`status-${orgId}`, {
-                status: 'ERROR',
-                error: err.message || String(err)
-            });
-        }
-        destroyClient(orgId);
-    });
-
-    // Inicializa o client
     try {
-        await client.initialize();
-        sessions.set(orgId, client);
-        return client;
+      await client.initialize();
+      sessions.set(orgId, client);
+      return client;
     } catch (err) {
-        console.error(`Erro ao iniciar sessão ${orgId}:`, err);
-        if (io) {
-            io.emit(`status-${orgId}`, {
-                status: 'ERROR_INIT',
-                error: err.message || String(err)
-            });
-        }
-        await destroyClient(orgId);
-        return null;
+      console.error(`Erro ao iniciar sessão ${orgId}:`, err);
+      // Se deu erro, garante que não fica nada pendurado
+      try {
+        await client.destroy();
+      } catch (e) { /* ignora */ }
+      throw err;
     }
+  })();
+
+  sessionPromises.set(orgId, initPromise);
+
+  try {
+    const client = await initPromise;
+    return client;
+  } finally {
+    // Remove a promise da fila (com sucesso ou erro)
+    const current = sessionPromises.get(orgId);
+    if (current === initPromise) {
+      sessionPromises.delete(orgId);
+    }
+  }
 };
 
-// Função para desconectar/logout manualmente
+// --------------------------------------------------
+// Logout manual (via painel)
+// --------------------------------------------------
 const logoutClient = async (orgId) => {
-    if (sessions.has(orgId)) {
-        const client = sessions.get(orgId);
-        try {
-            await client.logout();   // Sai do WhatsApp Web
-            await client.destroy();  // Fecha o navegador
-            sessions.delete(orgId);
-            if (io) io.emit(`status-${orgId}`, { status: 'DISCONNECTED' });
-            return true;
-        } catch (error) {
-            console.error('Erro ao fazer logout:', error);
-            sessions.delete(orgId);
-            return false;
-        }
-    }
-    return false;
+  if (!sessions.has(orgId)) return false;
+
+  const client = sessions.get(orgId);
+  try {
+    await client.logout();  // Sai do WhatsApp Web
+    await client.destroy(); // Fecha o navegador
+  } catch (error) {
+    console.error('Erro ao fazer logout:', error);
+  } finally {
+    sessions.delete(orgId);
+    sessionPromises.delete(orgId);
+    if (io) io.emit(`status-${orgId}`, { status: 'DISCONNECTED' });
+  }
+
+  return true;
 };
 
-// Verifica status atual da sessão em memória
+// --------------------------------------------------
+// Destruir cliente sem logout (ex: restart de servidor)
+// --------------------------------------------------
+const destroyClient = async (orgId) => {
+  if (!sessions.has(orgId)) return;
+
+  const client = sessions.get(orgId);
+  try {
+    await client.destroy();
+  } catch (e) {
+    // ignora
+  } finally {
+    sessions.delete(orgId);
+    sessionPromises.delete(orgId);
+  }
+};
+
+// --------------------------------------------------
+// Status simples (para exibir no painel)
+// --------------------------------------------------
 const getStatus = (orgId) => {
-    if (sessions.has(orgId)) {
-        const client = sessions.get(orgId);
-        if (client.info) return 'CONNECTED';
-        return 'INITIALIZING';
-    }
-    return 'DISCONNECTED';
+  if (sessions.has(orgId)) {
+    const client = sessions.get(orgId);
+    // Se já tem info, consideramos conectado
+    if (client.info) return 'CONNECTED';
+    return 'INITIALIZING';
+  }
+
+  if (sessionPromises.has(orgId)) {
+    return 'INITIALIZING';
+  }
+
+  return 'DISCONNECTED';
 };
 
 module.exports = {
-    init,
-    getClient,
-    logoutClient,
-    getStatus
+  init,
+  getClient,
+  logoutClient,
+  getStatus,
+  destroyClient
 };
