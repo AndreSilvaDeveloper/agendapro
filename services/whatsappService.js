@@ -34,9 +34,26 @@ const getClient = async (orgId) => {
 
     console.log(`Iniciando nova sessão WhatsApp para Org: ${orgId}`);
 
+    // Onde vão ficar os arquivos de auth do wwebjs (tokens etc.)
     const sessionPath = process.env.WA_SESSION_PATH
         ? process.env.WA_SESSION_PATH
         : './.wwebjs_auth';
+
+    // Onde vão ficar os perfis de Chrome/Chromium (user-data-dir)
+    const isProd = process.env.NODE_ENV === 'production';
+    const baseProfileDir = isProd
+        ? '/tmp/wwebjs_profiles'
+        : path.join(process.cwd(), '.wwebjs_profiles');
+
+    // Garante que a pasta base existe
+    try {
+        fs.mkdirSync(baseProfileDir, { recursive: true });
+    } catch (e) {
+        console.error('Erro ao criar pasta base de perfis do Chrome:', e.message || e);
+    }
+
+    // Perfil específico da organização (evita conflito e lock de profile)
+    const userDataDir = path.join(baseProfileDir, `org_${orgId}`);
 
     // Configura Puppeteer:
     // - Em ambiente com PUPPETEER_EXECUTABLE_PATH (Docker/Render), usa Chrome externo
@@ -45,6 +62,7 @@ const getClient = async (orgId) => {
 
     const puppeteerConfig = {
         headless: true,
+        userDataDir, // <- perfil isolado por organização
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -90,7 +108,7 @@ const getClient = async (orgId) => {
     client.on('disconnected', (reason) => {
         console.log(`Org ${orgId} desconectada:`, reason);
 
-        // Se foi logout explícito, apagamos a pasta daquela sessão
+        // Se foi logout explícito, apagamos a pasta daquela sessão de auth
         if (reason === 'LOGOUT') {
             const sessionDir = path.join(sessionPath, `session-${orgId}`);
             try {
