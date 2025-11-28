@@ -17,6 +17,12 @@ const getClient = async (orgId) => {
 
     // Se não existe, cria uma nova
     console.log(`Iniciando nova sessão WhatsApp para Org: ${orgId}`);
+
+
+    const sessionPath = process.env.WA_SESSION_PATH 
+        ? process.env.WA_SESSION_PATH 
+        : './.wwebjs_auth';
+        
     
     const client = new Client({
         authStrategy: new LocalAuth({ 
