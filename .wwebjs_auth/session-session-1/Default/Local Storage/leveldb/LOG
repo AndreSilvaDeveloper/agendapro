@@ -1,6 +1,2 @@
-2025/11/27-16:05:15.731 8dcc4 Reusing MANIFEST /home/pluri/meuProjeto/agendapro/.wwebjs_auth/session-session-1/Default/Local Storage/leveldb/MANIFEST-000001
-2025/11/27-16:05:15.732 8dcc4 Recovering log #3
-2025/11/27-16:05:15.732 8dcc4 Reusing old log /home/pluri/meuProjeto/agendapro/.wwebjs_auth/session-session-1/Default/Local Storage/leveldb/000003.log 
-2025/11/27-17:45:26.326 ad202 Level-0 table #5: started
-2025/11/27-17:45:26.329 ad202 Level-0 table #5: 19291 bytes OK
-2025/11/27-17:45:26.331 ad202 Delete type=0 #3
+2025/11/28-09:38:11.089 203a6 Creating DB /home/pluri/meuProjeto/agendapro/.wwebjs_auth/session-session-1/Default/Local Storage/leveldb since it was missing.
+2025/11/28-09:38:11.091 203a6 Reusing MANIFEST /home/pluri/meuProjeto/agendapro/.wwebjs_auth/session-session-1/Default/Local Storage/leveldb/MANIFEST-000001
