@@ -31,7 +31,7 @@ const createClient = (orgId) => {
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage', // Crítico para evitar crash de memória
+        '--disable-dev-shm-usage', 
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
