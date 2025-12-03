@@ -25,34 +25,23 @@ const createClient = (orgId) => {
 
   const client = new Client({
     authStrategy,
-    // Aumenta o timeout de autenticação para 60s (ajuda na lentidão da Render)
     authTimeoutMs: 60000, 
     
     puppeteer: {
       headless: true,
       args: [
-        // Argumentos Essenciais para Docker/Linux
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage', // Crítico para memória
+        '--disable-dev-shm-usage',
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
         '--disable-gpu',
-        
-        // --- OTIMIZAÇÕES DE MEMÓRIA (O PULO DO GATO) ---
-        '--disable-features=IsolateOrigins,site-per-process', // Economiza MUITA RAM
+        '--disable-features=IsolateOrigins,site-per-process', // ECONOMIA DE MEMÓRIA
         '--disable-extensions',
-        '--disable-component-update',
-        '--disable-default-apps',
-        '--mute-audio',
-        '--no-default-browser-check',
-        '--disable-infobars',
-        '--disable-web-security', // Reduz processamento extra
-        '--disable-site-isolation-trials'
+        '--disable-web-security'
       ]
     },
-    // User Agent fixo para evitar bloqueio
     userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'
   });
 
@@ -61,25 +50,23 @@ const createClient = (orgId) => {
     if (io) io.emit(`qr-${orgId}`, qr);
   });
 
-  // Mostra progresso do carregamento para você saber que não travou
   client.on('loading_screen', (percent, message) => {
-    console.log(`[Org ${orgId}] Carregando Chats: ${percent}% - ${message}`);
+    console.log(`[Org ${orgId}] Carregando: ${percent}%`);
   });
 
   client.on('authenticated', () => {
-    console.log(`[Org ${orgId}] Autenticado! Baixando mensagens...`);
+    console.log(`[Org ${orgId}] Autenticado!`);
     if (io) io.emit(`status-${orgId}`, { status: 'AUTHENTICATED' });
   });
 
   client.on('ready', () => {
-    console.log(`[Org ${orgId}] >>> SISTEMA ESTÁVEL E PRONTO <<<`);
+    console.log(`[Org ${orgId}] >>> SISTEMA PRONTO <<<`);
     if (io) io.emit(`status-${orgId}`, { status: 'CONNECTED' });
   });
 
   client.on('disconnected', (reason) => {
     console.log(`[Org ${orgId}] Desconectado: ${reason}`);
     if (io) io.emit(`status-${orgId}`, { status: 'DISCONNECTED' });
-    // Destrói para limpar memória
     destroyClient(orgId);
   });
 
@@ -93,13 +80,12 @@ const getClient = async (orgId) => {
   const initPromise = (async () => {
     console.log(`[Org ${orgId}] Inicializando...`);
     const client = createClient(orgId);
-
     try {
       await client.initialize();
       sessions.set(orgId, client);
       return client;
     } catch (err) {
-      console.error(`[Org ${orgId}] Erro ao iniciar:`, err.message);
+      console.error(`[Org ${orgId}] Erro startup:`, err.message);
       try { await client.destroy(); } catch (e) {}
       throw err;
     }
@@ -111,26 +97,19 @@ const getClient = async (orgId) => {
     const client = await initPromise;
     return client;
   } finally {
-    if (sessionPromises.get(orgId) === initPromise) {
-      sessionPromises.delete(orgId);
-    }
+    if (sessionPromises.get(orgId) === initPromise) sessionPromises.delete(orgId);
   }
 };
 
 const requestPairingCode = async (orgId, phoneNumber) => {
-    const client = await getClient(orgId);
-    if (!client.pupBrowser) throw new Error('Sistema iniciando...');
-    console.log(`[Org ${orgId}] Bloqueio de segurança: Use QR Code.`);
+    // ESTA MENSAGEM TEM QUE APARECER NO SEU ERRO PARA SABERMOS QUE ATUALIZOU
     throw new Error('Por favor, use o QR CODE para estabilidade.');
 };
 
 const logoutClient = async (orgId) => {
   if (!sessions.has(orgId)) return false;
   const client = sessions.get(orgId);
-  try {
-    await client.logout();
-    await client.destroy();
-  } catch (error) { console.error('Erro logout:', error); }
+  try { await client.logout(); await client.destroy(); } catch (e) {}
   finally {
     sessions.delete(orgId);
     sessionPromises.delete(orgId);
@@ -143,10 +122,7 @@ const destroyClient = async (orgId) => {
   if (!sessions.has(orgId)) return;
   const client = sessions.get(orgId);
   try { await client.destroy(); } catch (e) {}
-  finally {
-    sessions.delete(orgId);
-    sessionPromises.delete(orgId);
-  }
+  finally { sessions.delete(orgId); sessionPromises.delete(orgId); }
 };
 
 const getStatus = (orgId) => {
