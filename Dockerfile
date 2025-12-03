@@ -21,8 +21,12 @@ COPY package*.json ./
 # O Puppeteer vai baixar o Chromium dele, mas usará as libs que instalamos acima
 RUN npm install
 
+
+
 # 5. Copia o resto do código
 COPY . .
+
+RUN rm -rf .wwebjs_auth .wwebjs_cache
 
 # 6. Variáveis de ambiente para o Puppeteer não reclamar
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=false
