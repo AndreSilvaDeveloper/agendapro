@@ -120,6 +120,8 @@ router.get('/api/whatsapp/status', isAuthenticated, whatsappController.getStatus
 router.post('/api/whatsapp/connect', isAuthenticated, whatsappController.connect);
 router.post('/api/whatsapp/logout', isAuthenticated, whatsappController.logout);
 
+router.post('/api/admin/whatsapp/pairing-code', isAuthenticated, whatsappController.getPairingCode);
+
 router.post('/api/send-reminder', isAuthenticated, whatsappController.sendReminder);
 
 // --- Rotas Agendamento (Admin) ---

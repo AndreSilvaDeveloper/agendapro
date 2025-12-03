@@ -1,27 +1,16 @@
-// services/whatsappService.js
 'use strict';
 
 const path = require('path');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 
-// Sessões já prontas: { '1': Client, '2': Client }
 const sessions = new Map();
-
-// Promessas de inicialização em andamento (para evitar 2 Chrome no mesmo profile)
 const sessionPromises = new Map();
+let io;
 
-let io; // Instância do Socket.IO (recebida do app.js)
-
-// --------------------------------------------------
-// Inicialização com Socket.IO (chamado em app.js)
-// --------------------------------------------------
 const init = (socketIoInstance) => {
   io = socketIoInstance;
 };
 
-// --------------------------------------------------
-// Função interna que cria o client (sem inicializar)
-// --------------------------------------------------
 const createClient = (orgId) => {
   const baseSessionPath = process.env.WA_SESSION_PATH
     ? path.resolve(process.env.WA_SESSION_PATH)
@@ -32,52 +21,44 @@ const createClient = (orgId) => {
     dataPath: baseSessionPath
   });
 
-  // Se estiver no Render, usamos o binário indicado pela env.
-  // Em dev local, normalmente NÃO define PUPPETEER_EXECUTABLE_PATH
-  // e o whatsapp-web.js usa o Chromium/Chrome padrão.
-  const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || undefined;
+  console.log(`[Org ${orgId}] Criando cliente (Modo de Estabilidade - QR Code)...`);
 
   const client = new Client({
     authStrategy,
+    // NÃO usamos webVersionCache para evitar incompatibilidade
     puppeteer: {
       headless: true,
-      executablePath,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
+        '--disable-dev-shm-usage', // Crítico para evitar crash de memória
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
-        '--single-process',
         '--disable-gpu'
-      ].filter(Boolean)
-    }
+      ]
+    },
+    // Finge ser um Chrome normal para evitar bloqueio "Detached Frame"
+    userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'
   });
 
-  // ----------------- Eventos -----------------
-
-  // QR Code recebido
   client.on('qr', (qr) => {
-    console.log(`QR Code gerado para Org ${orgId}`);
+    console.log(`[Org ${orgId}] >> QR CODE GERADO << (Escaneie agora)`);
     if (io) io.emit(`qr-${orgId}`, qr);
   });
 
-  // Autenticado
   client.on('authenticated', () => {
-    console.log(`Org ${orgId} autenticada`);
+    console.log(`[Org ${orgId}] Autenticado!`);
     if (io) io.emit(`status-${orgId}`, { status: 'AUTHENTICATED' });
   });
 
-  // Pronto
   client.on('ready', () => {
-    console.log(`WhatsApp da Org ${orgId} está pronto!`);
+    console.log(`[Org ${orgId}] Sistema Pronto!`);
     if (io) io.emit(`status-${orgId}`, { status: 'CONNECTED' });
   });
 
-  // Desconectado (celular/deslogou)
   client.on('disconnected', (reason) => {
-    console.log(`Org ${orgId} desconectada:`, reason);
+    console.log(`[Org ${orgId}] Desconectado: ${reason}`);
     if (io) io.emit(`status-${orgId}`, { status: 'DISCONNECTED' });
     destroyClient(orgId);
   });
@@ -85,24 +66,12 @@ const createClient = (orgId) => {
   return client;
 };
 
-// --------------------------------------------------
-// getClient com trava de concorrência
-// --------------------------------------------------
 const getClient = async (orgId) => {
-  // 1) Já tem sessão pronta na memória
-  if (sessions.has(orgId)) {
-    return sessions.get(orgId);
-  }
+  if (sessions.has(orgId)) return sessions.get(orgId);
+  if (sessionPromises.has(orgId)) return sessionPromises.get(orgId);
 
-  // 2) Já tem inicialização em andamento → reaproveita a mesma Promise
-  if (sessionPromises.has(orgId)) {
-    return sessionPromises.get(orgId);
-  }
-
-  // 3) Cria uma nova Promise de inicialização e guarda em sessionPromises
   const initPromise = (async () => {
-    console.log(`Iniciando nova sessão WhatsApp para Org: ${orgId}`);
-
+    console.log(`[Org ${orgId}] Inicializando...`);
     const client = createClient(orgId);
 
     try {
@@ -110,11 +79,8 @@ const getClient = async (orgId) => {
       sessions.set(orgId, client);
       return client;
     } catch (err) {
-      console.error(`Erro ao iniciar sessão ${orgId}:`, err);
-      // Se deu erro, garante que não fica nada pendurado
-      try {
-        await client.destroy();
-      } catch (e) { /* ignora */ }
+      console.error(`[Org ${orgId}] Erro ao iniciar:`, err.message);
+      try { await client.destroy(); } catch (e) {}
       throw err;
     }
   })();
@@ -125,74 +91,58 @@ const getClient = async (orgId) => {
     const client = await initPromise;
     return client;
   } finally {
-    // Remove a promise da fila (com sucesso ou erro)
-    const current = sessionPromises.get(orgId);
-    if (current === initPromise) {
+    if (sessionPromises.get(orgId) === initPromise) {
       sessionPromises.delete(orgId);
     }
   }
 };
 
-// --------------------------------------------------
-// Logout manual (via painel)
-// --------------------------------------------------
+// --- MUDANÇA IMPORTANTE AQUI ---
+// Esta função agora NÃO tenta se comunicar com o WhatsApp para evitar o crash.
+// Ela força o usuário a usar o QR Code, que é o método estável.
+const requestPairingCode = async (orgId, phoneNumber) => {
+    const client = await getClient(orgId);
+    
+    // Se o navegador não estiver rodando, nem tenta
+    if (!client.pupBrowser) {
+        throw new Error('O sistema ainda está iniciando. Aguarde o QR Code aparecer.');
+    }
+
+    // Retorna erro proposital para não quebrar o servidor
+    console.log(`[Org ${orgId}] Bloqueando tentativa de Pairing Code para evitar crash.`);
+    throw new Error('Devido a instabilidades do WhatsApp, esta função está temporariamente desativada. Por favor, use a opção de ESCANEAR O QR CODE.');
+};
+
 const logoutClient = async (orgId) => {
   if (!sessions.has(orgId)) return false;
-
   const client = sessions.get(orgId);
   try {
-    await client.logout();  // Sai do WhatsApp Web
-    await client.destroy(); // Fecha o navegador
+    await client.logout();
+    await client.destroy();
   } catch (error) {
-    console.error('Erro ao fazer logout:', error);
+    console.error('Erro logout:', error);
   } finally {
     sessions.delete(orgId);
     sessionPromises.delete(orgId);
     if (io) io.emit(`status-${orgId}`, { status: 'DISCONNECTED' });
   }
-
   return true;
 };
 
-// --------------------------------------------------
-// Destruir cliente sem logout (ex: restart de servidor)
-// --------------------------------------------------
 const destroyClient = async (orgId) => {
   if (!sessions.has(orgId)) return;
-
   const client = sessions.get(orgId);
-  try {
-    await client.destroy();
-  } catch (e) {
-    // ignora
-  } finally {
+  try { await client.destroy(); } catch (e) {}
+  finally {
     sessions.delete(orgId);
     sessionPromises.delete(orgId);
   }
 };
 
-// --------------------------------------------------
-// Status simples (para exibir no painel)
-// --------------------------------------------------
 const getStatus = (orgId) => {
-  if (sessions.has(orgId)) {
-    const client = sessions.get(orgId);
-    // Se já tem info, consideramos conectado
-    if (client.info) return 'CONNECTED';
-    return 'INITIALIZING';
-  }
-
-  if (sessionPromises.has(orgId)) {
-    return 'INITIALIZING';
-  }
-
+  if (sessions.has(orgId)) return sessions.get(orgId).info ? 'CONNECTED' : 'INITIALIZING';
+  if (sessionPromises.has(orgId)) return 'INITIALIZING';
   return 'DISCONNECTED';
 };
 
-module.exports = {
-  init,
-  getClient,
-  logoutClient,
-  getStatus,
-  destroyClient
-};
+module.exports = { init, getClient, logoutClient, getStatus, destroyClient, requestPairingCode };

@@ -1,6 +1,5 @@
 const whatsappService = require('../services/whatsappService');
 
-
 // Função auxiliar robusta para pegar o usuário
 const getCurrentUser = (req) => {
     // Tenta pegar do passport (req.user) ou da sessão manual (req.session)
@@ -44,8 +43,34 @@ exports.connect = async (req, res) => {
     console.log(`Iniciando conexão para Org ID: ${orgId}`);
     whatsappService.getClient(orgId); 
     
-    res.json({ message: 'Inicializando conexão... Aguarde o QR Code.' });
+    res.json({ message: 'Inicializando conexão... Aguarde.' });
 };
+
+// NOVO: Rota para gerar Código de Pareamento
+// Rota sugerida: POST /admin/whatsapp/pairing-code
+exports.getPairingCode = async (req, res) => {
+  try {
+    const user = getCurrentUser(req);
+    if (!user) return res.status(401).json({ error: 'Não autorizado' });
+
+    const orgId = getOrgId(user);
+    const { phoneNumber } = req.body;
+
+    if (!phoneNumber) {
+      return res.status(400).json({ error: 'Número de telefone é obrigatório' });
+    }
+
+    const code = await whatsappService.requestPairingCode(orgId, phoneNumber);
+
+    return res.json({ success: true, code });
+  } catch (error) {
+    console.error('Erro no controller pairing-code:', error);
+    return res.status(500).json({
+      error: error?.message || 'Erro ao gerar código de pareamento.'
+    });
+  }
+};
+
 
 // Rota: POST /admin/whatsapp/logout
 exports.logout = async (req, res) => {
@@ -78,12 +103,12 @@ exports.renderSettingsPage = (req, res) => {
 
     res.render('admin/whatsapp-settings', {
         user: user,
-        orgId: orgId, // IMPORTANTE: Passando o ID para a view usar
+        orgId: orgId, 
         pageTitle: 'Configuração do WhatsApp'
     });
 };
 
-// Função de envio
+// Função de envio (Exemplo de uso)
 exports.sendReminder = async (req, res) => {
     try {
         const user = getCurrentUser(req);
@@ -105,27 +130,17 @@ exports.sendReminder = async (req, res) => {
             });
         }
 
-        // 1. Limpeza básica do número (deixa só números)
         let formattedPhone = phone.replace(/\D/g, ''); 
-
-        // 2. Garante que tem o 55 (Brasil)
         if (!formattedPhone.startsWith('55')) {
             formattedPhone = '55' + formattedPhone;
         }
 
-        // 3. A MÁGICA: Verifica se o número existe e pega o ID correto (com ou sem 9)
-        // Isso retorna o objeto do contato ou null se não existir
         const contact = await client.getNumberId(formattedPhone);
 
         if (!contact) {
-            // Se não achou, tenta adicionar o 9 (caso o usuário tenha digitado sem)
-            // ou remover o 9 (caso tenha digitado com) para tentar achar.
-            // Mas geralmente, se o número é válido, o getNumberId acha.
             return res.status(404).json({ error: 'Número não possui WhatsApp válido.' });
         }
 
-        // 4. Envia para o ID serializado correto (contact._serialized)
-        // O _serialized é o ID interno real (ex: 553299998888@c.us)
         await client.sendMessage(contact._serialized, message);
 
         return res.json({ success: true, message: 'Mensagem enviada e validada!' });
