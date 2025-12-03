@@ -21,45 +21,65 @@ const createClient = (orgId) => {
     dataPath: baseSessionPath
   });
 
-  console.log(`[Org ${orgId}] Criando cliente (Modo de Estabilidade - QR Code)...`);
+  console.log(`[Org ${orgId}] Criando cliente (MODO ULTRA LEVE - RENDER)...`);
 
   const client = new Client({
     authStrategy,
-    // NÃO usamos webVersionCache para evitar incompatibilidade
+    // Aumenta o timeout de autenticação para 60s (ajuda na lentidão da Render)
+    authTimeoutMs: 60000, 
+    
     puppeteer: {
       headless: true,
       args: [
+        // Argumentos Essenciais para Docker/Linux
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage', 
+        '--disable-dev-shm-usage', // Crítico para memória
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
-        '--disable-gpu'
+        '--disable-gpu',
+        
+        // --- OTIMIZAÇÕES DE MEMÓRIA (O PULO DO GATO) ---
+        '--disable-features=IsolateOrigins,site-per-process', // Economiza MUITA RAM
+        '--disable-extensions',
+        '--disable-component-update',
+        '--disable-default-apps',
+        '--mute-audio',
+        '--no-default-browser-check',
+        '--disable-infobars',
+        '--disable-web-security', // Reduz processamento extra
+        '--disable-site-isolation-trials'
       ]
     },
-    // Finge ser um Chrome normal para evitar bloqueio "Detached Frame"
+    // User Agent fixo para evitar bloqueio
     userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'
   });
 
   client.on('qr', (qr) => {
-    console.log(`[Org ${orgId}] >> QR CODE GERADO << (Escaneie agora)`);
+    console.log(`[Org ${orgId}] >> QR CODE PRONTO <<`);
     if (io) io.emit(`qr-${orgId}`, qr);
   });
 
+  // Mostra progresso do carregamento para você saber que não travou
+  client.on('loading_screen', (percent, message) => {
+    console.log(`[Org ${orgId}] Carregando Chats: ${percent}% - ${message}`);
+  });
+
   client.on('authenticated', () => {
-    console.log(`[Org ${orgId}] Autenticado!`);
+    console.log(`[Org ${orgId}] Autenticado! Baixando mensagens...`);
     if (io) io.emit(`status-${orgId}`, { status: 'AUTHENTICATED' });
   });
 
   client.on('ready', () => {
-    console.log(`[Org ${orgId}] Sistema Pronto!`);
+    console.log(`[Org ${orgId}] >>> SISTEMA ESTÁVEL E PRONTO <<<`);
     if (io) io.emit(`status-${orgId}`, { status: 'CONNECTED' });
   });
 
   client.on('disconnected', (reason) => {
     console.log(`[Org ${orgId}] Desconectado: ${reason}`);
     if (io) io.emit(`status-${orgId}`, { status: 'DISCONNECTED' });
+    // Destrói para limpar memória
     destroyClient(orgId);
   });
 
@@ -97,20 +117,11 @@ const getClient = async (orgId) => {
   }
 };
 
-// --- MUDANÇA IMPORTANTE AQUI ---
-// Esta função agora NÃO tenta se comunicar com o WhatsApp para evitar o crash.
-// Ela força o usuário a usar o QR Code, que é o método estável.
 const requestPairingCode = async (orgId, phoneNumber) => {
     const client = await getClient(orgId);
-    
-    // Se o navegador não estiver rodando, nem tenta
-    if (!client.pupBrowser) {
-        throw new Error('O sistema ainda está iniciando. Aguarde o QR Code aparecer.');
-    }
-
-    // Retorna erro proposital para não quebrar o servidor
-    console.log(`[Org ${orgId}] Bloqueando tentativa de Pairing Code para evitar crash.`);
-    throw new Error('Devido a instabilidades do WhatsApp, esta função está temporariamente desativada. Por favor, use a opção de ESCANEAR O QR CODE.');
+    if (!client.pupBrowser) throw new Error('Sistema iniciando...');
+    console.log(`[Org ${orgId}] Bloqueio de segurança: Use QR Code.`);
+    throw new Error('Por favor, use o QR CODE para estabilidade.');
 };
 
 const logoutClient = async (orgId) => {
@@ -119,9 +130,8 @@ const logoutClient = async (orgId) => {
   try {
     await client.logout();
     await client.destroy();
-  } catch (error) {
-    console.error('Erro logout:', error);
-  } finally {
+  } catch (error) { console.error('Erro logout:', error); }
+  finally {
     sessions.delete(orgId);
     sessionPromises.delete(orgId);
     if (io) io.emit(`status-${orgId}`, { status: 'DISCONNECTED' });
