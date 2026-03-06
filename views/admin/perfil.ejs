@@ -1,0 +1,132 @@
+<%- include('../partials/head', { pageTitle: 'Meu Perfil' }) %>
+<%- include('../partials/sidebar', { activePage: 'perfil' }) %>
+
+<div style="max-width: 640px;">
+  <h1 class="mb-6">Meu Perfil</h1>
+
+  <!-- Dados Pessoais -->
+  <div class="card mb-6">
+    <div class="card-body">
+      <h3 style="margin: 0 0 20px;"><i class="fas fa-user"></i> Dados Pessoais</h3>
+
+      <form action="/admin/perfil" method="POST">
+        <div class="form-group">
+          <label class="form-label">Nome completo</label>
+          <input type="text" name="username" class="form-control" value="<%= user.username %>" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">E-mail</label>
+          <input type="email" name="email" class="form-control" value="<%= user.email %>" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Telefone (WhatsApp)</label>
+          <input type="text" name="phone" class="form-control" placeholder="5511999999999" value="<%= user.phone || '' %>" oninput="formatPhone(this)">
+          <div class="text-xs text-secondary mt-1">Formato: 55 + DDD + numero. Usado para receber alertas de vencimento de assinatura.</div>
+        </div>
+
+        <div class="flex gap-4 flex-wrap" style="border-top: 1px solid var(--border-light); padding-top: 16px; margin-top: 8px;">
+          <div>
+            <span class="text-xs text-secondary">Funcao</span>
+            <div class="font-medium text-sm">
+              <% if (user.role === 'owner') { %>
+                <i class="fas fa-crown" style="color: var(--warning);"></i> Proprietario
+              <% } else if (user.role === 'staff') { %>
+                <i class="fas fa-user-tie"></i> Funcionario
+              <% } else if (user.role === 'superadmin') { %>
+                <i class="fas fa-shield-alt" style="color: var(--primary);"></i> Super Admin
+              <% } %>
+            </div>
+          </div>
+          <div>
+            <span class="text-xs text-secondary">Conta criada em</span>
+            <div class="font-medium text-sm"><%= new Date(user.createdAt).toLocaleDateString('pt-BR') %></div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg mt-4">
+          <i class="fas fa-save"></i> Salvar alteracoes
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Trocar Senha -->
+  <div class="card">
+    <div class="card-body">
+      <h3 style="margin: 0 0 20px;"><i class="fas fa-lock"></i> Alterar Senha</h3>
+
+      <form action="/admin/perfil/senha" method="POST">
+        <div class="form-group">
+          <label class="form-label">Senha atual</label>
+          <div style="position: relative;">
+            <input type="password" name="currentPassword" class="form-control" id="currentPassword" required placeholder="Digite sua senha atual">
+            <button type="button" class="btn-toggle-pass" onclick="togglePass('currentPassword')">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Nova senha</label>
+          <div style="position: relative;">
+            <input type="password" name="newPassword" class="form-control" id="newPassword" required placeholder="Minimo 6 caracteres" minlength="6">
+            <button type="button" class="btn-toggle-pass" onclick="togglePass('newPassword')">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Confirmar nova senha</label>
+          <div style="position: relative;">
+            <input type="password" name="confirmPassword" class="form-control" id="confirmPassword" required placeholder="Repita a nova senha" minlength="6">
+            <button type="button" class="btn-toggle-pass" onclick="togglePass('confirmPassword')">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-outline btn-block btn-lg mt-4">
+          <i class="fas fa-key"></i> Alterar senha
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  .btn-toggle-pass {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+  }
+  .btn-toggle-pass:hover { color: var(--primary); }
+</style>
+
+<script>
+function togglePass(id) {
+  var el = document.getElementById(id);
+  var icon = el.nextElementSibling || el.parentElement.querySelector('.btn-toggle-pass i');
+  if (el.type === 'password') {
+    el.type = 'text';
+    el.parentElement.querySelector('i').className = 'fas fa-eye-slash';
+  } else {
+    el.type = 'password';
+    el.parentElement.querySelector('i').className = 'fas fa-eye';
+  }
+}
+
+function formatPhone(el) {
+  el.value = el.value.replace(/\D/g, '').substring(0, 13);
+}
+</script>
+
+<%- include('../partials/footer') %>

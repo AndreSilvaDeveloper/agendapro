@@ -5,8 +5,8 @@
 require('dotenv').config();
 const db = require('../models');
 
-const EMAIL = process.env.SUPERADMIN_EMAIL || 'admin@agendapro.com';
-const PASSWORD = process.env.SUPERADMIN_PASSWORD || 'admin123';
+const EMAIL = process.env.SUPERADMIN_EMAIL || 'andre.admft@gmail.com';
+const PASSWORD = process.env.SUPERADMIN_PASSWORD || '160793';
 const USERNAME = process.env.SUPERADMIN_NAME || 'Super Admin';
 
 async function createSuperAdmin() {

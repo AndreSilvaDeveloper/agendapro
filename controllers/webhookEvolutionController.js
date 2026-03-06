@@ -17,6 +17,28 @@ dayjs.extend(customParseFormat);
 
 const tz = 'America/Sao_Paulo';
 
+// Busca telefone real de um contato LID via API da Evolution
+const fetchPhoneByLid = async (instanceName, lidJid) => {
+  try {
+    const url = `${evolutionService.EVOLUTION_API_URL}/chat/findMessages/${instanceName}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': process.env.EVOLUTION_API_KEY },
+      body: JSON.stringify({ where: { key: { remoteJid: lidJid } }, limit: 1 })
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const records = data.messages?.records || data.records || [];
+    if (records.length > 0) {
+      const altJid = records[0].key?.remoteJidAlt || '';
+      if (altJid.includes('@s.whatsapp.net')) {
+        return altJid.replace('@s.whatsapp.net', '');
+      }
+    }
+    return null;
+  } catch { return null; }
+};
+
 // Cache para evitar processar mensagens duplicadas
 const processedMessages = new Map();
 const DEDUP_TTL = 60000; // 60 segundos
@@ -71,25 +93,33 @@ exports.handleIncoming = async (req, res) => {
     // Usado para sessao do bot - cada contato tem um ID unico
     const contactId = remoteJid;
 
-    // Tentar extrair telefone real (so funciona no formato @s.whatsapp.net)
+    // Tentar extrair telefone real
     let phoneFromJid = null;
     if (remoteJid.includes('@s.whatsapp.net')) {
       phoneFromJid = remoteJid.replace('@s.whatsapp.net', '');
     }
-    // No formato LID, o sender é o numero da instancia, NAO do remetente
-    // Entao nao usamos body.sender para LID
 
     const isLid = remoteJid.includes('@lid');
     if (isLid) {
-      // Log completo para debug - identificar campo com telefone real
-      console.log('[WebhookEvolution] LID Debug:', JSON.stringify({
-        sender: body.sender,
-        participant: key.participant,
-        remoteJid,
-        pushName: data.pushName,
-        source: body.source,
-        messageTimestamp: data.messageTimestamp
-      }));
+      // Tentar pegar telefone real de remoteJidAlt (disponível em algumas versões)
+      const altJid = key.remoteJidAlt || '';
+      if (altJid.includes('@s.whatsapp.net')) {
+        phoneFromJid = altJid.replace('@s.whatsapp.net', '');
+        console.log('[WebhookEvolution] LID -> telefone via remoteJidAlt:', phoneFromJid);
+      } else {
+        // Fallback: buscar na API de mensagens pelo LID
+        try {
+          const contactData = await fetchPhoneByLid(instanceName, remoteJid);
+          if (contactData) {
+            phoneFromJid = contactData;
+            console.log('[WebhookEvolution] LID -> telefone via API:', phoneFromJid);
+          } else {
+            console.log('[WebhookEvolution] LID detectado, telefone não disponível');
+          }
+        } catch (e) {
+          console.log('[WebhookEvolution] LID erro ao buscar telefone:', e.message);
+        }
+      }
     }
 
     let message = '';
@@ -143,24 +173,53 @@ exports.handleIncoming = async (req, res) => {
 const handleStaffCommand = async (message, phoneFromJid, contactId, org, instanceName) => {
   const msg = message.trim().toLowerCase();
 
-  // Formato direto com ID: "aceitar 5", "confirmar 5", "recusar 5"
-  const acceptMatch = msg.match(/^(?:aceitar|confirmar|aceito)\s+(\d+)$/);
-  const rejectMatch = msg.match(/^(?:recusar|rejeitar|negar|recuso)\s+(\d+)$/);
+  // Formato com ID: "aceitar 5", "confirmar 5", "recusar 5"
+  // Formato sem ID: "aceitar", "aceita", "aceito", "sim", "recusar", "recuso", "nao"
+  const acceptWithId = msg.match(/^(?:aceitar|confirmar|aceito|aceita)\s+(\d+)$/);
+  const rejectWithId = msg.match(/^(?:recusar|rejeitar|negar|recuso|recusa)\s+(\d+)$/);
+  const acceptNoId = /^(?:aceitar|confirmar|aceito|aceita)$/.test(msg);
+  const rejectNoId = /^(?:recusar|rejeitar|negar|recuso|recusa)$/.test(msg);
 
-  if (!acceptMatch && !rejectMatch) return null;
+  if (!acceptWithId && !rejectWithId && !acceptNoId && !rejectNoId) return null;
 
-  const apptId = parseInt((acceptMatch || rejectMatch)[1]);
-  const isAccept = !!acceptMatch;
+  let apptId = null;
+  let isAccept = false;
+
+  if (acceptWithId) {
+    apptId = parseInt(acceptWithId[1]);
+    isAccept = true;
+  } else if (rejectWithId) {
+    apptId = parseInt(rejectWithId[1]);
+    isAccept = false;
+  } else {
+    // Sem ID — buscar o agendamento pendente mais recente da org
+    isAccept = acceptNoId;
+  }
 
   // Buscar o agendamento pendente
-  const appt = await db.Appointment.findOne({
-    where: { id: apptId, organizationId: org.id, status: 'pendente' },
-    include: [
-      { model: db.Staff, attributes: ['id', 'name'] },
-      { model: db.Client, attributes: ['id', 'name', 'phone'] },
-      { model: db.AppointmentService, attributes: ['name'] }
-    ]
-  });
+  let appt;
+  if (apptId) {
+    appt = await db.Appointment.findOne({
+      where: { id: apptId, organizationId: org.id, status: 'pendente' },
+      include: [
+        { model: db.Staff, attributes: ['id', 'name'] },
+        { model: db.Client, attributes: ['id', 'name', 'phone'] },
+        { model: db.AppointmentService, attributes: ['name'] }
+      ]
+    });
+  } else {
+    // Buscar o agendamento pendente mais recente
+    appt = await db.Appointment.findOne({
+      where: { organizationId: org.id, status: 'pendente' },
+      order: [['createdAt', 'DESC']],
+      include: [
+        { model: db.Staff, attributes: ['id', 'name'] },
+        { model: db.Client, attributes: ['id', 'name', 'phone'] },
+        { model: db.AppointmentService, attributes: ['name'] }
+      ]
+    });
+    if (appt) apptId = appt.id;
+  }
 
   if (!appt) {
     return `❌ Agendamento #${apptId} não encontrado ou já foi processado.`;
@@ -254,7 +313,6 @@ const handleRegistration = async (session, message, orgId, orgName, pushName) =>
     if (msg.length < 2) {
       return 'Me diz seu nome completo, por favor 😊';
     }
-    // Cadastrar direto com o nome informado
     const client = await db.Client.create({
       name: msg,
       phone: autoPhone,

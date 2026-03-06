@@ -29,6 +29,7 @@ const webhookEvolutionController = require('../controllers/webhookEvolutionContr
 const settingsController = require('../controllers/settingsController');
 const masterController = require('../controllers/masterController');
 const billingController = require('../controllers/billingController');
+const profileController = require('../controllers/profileController');
 const checkSubscription = require('../middleware/subscriptionMiddleware');
 // const { isSuperAdmin } = require('../middleware/authMiddleware'); // Removido, já importado acima
 
@@ -138,6 +139,11 @@ router.get('/admin/assinatura', isAuthenticated, billingController.getAssinatura
 router.post('/admin/assinatura/escolher', isAuthenticated, billingController.postEscolherPlano);
 router.post('/admin/assinatura/cancelar', isAuthenticated, billingController.postCancelar);
 
+// --- Rotas de Perfil (acessiveis mesmo bloqueado) ---
+router.get('/admin/perfil', isAuthenticated, profileController.getProfile);
+router.post('/admin/perfil', isAuthenticated, profileController.updateProfile);
+router.post('/admin/perfil/senha', isAuthenticated, profileController.updatePassword);
+
 // --- Middleware de assinatura: verifica se org tem plano valido ---
 // Roda antes de todas as rotas admin abaixo, exceto /admin/assinatura
 router.use((req, res, next) => {
@@ -145,6 +151,7 @@ router.use((req, res, next) => {
   if (!req.session || !req.session.loggedIn) return next();
   if (req.session.role === 'superadmin') return next();
   if (req.path === '/admin/assinatura' || req.path.startsWith('/admin/assinatura/')) return next();
+  if (req.path === '/admin/perfil' || req.path.startsWith('/admin/perfil/')) return next();
   return checkSubscription(req, res, next);
 });
 

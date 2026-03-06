@@ -60,6 +60,9 @@
     </nav>
 
     <div class="sidebar-footer">
+      <a href="/admin/perfil" class="btn btn-ghost btn-block <%= typeof activePage !== 'undefined' && activePage === 'perfil' ? 'active' : '' %>" style="justify-content: flex-start;">
+        <i class="fas fa-user-circle"></i> Meu Perfil
+      </a>
       <button id="themeToggle" class="btn btn-ghost btn-block" style="justify-content: flex-start;">
         <i class="fas fa-moon" id="themeIcon"></i>
         <span id="themeLabel">Modo escuro</span>

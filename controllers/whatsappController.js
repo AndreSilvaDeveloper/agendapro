@@ -2,7 +2,11 @@ const db = require('../models');
 const evolutionService = require('../services/evolutionService');
 const whatsappService = require('../services/whatsappService');
 
-const N8N_BOT_WEBHOOK = process.env.N8N_BOT_WEBHOOK_URL || 'https://auto.bellory.com.br/webhook/agendapro-bot';
+const WEBHOOK_BASE_URL = process.env.WEBHOOK_BASE_URL || '';
+const getWebhookUrl = () => {
+  if (WEBHOOK_BASE_URL) return `${WEBHOOK_BASE_URL}/webhook/evolution`;
+  return null;
+};
 
 // GET /admin/whatsapp
 exports.renderSettingsPage = async (req, res) => {
@@ -48,13 +52,18 @@ exports.createInstance = async (req, res) => {
 
     const name = evolutionService.instanceName(orgId, org.slug);
 
+    const webhookUrl = getWebhookUrl();
+    if (!webhookUrl) {
+      return res.status(400).json({ error: 'WEBHOOK_BASE_URL nao configurada no .env' });
+    }
+
     // Verifica se ja existe
     const exists = await evolutionService.instanceExists(name);
     if (exists) {
       // Ja existe, so atualiza o webhook
-      await evolutionService.setWebhook(name, N8N_BOT_WEBHOOK);
+      await evolutionService.setWebhook(name, webhookUrl);
     } else {
-      await evolutionService.createInstance(name, N8N_BOT_WEBHOOK);
+      await evolutionService.createInstance(name, webhookUrl);
     }
 
     // Salvar no settings da org

@@ -4,10 +4,6 @@ exports.getSettings = async (req, res) => {
   try {
     const organizationId = req.session.organizationId;
     const organization = await db.Organization.findByPk(organizationId);
-    const owner = await db.User.findOne({
-      where: { organizationId, role: 'owner' },
-      attributes: ['id', 'phone']
-    });
 
     if (!organization) {
       req.flash('error_msg', 'Organizacao nao encontrada.');
@@ -16,8 +12,7 @@ exports.getSettings = async (req, res) => {
 
     res.render('admin/configuracoes', {
       organization: organization.toJSON(),
-      settings: organization.settings,
-      ownerPhone: owner ? owner.phone || '' : ''
+      settings: organization.settings
     });
   } catch (err) {
     console.error('Erro ao carregar configuracoes:', err);
@@ -29,20 +24,12 @@ exports.getSettings = async (req, res) => {
 exports.updateSettings = async (req, res) => {
   try {
     const organizationId = req.session.organizationId;
-    const { theme, whatsappTemplate, showGallery, showOperatingHours, showAddress, automaticReminders, ownerPhone } = req.body;
+    const { theme, whatsappTemplate, showGallery, showOperatingHours, showAddress, automaticReminders } = req.body;
 
     const organization = await db.Organization.findByPk(organizationId);
     if (!organization) {
       req.flash('error_msg', 'Organizacao nao encontrada.');
       return res.redirect('/dashboard');
-    }
-
-    // Atualiza telefone do owner
-    if (typeof ownerPhone !== 'undefined') {
-      await db.User.update(
-        { phone: ownerPhone.replace(/\D/g, '') || null },
-        { where: { organizationId, role: 'owner' } }
-      );
     }
 
     let currentSettings = organization.settings || {};
