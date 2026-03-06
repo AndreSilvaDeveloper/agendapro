@@ -8,7 +8,8 @@ if (!DATABASE_URL) {
 }
 
 const dialectOptions = {};
-if (isProduction) {
+const needsSsl = isProduction || DATABASE_URL.includes('neon.tech') || DATABASE_URL.includes('sslmode=require');
+if (needsSsl) {
   dialectOptions.ssl = {
     require: true,
     rejectUnauthorized: false
