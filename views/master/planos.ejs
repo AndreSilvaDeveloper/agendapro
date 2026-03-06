@@ -1,0 +1,94 @@
+<%- include('../partials/head', { pageTitle: 'Planos - Master' }) %>
+<%- include('../partials/master-sidebar', { path: 'planos' }) %>
+
+<div class="flex items-center justify-between mb-6">
+  <h1>Planos</h1>
+  <a href="/master/planos/novo" class="btn btn-primary"><i class="fas fa-plus"></i> Novo Plano</a>
+</div>
+
+<% if (typeof plans === 'undefined' || plans.length === 0) { %>
+  <div class="card">
+    <div class="empty-state" style="padding: 60px 20px; text-align: center;">
+      <i class="fas fa-tags" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 12px;"></i>
+      <p class="text-secondary">Nenhum plano cadastrado.</p>
+      <a href="/master/planos/novo" class="btn btn-primary mt-4"><i class="fas fa-plus"></i> Criar primeiro plano</a>
+    </div>
+  </div>
+<% } else { %>
+  <div class="grid grid-3">
+    <% plans.forEach(function(plan) { %>
+      <div class="card" style="display: flex; flex-direction: column;">
+        <div class="card-body" style="flex: 1;">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 style="margin: 0;"><%= plan.name %></h2>
+              <span class="text-sm text-secondary"><%= plan.subscriberCount || 0 %> assinante(s)</span>
+            </div>
+            <% if (plan.isFeatured) { %>
+              <span class="badge badge-warning">Destaque</span>
+            <% } %>
+            <% if (!plan.isActive) { %>
+              <span class="badge badge-danger">Inativo</span>
+            <% } %>
+          </div>
+
+          <div class="mb-4">
+            <div class="flex items-end gap-1">
+              <span style="font-size: 2rem; font-weight: 700; color: var(--primary);">
+                R$ <%= plan.price ? parseFloat(plan.price).toFixed(2).replace('.', ',') : '0,00' %>
+              </span>
+              <span class="text-sm text-secondary mb-1">/mes</span>
+            </div>
+          </div>
+
+          <% if (plan.features && plan.features.length > 0) { %>
+            <div class="flex flex-col gap-2 mb-4">
+              <% plan.features.forEach(function(feature) { %>
+                <div class="flex items-center gap-2 text-sm">
+                  <i class="fas fa-check" style="color: var(--success); font-size: 0.75rem;"></i>
+                  <span><%= feature %></span>
+                </div>
+              <% }); %>
+            </div>
+          <% } %>
+
+          <% if (plan.limits) { %>
+            <div style="border-top: 1px solid var(--border-light); padding-top: 12px; margin-top: 12px;">
+              <div class="text-xs text-muted font-semibold mb-2" style="text-transform: uppercase; letter-spacing: 0.05em;">Limites</div>
+              <div class="flex flex-col gap-1">
+                <% if (plan.limits.maxStaff) { %>
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="text-secondary">Profissionais</span>
+                    <span class="font-medium"><%= plan.limits.maxStaff === -1 ? 'Ilimitado' : plan.limits.maxStaff %></span>
+                  </div>
+                <% } %>
+                <% if (plan.limits.maxServices) { %>
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="text-secondary">Servicos</span>
+                    <span class="font-medium"><%= plan.limits.maxServices === -1 ? 'Ilimitado' : plan.limits.maxServices %></span>
+                  </div>
+                <% } %>
+                <% if (plan.limits.maxAppointmentsPerMonth) { %>
+                  <div class="flex items-center justify-between text-sm">
+                    <span class="text-secondary">Agendamentos/mes</span>
+                    <span class="font-medium"><%= plan.limits.maxAppointmentsPerMonth === -1 ? 'Ilimitado' : plan.limits.maxAppointmentsPerMonth %></span>
+                  </div>
+                <% } %>
+              </div>
+            </div>
+          <% } %>
+        </div>
+
+        <div style="padding: 12px 20px; border-top: 1px solid var(--border-light);">
+          <div class="flex gap-2">
+            <a href="/master/planos/<%= plan.id %>/editar" class="btn btn-outline btn-sm btn-block">
+              <i class="fas fa-edit"></i> Editar
+            </a>
+          </div>
+        </div>
+      </div>
+    <% }); %>
+  </div>
+<% } %>
+
+<%- include('../partials/footer') %>

@@ -1,541 +1,277 @@
-<!DOCTYPE html>
-<html lang="pt-BR" class="h-full" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <title>Agenda Semanal – <%= (typeof org !== 'undefined') ? org.name : 'AgendaPro' %></title>    
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
-    <script>
-        (function() {
-            const THEMES = ["light", "medium-dark", "deep-dark"];
-            const savedTheme = localStorage.getItem('theme');
-            let initialTheme = 'light';
-            if (savedTheme && THEMES.includes(savedTheme)) {
-                initialTheme = savedTheme;
-            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                initialTheme = 'deep-dark';
-            }
-            document.documentElement.setAttribute('data-theme', initialTheme);
-        })();
-    </script>
-    
-    <style>
-        /* === CORES E TEMAS === */
-        :root, [data-theme="light"] {
-            --color-gold-light: #FFD700; --color-gold-dark: #B8860B; --color-gold-accent: #DAA520;
-            --color-bg-primary: #f3f4f6; --color-bg-secondary: #ffffff; --color-bg-muted: #f9fafb;     
-            --color-text-primary: #1f2937; --color-text-secondary: #4b5563; --color-text-accent: #B8860B; --color-border: #e5e7eb;
-        }
-        [data-theme="medium-dark"] {
-            --color-gold-light: #FFD700; --color-gold-dark: #e0aa1f; --color-gold-accent: #DAA520;
-            --color-bg-primary: #1f2937; --color-bg-secondary: #374151; --color-bg-muted: #4b5563;     
-            --color-text-primary: #f9fafb; --color-text-secondary: #d1d5db; --color-text-accent: #e0aa1f; --color-border: #4b5563;
-        }
-        [data-theme="deep-dark"] {
-            --color-gold-light: #FFD700; --color-gold-dark: #e0aa1f; --color-gold-accent: #DAA520;
-            --color-bg-primary: #0a0e14; --color-bg-secondary: #1f2937; --color-bg-muted: #374151;
-            --color-text-primary: #f9fafb; --color-text-secondary: #d1d5db; --color-text-accent: #e0aa1f; --color-border: #4b5563;
-        }
+<%- include('partials/head', { pageTitle: 'Agenda Semanal' }) %>
+<%- include('partials/sidebar', { activePage: 'agenda' }) %>
 
-        body { background-color: var(--color-bg-primary); color: var(--color-text-primary); font-family: 'Segoe UI', sans-serif; overflow-y: auto; overflow-x: hidden; }
-        
-        .bg-white { background-color: var(--color-bg-secondary) !important; }
-        .bg-gray-50 { background-color: var(--color-bg-muted) !important; }
-        .border-gray-200 { border-color: var(--color-border) !important; }
-        .text-gray-800, .text-gray-900 { color: var(--color-text-primary) !important; }
-        .text-gray-500, .text-gray-600 { color: var(--color-text-secondary) !important; }
-        
-        .text-gold { color: var(--color-text-accent); }
-        .bg-gold { background-color: var(--color-gold-accent); }
-        
-        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-        .custom-scroll::-webkit-scrollbar-thumb { background-color: var(--color-border); border-radius: 10px; }
-        
-        .nav-link:hover { color: var(--color-text-accent); }
-        .appointment-card { transition: transform 0.1s ease; }
-        .appointment-card:active { transform: scale(0.99); }
-        
-        .slot-btn { transition: all 0.2s; }
-        .slot-btn:active { transform: scale(0.95); }
-
-        #clientSuggestions { background-color: var(--color-bg-secondary); border: 1px solid var(--color-border); color: var(--color-text-primary); z-index: 50; }
-        #clientSuggestions li:hover { background-color: var(--color-bg-muted); color: var(--color-text-accent); }
-    </style>
-</head>
-<body class="flex flex-col min-h-screen">
-    
-    <% if (locals.originalAdminSession) { %>
-      <div class="bg-yellow-400 text-yellow-900 text-center text-xs py-2 font-bold sticky top-0 z-[60]">
-        <i class="fas fa-user-secret"></i> Admin: <%= (typeof org !== 'undefined') ? org.name : '' %>
-        <a href="/master/stop-impersonation" class="underline ml-2">Sair</a>
+<div class="grid grid-12" style="gap: 24px;">
+  <!-- Sidebar filtro -->
+  <div class="col-span-3 flex flex-col gap-4">
+    <div class="card">
+      <div class="card-header"><h3><i class="fas fa-filter" style="color:var(--primary); margin-right:8px;"></i> Filtrar</h3></div>
+      <div class="card-body">
+        <form method="GET" action="/agendamentos-por-dia">
+          <div class="form-group">
+            <label class="form-label">Data</label>
+            <input id="dateInput" type="date" name="date"
+              value="<%= (typeof date !== 'undefined' && date) ? date : '' %>"
+              class="form-control">
+          </div>
+          <button type="submit" class="btn btn-primary btn-block"><i class="fas fa-search"></i> Buscar</button>
+        </form>
       </div>
-    <% } %>
-
-    <header class="bg-white shadow-md border-b border-gray-200 sticky top-0 z-50">
-        <div class="w-full px-4 h-16 flex items-center justify-between">
-            <div class="flex items-center shrink-0 mr-4">
-                <h1 class="text-xl font-bold tracking-tight">Agenda<span class="text-gold">Pro</span></h1>
-                <div class="h-6 w-px bg-gray-300 hidden sm:block ml-4 mr-4"></div>
-                <span class="text-sm font-semibold text-gray-500 hidden sm:block">Visão Semanal</span>
-            </div>
-
-            <nav class="hidden xl:flex items-center space-x-5 text-sm font-medium overflow-x-auto custom-scroll flex-1 px-2 py-1">
-                <a href="/dashboard" class="nav-link whitespace-nowrap"><i class="fas fa-home mr-1"></i>Dashboard</a>
-                <a href="/agendamentos-por-dia" class="nav-link whitespace-nowrap text-gold font-bold"><i class="fas fa-calendar-alt mr-1"></i>Agenda</a>
-                <a href="/clients" class="nav-link whitespace-nowrap"><i class="fas fa-users mr-1"></i>Clientes</a>
-                <a href="/admin/servicos" class="nav-link whitespace-nowrap"><i class="fas fa-cut mr-1"></i>Serviços</a>
-                <a href="/admin/equipe" class="nav-link whitespace-nowrap"><i class="fas fa-users-cog mr-1"></i>Equipe</a>
-                <a href="/financeiro" class="nav-link whitespace-nowrap"><i class="fas fa-dollar-sign mr-1"></i>Financeiro</a>
-                <a href="/balanco" class="nav-link whitespace-nowrap"><i class="fas fa-balance-scale mr-1"></i>Balanço</a>
-                <a href="/expenses" class="nav-link whitespace-nowrap"><i class="fas fa-receipt mr-1"></i>Despesas</a>
-            </nav>
-
-            <div class="hidden xl:flex items-center space-x-3 ml-4 shrink-0">
-                <button id="theme-toggle-btn" class="p-2 rounded-full hover:bg-gray-100 transition text-gray-600">
-                    <i id="theme-icon-sun" class="fas fa-sun"></i> <i id="theme-icon-moon" class="fas fa-moon hidden"></i> 
-                </button>
-                <a href="/logout" class="text-red-600 hover:text-red-700 font-semibold text-sm ml-2">Sair</a>
-            </div>
-
-            <button id="menu-button" class="xl:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 text-xl">
-                <i class="fas fa-bars"></i>
-            </button>
-        </div>
-    </header>
-
-    <div id="mobile-menu" class="hidden fixed inset-0 z-50 flex flex-col xl:hidden" style="background-color: var(--color-bg-primary);">
-        <div class="flex justify-between items-center p-4 border-b border-gray-200 bg-white">
-            <span class="font-bold text-lg">Menu</span>
-            <button id="close-menu" class="text-2xl text-red-500"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="overflow-y-auto flex-1 p-4 space-y-3">
-            <a href="/dashboard" class="block p-3 rounded-lg bg-gray-50 text-gray-700 font-bold border border-gray-200 mb-4 text-center">
-                <i class="fas fa-home mr-2"></i> Voltar ao Dashboard
-            </a>
-            
-            <a href="/agendamentos-por-dia" class="block p-3 bg-white rounded shadow-sm font-bold text-gold border-l-4 border-gold">Agenda</a>
-            <a href="/clients" class="block p-3 bg-white rounded shadow-sm font-medium">Clientes</a>
-            <a href="/financeiro" class="block p-3 bg-white rounded shadow-sm font-medium">Financeiro</a>
-            <a href="/admin/servicos" class="block p-3 bg-white rounded shadow-sm font-medium">Serviços</a>
-            <a href="/admin/equipe" class="block p-3 bg-white rounded shadow-sm font-medium">Equipe</a>
-            <a href="/balanco" class="block p-3 bg-white rounded shadow-sm font-medium">Balanço</a>
-            
-            <button id="theme-toggle-btn-mobile" class="w-full flex items-center justify-between p-3 rounded bg-gray-100 border border-gray-300 font-medium mt-6">
-                <span>Alterar Tema</span> <i class="fas fa-adjust"></i>
-            </button>
-            <a href="/logout" class="block text-center p-3 text-red-600 font-bold mt-4 bg-red-50 rounded">Sair</a>
-        </div>
     </div>
 
-    <main class="flex-1 w-full max-w-full p-3 lg:p-6 mx-auto pb-20" data-default-date="<%= (typeof date !== 'undefined' && date) ? date : '' %>">
-        
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div class="card">
+      <div class="card-header"><h3><i class="fas fa-chart-pie" style="color:var(--primary); margin-right:8px;"></i> Resumo</h3></div>
+      <div class="card-body">
+        <%
+          var totalAg = 0, totalLivres = 0;
+          if (typeof days !== 'undefined' && days) {
+            days.forEach(function(d) {
+              var key = d.format('YYYY-MM-DD');
+              totalAg += (typeof resultsByDay !== 'undefined' && resultsByDay[key]) ? resultsByDay[key].length : 0;
+              totalLivres += (typeof availableByDay !== 'undefined' && availableByDay[key]) ? availableByDay[key].length : 0;
+            });
+          }
+          var ocup = totalAg + totalLivres > 0 ? Math.round((totalAg / (totalAg + totalLivres)) * 100) : 0;
+        %>
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-secondary">Agendados</span>
+            <span class="font-bold" style="color: var(--info);"><%= totalAg %></span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-secondary">Livres</span>
+            <span class="font-bold text-success"><%= totalLivres %></span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-secondary">Ocupacao</span>
+            <span class="font-bold"><%= ocup %>%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-            <div class="lg:col-span-3 flex flex-col gap-4">
-                <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                    <h3 class="text-sm font-bold text-gray-500 uppercase mb-3"><i class="fas fa-filter mr-1"></i> Filtrar Semana</h3>
-                    <form method="GET" action="/agendamentos-por-dia" class="flex flex-col gap-3">
-                        <input id="date" type="date" name="date"
-                            value="<%= (typeof date !== 'undefined' && date) ? date : '' %>"
-                            class="w-full p-3 text-sm border border-gray-300 bg-gray-50 rounded-lg focus:ring-2 focus:ring-gold outline-none transition-all" 
-                            style="color: var(--color-text-primary);">
-                        <button type="submit" class="bg-gold text-white px-4 py-3 rounded-lg font-bold text-sm hover:bg-yellow-600 transition shadow-sm">
-                            Buscar Data
-                        </button>
-                    </form>
-                </section>
+  <!-- Dias da semana -->
+  <div class="col-span-9 flex flex-col gap-4">
+    <%
+      var weekdayMap = { Monday: 'Segunda', Tuesday: 'Terca', Wednesday: 'Quarta', Thursday: 'Quinta', Friday: 'Sexta', Saturday: 'Sabado', Sunday: 'Domingo' };
+      var today = new Date(); today.setHours(0,0,0,0);
+    %>
 
-                <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                    <h3 class="text-sm font-bold text-gray-500 uppercase mb-3"><i class="fas fa-chart-pie mr-1"></i> Resumo</h3>
-                    
-                    <%
-                    let totalAgendamentos = 0; let totalHorariosLivres = 0; let diasComAgendamento = 0;
-                    if (typeof days !== 'undefined' && days) {
-                        days.forEach(d => {
-                            const key = d.format('YYYY-MM-DD');
-                            const agendados = (typeof resultsByDay !== 'undefined' && resultsByDay[key]) ? resultsByDay[key].length : 0;
-                            const livres = (typeof availableByDay !== 'undefined' && availableByDay[key]) ? availableByDay[key].length : 0;
-                            totalAgendamentos += agendados;
-                            totalHorariosLivres += livres;
-                            if (agendados > 0) diasComAgendamento++;
-                        });
-                    }
-                    const ocupacao = totalAgendamentos + totalHorariosLivres > 0 ? Math.round((totalAgendamentos / (totalAgendamentos + totalHorariosLivres)) * 100) : 0;
-                    %>
-
-                    <div class="grid grid-cols-2 lg:grid-cols-1 gap-2">
-                        <div class="p-3 rounded-lg bg-blue-50 border border-blue-100 flex flex-col lg:flex-row lg:justify-between lg:items-center">
-                            <span class="text-xs text-blue-600 font-bold uppercase">Agendados</span>
-                            <span class="text-xl font-bold text-blue-800"><%= totalAgendamentos %></span>
-                        </div>
-                        <div class="p-3 rounded-lg bg-green-50 border border-green-100 flex flex-col lg:flex-row lg:justify-between lg:items-center">
-                            <span class="text-xs text-green-600 font-bold uppercase">Livres</span>
-                            <span class="text-xl font-bold text-green-800"><%= totalHorariosLivres %></span>
-                        </div>
-                        <div class="p-3 rounded-lg bg-yellow-50 border border-yellow-100 flex flex-col lg:flex-row lg:justify-between lg:items-center">
-                            <span class="text-xs text-yellow-600 font-bold uppercase">Ocupação</span>
-                            <span class="text-xl font-bold text-yellow-800"><%= ocupacao %>%</span>
-                        </div>
-                    </div>
-                </section>
+    <% if (typeof days !== 'undefined' && days && days.length > 0) { %>
+      <% days.forEach(function(d) {
+        var key = d.format('YYYY-MM-DD');
+        var dayDate = new Date(key + 'T00:00:00');
+        var isToday = dayDate.toDateString() === today.toDateString();
+        var agList = (typeof resultsByDay !== 'undefined' && resultsByDay[key]) ? resultsByDay[key] : [];
+        var livList = (typeof availableByDay !== 'undefined' && availableByDay[key]) ? availableByDay[key] : [];
+      %>
+        <div class="card">
+          <div class="card-header" style="<%= isToday ? 'background: var(--primary-50);' : '' %>">
+            <div class="flex items-center gap-3">
+              <div style="text-align:center; min-width:40px;">
+                <div class="text-xs text-secondary font-bold"><%= d.format('MMM').toUpperCase() %></div>
+                <div class="font-bold" style="font-size:1.3rem; <%= isToday ? 'color: var(--primary);' : '' %>"><%= d.format('DD') %></div>
+              </div>
+              <div>
+                <span class="font-semibold"><%= weekdayMap[d.format('dddd')] || d.format('dddd') %></span>
+                <% if (isToday) { %><span class="badge badge-info" style="margin-left:8px;">Hoje</span><% } %>
+              </div>
             </div>
+            <span class="badge <%= agList.length > 0 ? 'badge-info' : 'badge-neutral' %>"><%= agList.length %> agend.</span>
+          </div>
 
-            <div class="lg:col-span-9 flex flex-col gap-6">
-                
-                <%
-                const weekdayMap = { Monday: 'Segunda', Tuesday: 'Terça', Wednesday: 'Quarta', Thursday: 'Quinta', Friday: 'Sexta', Saturday: 'Sábado', Sunday: 'Domingo' };
-                const today = new Date(); today.setHours(0, 0, 0, 0);
-                %>
-
-                <% if (typeof days !== 'undefined' && days && days.length > 0 && typeof resultsByDay !== 'undefined' && typeof availableByDay !== 'undefined') { %>
-                    <% days.forEach((d) => {
-                        const key = d.format('YYYY-MM-DD');
-                        const dayDate = new Date(key + 'T00:00:00'); 
-                        const isToday = dayDate.toDateString() === today.toDateString();
-                        const isPast = dayDate < today;
-                        const agendadosList = resultsByDay[key] || [];
-                        const livresList = availableByDay[key] || [];
-                        
-                        let headerClass = isToday ? 'bg-yellow-50 border-b border-yellow-100' : 'bg-white border-b border-gray-100';
-                        let titleColor = isToday ? 'text-yellow-800' : 'text-gray-800';
-                    %>
-
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-300">
-                        <div class="px-4 py-3 flex items-center justify-between <%= headerClass %>">
-                            <div class="flex items-center gap-3">
-                                <div class="flex flex-col items-center justify-center w-10 h-10 rounded-lg bg-white border border-gray-200 shadow-sm">
-                                    <span class="text-xs text-gray-500 font-bold uppercase"><%= d.format('MMM') %></span>
-                                    <span class="text-lg font-bold <%= titleColor %> leading-none"><%= d.format('DD') %></span>
-                                </div>
-                                <div>
-                                    <h3 class="text-lg font-bold <%= titleColor %>"><%= weekdayMap[d.format('dddd')] %></h3>
-                                    <% if (isToday) { %><span class="text-xs font-bold text-yellow-600 uppercase tracking-wide">Hoje</span><% } %>
-                                </div>
-                            </div>
-                            <span class="text-xs font-bold px-3 py-1 rounded-full <%= agendadosList.length > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500' %>">
-                                <%= agendadosList.length %> Agend.
-                            </span>
+          <div class="card-body">
+            <div class="grid grid-2" style="gap: 24px;">
+              <!-- Agendados -->
+              <div>
+                <div class="text-xs font-bold text-muted mb-2"><i class="fas fa-list" style="margin-right:4px;"></i> AGENDADOS</div>
+                <% if (agList.length > 0) { %>
+                  <div class="flex flex-col gap-2">
+                    <% agList.forEach(function(r) { %>
+                      <div class="appt-card appt-status-<%= r.status || 'confirmado' %>">
+                        <div class="appt-time"><%= r.timeFormatted %></div>
+                        <div class="flex-1" style="min-width:0;">
+                          <a href="/client/<%= r.clientId %>" class="font-semibold truncate block" style="text-decoration:none; color:inherit;"><%= r.clientName %></a>
+                          <div class="text-xs text-secondary truncate"><%= r.servicesNames || 'Servico' %></div>
                         </div>
-
-                        <div class="p-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            
-                            <div>
-                                <h4 class="text-xs font-bold text-gray-400 uppercase mb-3 flex items-center"><i class="fas fa-list mr-1"></i> Agendados</h4>
-                                <% if (agendadosList.length > 0) { %>
-                                    <div class="space-y-3">
-                                        <% agendadosList.forEach(r => { %>
-                                            <div class="appointment-card p-3 rounded-lg border border-gray-200 bg-gray-50 relative group">
-                                                <div class="flex justify-between items-start">
-                                                    <div>
-                                                        <div class="font-bold text-gray-800 text-base"><a href="/client/<%= r.clientId %>" class="hover:underline"><%= r.clientName %></a></div>
-                                                        <div class="text-xs text-gray-500 mt-1"><i class="fas fa-cut text-[10px]"></i> <%= r.servicesNames || 'Serviço' %></div>
-                                                    </div>
-                                                    <span class="bg-white border border-gray-200 text-gray-700 px-2 py-1 rounded text-sm font-bold shadow-sm">
-                                                        <%= r.timeFormatted %>
-                                                    </span>
-                                                </div>
-
-                                                <% if (r.status === 'pendente') { %>
-                                                    <div class="mt-3 grid grid-cols-2 gap-2">
-                                                        <form action="/admin/appointment/<%= r.id %>/confirm" method="POST">
-                                                            <button class="w-full py-2 bg-green-100 text-green-700 rounded font-bold text-xs hover:bg-green-200 transition">Confirmar</button>
-                                                        </form>
-                                                        <form action="/admin/appointment/<%= r.id %>/cancel-by-admin" method="POST" onsubmit="return promptCancelReason(this)">
-                                                            <button class="w-full py-2 bg-red-100 text-red-700 rounded font-bold text-xs hover:bg-red-200 transition">Cancelar</button>
-                                                        </form>
-                                                    </div>
-                                                <% } %>
-                                            </div>
-                                        <% }); %>
-                                    </div>
-                                <% } else { %>
-                                    <div class="h-24 flex items-center justify-center bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                                        <span class="text-gray-400 text-sm italic">Livre</span>
-                                    </div>
-                                <% } %>
-                            </div>
-
-                            <div>
-                                <h4 class="text-xs font-bold text-gray-400 uppercase mb-3 flex items-center"><i class="fas fa-plus-circle mr-1"></i> Disponíveis</h4>
-                                <% if (livresList.length > 0) { %>
-                                    <div class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-4 lg:grid-cols-5 gap-2">
-                                        <% livresList.forEach(t => { %>
-                                            <button onclick="abrirModal('<%= key %>', '<%= t %>')" 
-                                                class="slot-btn py-2 px-1 bg-green-50 text-green-700 border border-green-200 rounded-lg text-sm font-bold hover:bg-green-500 hover:text-white hover:border-green-600 shadow-sm">
-                                                <%= t %>
-                                            </button>
-                                        <% }); %>
-                                    </div>
-                                <% } else { %>
-                                    <div class="h-full min-h-[50px] flex items-center justify-center">
-                                        <span class="text-red-400 text-sm font-medium bg-red-50 px-3 py-1 rounded-full">Lotado</span>
-                                    </div>
-                                <% } %>
-                            </div>
-
+                        <div class="flex gap-1">
+                          <% if (r.status === 'pendente') { %>
+                            <form action="/admin/appointment/<%= r.id %>/confirm" method="POST" style="margin:0;">
+                              <button class="btn btn-success btn-sm" style="padding:4px 8px;" title="Confirmar"><i class="fas fa-check"></i></button>
+                            </form>
+                          <% } %>
+                          <form action="/admin/appointment/<%= r.id %>/cancel-by-admin" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este agendamento?')" style="margin:0;">
+                            <button class="btn btn-danger btn-sm" style="padding:4px 8px;" title="Excluir"><i class="fas fa-trash"></i></button>
+                          </form>
                         </div>
-                    </div>
+                      </div>
                     <% }); %>
-                
+                  </div>
                 <% } else { %>
-                    <div class="flex flex-col items-center justify-center p-12 bg-white rounded-xl shadow-sm border border-gray-200 text-center">
-                        <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4 text-gray-400 text-4xl">
-                            <i class="far fa-calendar-times"></i>
-                        </div>
-                        <h3 class="text-lg font-bold text-gray-700">Nenhum agendamento nesta data</h3>
-                        <p class="text-gray-500">Tente buscar por outra semana no filtro acima.</p>
-                    </div>
+                  <div class="empty-state" style="padding: 20px;"><p class="text-sm">Livre</p></div>
                 <% } %>
+              </div>
+
+              <!-- Disponiveis -->
+              <div>
+                <div class="text-xs font-bold text-muted mb-2"><i class="fas fa-plus-circle" style="margin-right:4px;"></i> DISPONIVEIS</div>
+                <% if (livList.length > 0) { %>
+                  <div class="flex gap-2" style="flex-wrap:wrap;">
+                    <% livList.forEach(function(t) { %>
+                      <button onclick="abrirModal('<%= key %>', '<%= t %>')" class="btn btn-outline btn-sm" style="color: var(--success); border-color: var(--success);">
+                        <%= t %>
+                      </button>
+                    <% }); %>
+                  </div>
+                <% } else { %>
+                  <span class="badge badge-danger">Lotado</span>
+                <% } %>
+              </div>
             </div>
+          </div>
         </div>
+      <% }); %>
+    <% } else { %>
+      <div class="empty-state card" style="padding: 60px;"><i class="far fa-calendar-times"></i><p>Selecione uma data para ver a agenda.</p></div>
+    <% } %>
+  </div>
+</div>
 
-    </main>
-
-    <div id="modalAgendamento" class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-[100] hidden p-4">
-        <div class="bg-white rounded-xl w-full max-w-lg shadow-2xl overflow-hidden animate-fade-in">
-            <div class="bg-gold p-4 flex justify-between items-center text-white">
-                <h2 class="text-lg font-bold flex items-center"><i class="fas fa-calendar-plus mr-2"></i> Novo Agendamento</h2>
-                <button onclick="fecharModal()" class="hover:text-gray-200 text-xl"><i class="fas fa-times"></i></button>
-            </div>
-            
-            <form action="/appointment" method="POST" class="p-6 space-y-4">
-                <input type="hidden" id="modalDate" name="date">
-                <input type="hidden" id="modalTime" name="time">
-
-                <div class="relative">
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Cliente</label>
-                    <input type="text" id="clientSearch" class="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-gold outline-none" placeholder="Buscar cliente..." autocomplete="off">
-                    <input type="hidden" name="clientId" id="clientId">
-                    <ul id="clientSuggestions" class="absolute left-0 right-0 mt-1 border border-gray-200 rounded-lg bg-white max-h-48 overflow-y-auto z-50 hidden shadow-xl"></ul>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Serviço</label>
-                    <select id="serviceSelect" class="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-gold outline-none" required>
-                        <option value="">Selecione...</option>
-                        <% if (typeof services !== 'undefined' && services) { %>
-                            <% services.forEach(function(s) { %>
-                                <option value="<%= s.id %>" data-name="<%= s.name %>" data-price="<%= s.price %>" data-duration="<%= s.duration %>">
-                                    <%= s.name %> - R$ <%= s.price %>
-                                </option>
-                            <% }); %>
-                        <% } %>
-                    </select>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-1">Preço (R$)</label>
-                        <input type="number" id="servicePrice" step="0.01" class="w-full p-3 border border-gray-300 rounded-lg bg-gray-50">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-1">Duração (min)</label>
-                        <input type="number" id="serviceDuration" class="w-full p-3 border border-gray-300 rounded-lg bg-gray-50">
-                    </div>
-                </div>
-
-                <div>
-                     <label class="block text-sm font-bold text-gray-700 mb-1">Profissional</label>
-                     <select id="staffId" name="staffId" class="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-gold outline-none" required>
-                         <option value="">Selecione primeiro o serviço...</option>
-                     </select>
-                </div>
-
-                <input type="hidden" name="services" id="servicesInput">
-                <input type="hidden" name="duration" id="durationInput">
-
-                <div class="pt-4 flex gap-3">
-                    <button type="button" onclick="fecharModal()" class="flex-1 py-3 text-gray-600 bg-gray-100 rounded-lg font-bold hover:bg-gray-200">Cancelar</button>
-                    <button type="submit" class="flex-1 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 shadow-md">Confirmar Agendamento</button>
-                </div>
-            </form>
-        </div>
+<!-- Modal novo agendamento -->
+<div id="modalAgendamento" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:100; align-items:center; justify-content:center; padding:16px;">
+  <div class="card" style="max-width:500px; width:100%;">
+    <div class="card-header" style="background:var(--primary); color:#fff; border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
+      <h3 style="color:#fff;"><i class="fas fa-calendar-plus" style="margin-right:8px;"></i> Novo Agendamento</h3>
+      <button onclick="fecharModal()" class="btn btn-ghost btn-sm" style="color:#fff;"><i class="fas fa-times"></i></button>
     </div>
+    <div class="card-body">
+      <form action="/appointment" method="POST" id="modalForm">
+        <input type="hidden" id="modalDate" name="date">
+        <input type="hidden" id="modalTime" name="time">
 
-    <div id="clients-data" class="hidden" data-clients='<%- JSON.stringify(typeof clients !== "undefined" ? clients : []) %>'></div>
-    <div id="pending-data" class="hidden" data-pending='<%- JSON.stringify(typeof pendingAppointments !== "undefined" ? pendingAppointments : []) %>'></div>
+        <div class="form-group" style="position:relative;">
+          <label class="form-label">Cliente</label>
+          <input type="text" id="clientSearch" class="form-control" placeholder="Buscar cliente..." autocomplete="off">
+          <input type="hidden" name="clientId" id="clientId">
+          <ul id="clientSuggestions" style="position:absolute; left:0; right:0; z-index:50; max-height:200px; overflow-y:auto; display:none; background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius); box-shadow:var(--shadow-lg); list-style:none; padding:0; margin-top:2px;"></ul>
+        </div>
 
-    <script>
-        const htmlEl = document.documentElement;
-        function updateIcons(theme) {
-            const isLight = theme === 'light';
-            document.getElementById('theme-icon-sun').classList.toggle('hidden', !isLight);
-            document.getElementById('theme-icon-moon').classList.toggle('hidden', isLight);
-        }
-        function toggleTheme() {
-            const themes = ["light", "medium-dark", "deep-dark"];
-            const current = htmlEl.getAttribute('data-theme') || 'light';
-            const next = themes[(themes.indexOf(current) + 1) % themes.length];
-            htmlEl.setAttribute('data-theme', next);
-            localStorage.setItem('theme', next);
-            updateIcons(next);
-        }
-        document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
-        document.getElementById('theme-toggle-btn-mobile').addEventListener('click', toggleTheme);
-        updateIcons(localStorage.getItem('theme') || 'light');
+        <div class="form-group">
+          <label class="form-label">Servico</label>
+          <select id="serviceSelect" class="form-control" required>
+            <option value="">Selecione...</option>
+            <% if (typeof services !== 'undefined' && services) { %>
+              <% services.forEach(function(s) { %>
+                <option value="<%= s.id %>" data-name="<%= s.name %>" data-price="<%= s.price %>" data-duration="<%= s.duration %>"><%= s.name %> - R$ <%= s.price %></option>
+              <% }); %>
+            <% } %>
+          </select>
+        </div>
 
-        const menuBtn = document.getElementById('menu-button');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const closeMenu = document.getElementById('close-menu');
-        if(menuBtn) menuBtn.addEventListener('click', () => { mobileMenu.classList.remove('hidden'); document.body.style.overflow = 'hidden'; });
-        if(closeMenu) closeMenu.addEventListener('click', () => { mobileMenu.classList.add('hidden'); document.body.style.overflow = ''; });
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Preco (R$)</label>
+            <input type="number" id="servicePrice" step="0.01" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Duracao (min)</label>
+            <input type="number" id="serviceDuration" class="form-control">
+          </div>
+        </div>
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const dateInput = document.getElementById('date');
-            if (dateInput && !dateInput.value) {
-                const def = document.querySelector('main').dataset.defaultDate;
-                if(def) dateInput.value = def;
-                else dateInput.valueAsDate = new Date();
-            }
-        });
+        <div class="form-group">
+          <label class="form-label">Profissional</label>
+          <select id="staffId" name="staffId" class="form-control" required>
+            <option value="">Selecione o servico primeiro...</option>
+          </select>
+        </div>
 
-        // === ALERTAS DE PENDENTES (LÓGICA RESTAURADA) ===
-        function promptCancelReason(form) {
-            const r = prompt("Motivo do cancelamento:");
-            if(!r || r.trim() === "") return false;
-            const i = document.createElement('input'); i.type='hidden'; i.name='cancellationReason'; i.value=r; form.appendChild(i);
-            return true;
-        }
+        <input type="hidden" name="services" id="servicesInput">
+        <input type="hidden" name="duration" id="durationInput">
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const dataEl = document.getElementById('pending-data');
-            if(!dataEl) return;
+        <div class="flex gap-2 mt-4">
+          <button type="button" onclick="fecharModal()" class="btn btn-outline flex-1">Cancelar</button>
+          <button type="submit" class="btn btn-success flex-1"><i class="fas fa-check"></i> Confirmar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
-            try {
-                const pending = JSON.parse(dataEl.dataset.pending || '[]');
-                if (pending.length > 0) {
-                    let html = '<div class="text-left text-sm max-h-60 overflow-y-auto space-y-3 p-1 custom-scroll">';
-                    pending.forEach(appt => {
-                        const dateObj = new Date(appt.date);
-                        const dateStr = dateObj.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
-                        const timeStr = appt.time || dateObj.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-                        const cName = appt.Client ? appt.Client.name : 'Cliente';
-                        const sName = (appt.AppointmentServices && appt.AppointmentServices[0]) ? appt.AppointmentServices[0].name : 'Serviço';
-                        const pId = appt.id;
-                        
-                        html += `
-                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-sm">
-                            <div class="flex justify-between items-start mb-2">
-                                <div>
-                                    <strong class="text-gray-800 block">${cName}</strong> 
-                                    <span class="text-xs text-gray-500">${sName}</span>
-                                </div>
-                                <div class="text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-1 rounded">
-                                    ${dateStr} - ${timeStr}
-                                </div>
-                            </div>
-                            <div class="flex gap-2">
-                                <form action="/admin/appointment/${pId}/confirm" method="POST" class="flex-1">
-                                    <button class="w-full bg-green-100 text-green-700 py-1.5 rounded text-xs hover:bg-green-200 font-bold transition flex items-center justify-center">
-                                        <i class="fas fa-check mr-1"></i> Aceitar
-                                    </button>
-                                </form>
-                                <form action="/admin/appointment/${pId}/cancel-by-admin" method="POST" class="flex-1" onsubmit="return promptCancelReason(this)">
-                                    <button class="w-full bg-red-100 text-red-700 py-1.5 rounded text-xs hover:bg-red-200 font-bold transition flex items-center justify-center">
-                                        <i class="fas fa-times mr-1"></i> Recusar
-                                    </button>
-                                </form>
-                            </div>
-                        </div>`;
-                    });
-                    html += '</div>';
-                    
-                    Swal.fire({
-                        title: `<div class="flex items-center justify-center gap-2 text-lg text-yellow-600 font-bold"><i class="fas fa-bell"></i> ${pending.length} Pendente(s)</div>`,
-                        html: html,
-                        showConfirmButton: false,
-                        showCloseButton: true,
-                        width: '400px',
-                        padding: '1em',
-                        background: 'var(--color-bg-secondary)',
-                        color: 'var(--color-text-primary)'
-                    });
-                }
-            } catch(e) { console.error(e); }
-        });
+<div id="clients-data" class="hidden" data-clients='<%- JSON.stringify(typeof clients !== "undefined" ? clients : []) %>'></div>
 
-        const modal = document.getElementById('modalAgendamento');
-        let clients = [];
-        try { clients = JSON.parse(document.getElementById('clients-data').dataset.clients); } catch(e){}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+  // Date default
+  document.addEventListener('DOMContentLoaded', function() {
+    var di = document.getElementById('dateInput');
+    if (di && !di.value) di.valueAsDate = new Date();
+  });
 
-        function abrirModal(date, time) {
-            document.getElementById('modalDate').value = date;
-            document.getElementById('modalTime').value = time;
-            modal.classList.remove('hidden');
-        }
-        function fecharModal() { modal.classList.add('hidden'); }
+  // Modal
+  var modal = document.getElementById('modalAgendamento');
+  var clients = [];
+  try { clients = JSON.parse(document.getElementById('clients-data').dataset.clients); } catch(e){}
 
-        const clientSearch = document.getElementById('clientSearch');
-        const suggestions = document.getElementById('clientSuggestions');
-        clientSearch.addEventListener('input', function() {
-            const val = this.value.toLowerCase();
-            suggestions.innerHTML = '';
-            if(val.length < 2) { suggestions.classList.add('hidden'); return; }
-            
-            const filtered = clients.filter(c => c.name.toLowerCase().includes(val) || (c.phone && c.phone.includes(val)));
-            if(filtered.length > 0) {
-                suggestions.classList.remove('hidden');
-                filtered.forEach(c => {
-                    const li = document.createElement('li');
-                    li.className = 'p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-100';
-                    li.innerText = c.name;
-                    li.onclick = () => {
-                        clientSearch.value = c.name;
-                        document.getElementById('clientId').value = c.id;
-                        suggestions.classList.add('hidden');
-                    };
-                    suggestions.appendChild(li);
-                });
-            } else suggestions.classList.add('hidden');
-        });
+  function abrirModal(date, time) {
+    document.getElementById('modalDate').value = date;
+    document.getElementById('modalTime').value = time;
+    modal.style.display = 'flex';
+  }
+  function fecharModal() { modal.style.display = 'none'; }
 
-        const svcSelect = document.getElementById('serviceSelect');
-        const staffSelect = document.getElementById('staffId');
-        
-        svcSelect.addEventListener('change', async function() {
-            const opt = this.selectedOptions[0];
-            if(opt) {
-                document.getElementById('servicePrice').value = opt.dataset.price;
-                document.getElementById('serviceDuration').value = opt.dataset.duration;
-            }
-            staffSelect.innerHTML = '<option>Carregando...</option>';
-            if(!this.value) return;
+  // Client search
+  var cs = document.getElementById('clientSearch');
+  var sg = document.getElementById('clientSuggestions');
+  cs.addEventListener('input', function() {
+    var v = this.value.toLowerCase();
+    sg.innerHTML = '';
+    if (v.length < 2) { sg.style.display = 'none'; return; }
+    var f = clients.filter(function(c) { return c.name.toLowerCase().includes(v) || (c.phone && c.phone.includes(v)); });
+    if (f.length > 0) {
+      sg.style.display = 'block';
+      f.forEach(function(c) {
+        var li = document.createElement('li');
+        li.style.padding = '10px 12px'; li.style.cursor = 'pointer'; li.style.borderBottom = '1px solid var(--border-light)';
+        li.textContent = c.name;
+        li.onmouseenter = function() { this.style.background = 'var(--bg-hover)'; };
+        li.onmouseleave = function() { this.style.background = ''; };
+        li.onclick = function() { cs.value = c.name; document.getElementById('clientId').value = c.id; sg.style.display = 'none'; };
+        sg.appendChild(li);
+      });
+    } else sg.style.display = 'none';
+  });
 
-            try {
-                const res = await fetch(`/api/admin/staff-by-service/${this.value}`);
-                const staff = await res.json();
-                staffSelect.innerHTML = '<option value="">Selecione o Profissional</option>';
-                staff.forEach(s => {
-                    const o = document.createElement('option'); o.value = s.id; o.textContent = s.name; staffSelect.appendChild(o);
-                });
-            } catch(e) { 
-                staffSelect.innerHTML = '<option value="">Erro ao carregar</option>'; 
-            }
-        });
+  // Service select -> load staff
+  var svcSel = document.getElementById('serviceSelect');
+  var staffSel = document.getElementById('staffId');
+  svcSel.addEventListener('change', async function() {
+    var opt = this.selectedOptions[0];
+    if (opt) {
+      document.getElementById('servicePrice').value = opt.dataset.price;
+      document.getElementById('serviceDuration').value = opt.dataset.duration;
+    }
+    staffSel.innerHTML = '<option>Carregando...</option>';
+    if (!this.value) return;
+    try {
+      var res = await fetch('/api/admin/staff-by-service/' + this.value);
+      var staff = await res.json();
+      staffSel.innerHTML = '<option value="">Selecione...</option>';
+      staff.forEach(function(s) { var o = document.createElement('option'); o.value = s.id; o.textContent = s.name; staffSel.appendChild(o); });
+    } catch(e) { staffSel.innerHTML = '<option value="">Erro</option>'; }
+  });
 
-        document.querySelector('#modalAgendamento form').addEventListener('submit', function(e) {
-            if(!document.getElementById('clientId').value) {
-                e.preventDefault();
-                alert('Selecione um cliente da lista.');
-                return;
-            }
-            const opt = svcSelect.selectedOptions[0];
-            const price = document.getElementById('servicePrice').value;
-            const dur = document.getElementById('serviceDuration').value;
-            
-            const data = [{
-                id: svcSelect.value,
-                name: opt.dataset.name || opt.text,
-                price: parseFloat(price),
-                duration: parseInt(dur)
-            }];
-            document.getElementById('servicesInput').value = JSON.stringify(data);
-            document.getElementById('durationInput').value = dur;
-        });
-    </script>
-</body>
-</html>
+  // Form submit
+  document.getElementById('modalForm').addEventListener('submit', function(e) {
+    if (!document.getElementById('clientId').value) { e.preventDefault(); alert('Selecione um cliente.'); return; }
+    var opt = svcSel.selectedOptions[0];
+    var price = document.getElementById('servicePrice').value;
+    var dur = document.getElementById('serviceDuration').value;
+    var data = [{id: svcSel.value, name: opt.dataset.name || opt.text, price: parseFloat(price), duration: parseInt(dur)}];
+    document.getElementById('servicesInput').value = JSON.stringify(data);
+    document.getElementById('durationInput').value = dur;
+  });
+</script>
+
+<%- include('partials/footer') %>

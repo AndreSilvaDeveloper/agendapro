@@ -1,6 +1,7 @@
 // controllers/clientController.js
 const db = require('../models');
-const { Op } = require('sequelize'); // Para $or, $regex (iLike)
+const { Op } = require('sequelize');
+const { notifyClient } = require('../services/clientNotificationService');
 
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
@@ -185,9 +186,9 @@ exports.getClientById = async (req, res) => {
     });
 
     res.render('client', {
-      client, // O client já contém client.Products
+      clientData: client,
       appointments: display,
-      staff, // <--- Passa a lista de profissionais para a View
+      staff,
       totalService, totalPaidService,
       totalProduct, totalPaidProduct,
       isHistory: false,
@@ -282,7 +283,7 @@ exports.getClientHistory = async (req, res) => {
       }));
 
     res.render('client', {
-      client,
+      clientData: client,
       appointments: past,
       isHistory: true,
       totalService, totalPaidService,
@@ -364,13 +365,22 @@ exports.addProductToClient = async (req, res) => {
     }
 
     // 2. Cria o Produto (varejo) associado a este cliente
-    // ATUALIZADO: $push -> db.Product.create
     await db.Product.create({
       name,
       price: parseFloat(price),
       clientId: id,
-      organizationId: organizationId // Garante a etiqueta da organização
+      organizationId: organizationId
     });
+
+    // Notificar cliente sobre produto adicionado
+    try {
+      const firstName = client.name.split(' ')[0];
+      const priceFormatted = parseFloat(price).toFixed(2).replace('.', ',');
+      await notifyClient(parseInt(id), organizationId,
+        `🛍️ *Novo Produto Registrado*\n\n` +
+        `Oi, ${firstName}! O produto *${name}* (R$ ${priceFormatted}) foi adicionado na sua conta.\n\nQualquer dúvida, é só chamar! 😊`
+      );
+    } catch (e) { console.error('[Notificação] Erro:', e.message); }
 
     res.redirect(`/client/${id}?success=Produto adicionado com sucesso!`);
   } catch (err) {
@@ -454,15 +464,23 @@ exports.payClientProduct = async (req, res) => {
     }
 
     // 2. Cria o Pagamento (varejo) associado a este produto
-    // ATUALIZADO: prod.payments.push -> db.Payment.create
     await db.Payment.create({
       amount: val,
       paidAt: when,
       method: method.toLowerCase(),
       description: description || '',
-      productId: pi, // Associa ao produto
-      organizationId: organizationId // Garante a etiqueta da organização
+      productId: pi,
+      organizationId: organizationId
     });
+
+    // Notificar cliente sobre pagamento
+    try {
+      const methodLabel = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão' }[method.toLowerCase()] || method;
+      await notifyClient(parseInt(id), organizationId,
+        `💰 *Pagamento Registrado!*\n\n` +
+        `Recebemos seu pagamento de *R$ ${val.toFixed(2).replace('.', ',')}* (${methodLabel}) referente ao produto *${product.name}*.\n\nObrigado! 😊`
+      );
+    } catch (e) { console.error('[Notificação] Erro:', e.message); }
 
     res.redirect(`/client/${id}?success=Pagamento registrado com sucesso!`);
   } catch (err) {

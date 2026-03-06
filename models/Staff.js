@@ -19,6 +19,14 @@ const Staff = sequelize.define('Staff', {
     }
   },
   
+  phone: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    set(value) {
+      this.setDataValue('phone', value ? value.replace(/\D/g, '') : null);
+    }
+  },
+
   imageUrl: {
     type: DataTypes.STRING,
     allowNull: true,
@@ -26,7 +34,7 @@ const Staff = sequelize.define('Staff', {
       this.setDataValue('imageUrl', value ? value.trim() : null);
     }
   },
-  
+
   // O array 'services' foi REMOVIDO daqui.
   // Esta será uma relação Many-to-Many, definida fora do modelo
   // através de uma tabela de junção (ex: 'StaffServices').

@@ -1,326 +1,259 @@
-<!DOCTYPE html>
-<html lang="pt-BR" class="h-full" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <title>Configuração WhatsApp – Agenda Pro</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<%- include('../partials/head', { pageTitle: 'WhatsApp' }) %>
+<%- include('../partials/sidebar', { activePage: 'whatsapp' }) %>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<div style="max-width: 700px;">
+  <h1 class="mb-6"><i class="fab fa-whatsapp" style="color: #25D366; margin-right: 8px;"></i> WhatsApp</h1>
 
-    <script>
-        (function() {
-            const THEMES = ["light", "medium-dark", "deep-dark"];
-            const savedTheme = localStorage.getItem('theme');
-            let initialTheme = 'light';
-            if (savedTheme && THEMES.includes(savedTheme)) {
-                initialTheme = savedTheme;
-            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                initialTheme = 'deep-dark';
-            }
-            document.documentElement.setAttribute('data-theme', initialTheme);
-        })();
-    </script>
-
-    <style>
-        /* --- CORES DO TEMA --- */
-        :root, [data-theme="light"] {
-            --color-gold: #DAA520;
-            --color-bg-primary: #f3f4f6;
-            --color-bg-secondary: #ffffff;
-            --color-text-primary: #1f2937;
-        }
-        [data-theme="medium-dark"] {
-            --color-gold: #e0aa1f;
-            --color-bg-primary: #1f2937;
-            --color-bg-secondary: #374151;
-            --color-text-primary: #f9fafb;
-        }
-        [data-theme="deep-dark"] {
-            --color-gold: #e0aa1f;
-            --color-bg-primary: #0a0e14;
-            --color-bg-secondary: #1f2937;
-            --color-text-primary: #f9fafb;
-        }
-
-        body { background-color: var(--color-bg-primary); color: var(--color-text-primary); }
-        .bg-white { background-color: var(--color-bg-secondary); }
-        .text-gray-800, .text-gray-700, .text-gray-600 { color: var(--color-text-primary); }
-        
-        .text-gold { color: var(--color-gold); }
-        .bg-gold { background-color: var(--color-gold); }
-        
-        /* Loader */
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid var(--color-gold);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* Scroll */
-        .custom-scroll::-webkit-scrollbar { width: 6px; }
-        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-        .custom-scroll::-webkit-scrollbar-thumb { background-color: #e5e7eb; border-radius: 20px; }
-    </style>
-</head>
-<body class="font-sans antialiased flex flex-col h-full">
-
-    <header class="bg-white shadow-md border-b border-gray-200 shrink-0 h-16 flex items-center px-4 justify-between sticky top-0 z-50">
-        <div class="flex items-center">
-            <button onclick="history.back()" class="mr-4 text-gray-600 hover:text-gold transition-colors">
-                <i class="fas fa-arrow-left"></i> Voltar
-            </button>
-            <h1 class="text-lg font-bold">Configuração WhatsApp</h1>
-        </div>
-
-        <nav class="hidden xl:flex items-center space-x-4 text-sm">
-            <a href="/dashboard" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-home mr-1"></i>Dash
-                </a>
-                <a href="/agendamentos-por-dia" class="text-gradient-gold font-semibold">
-                    <i class="fas fa-calendar-alt mr-1"></i>Agenda
-                </a>
-                <a href="/clients" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-users mr-1"></i>Clientes
-                </a>
-                <a href="/admin/servicos" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-cut mr-1"></i>Serviços
-                </a>
-                <a href="/admin/equipe" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-users-cog mr-1"></i>Equipe
-                </a>
-                <a href="/financeiro" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-dollar-sign mr-1"></i>Financeiro
-                </a>
-                <a href="/balanco" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-balance-scale mr-1"></i>Balanço
-                </a>
-                <a href="/expenses" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-receipt mr-1"></i>Despesas
-                </a>
-            
-            <div class="h-4 w-px bg-gray-300 mx-2"></div>
-            
-            <button id="theme-toggle-btn" class="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                <i id="theme-icon-sun" class="fas fa-sun"></i> <i id="theme-icon-moon" class="fas fa-moon hidden"></i> 
-            </button>
-        </nav>
-
-        <button id="menu-button" class="xl:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
-            <i class="fas fa-bars text-gold text-xl"></i>
-        </button>
-    </header>
-
-    <div id="mobile-menu" class="hidden fixed inset-0 z-50 flex flex-col p-6 space-y-4 overflow-y-auto xl:hidden" style="background-color: var(--color-bg-primary);">
-        <div class="flex justify-end">
-            <button id="close-menu" class="text-2xl"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="flex flex-col space-y-4 text-center text-lg">
-             <a href="/dashboard" class="mobile-nav-link text-lg py-2 border-b border-gray-700 hover:text-gold">Dashboard</a>
-            <a href="/agendamentos-por-dia" class="mobile-nav-link text-gold text-lg font-bold py-2 hover:text-gold">Agendamentos</a>
-            <a href="/clients" class="mobile-nav-link text-lg py-2 hover:text-gold">Clientes</a>
-            <a href="/admin/servicos" class="mobile-nav-link text-lg py-2 hover:text-gold">Serviços</a>
-            <a href="/admin/equipe" class="mobile-nav-link text-lg py-2 hover:text-gold">Equipe</a>
-            <a href="/financeiro" class="mobile-nav-link text-lg py-2 hover:text-gold">Financeiro</a>
-            <a href="/balanco" class="mobile-nav-link text-lg py-2 hover:text-gold">Balanço</a>
-            <a href="/expenses" class="mobile-nav-link text-lg py-2 hover:text-gold">Despesas</a>
-            <hr class="border-gray-600">
-
-            <button id="theme-toggle-btn-mobile" class="flex items-center justify-center space-x-2 py-2 border border-gray-500 rounded-lg">
-                <i class="fas fa-adjust"></i> <span>Alternar Tema</span>
-            </button>
-
-            <a href="/logout" class="text-red-400 font-bold py-2">Sair</a>
-        </div>
-    </div>
-
-    <div class="flex-1 max-w-4xl mx-auto w-full p-6">
-        
-        <div class="text-right mb-4 text-sm opacity-70">
-            Org ID: <%= orgId %>
-        </div>
-
-        <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-200 mb-8">
-            <div class="p-6 border-b border-gray-100">
-                <h2 class="text-xl font-bold text-gray-800 flex items-center">
-                    <i class="fab fa-whatsapp mr-2 text-green-500 text-2xl"></i>
-                    Status da Conexão
-                </h2>
+  <!-- Status da Conexao -->
+  <div class="card mb-4">
+    <div class="card-header"><h3><i class="fas fa-signal" style="color: var(--primary); margin-right: 8px;"></i> Status da Conexao</h3></div>
+    <div class="card-body">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div id="statusIcon" class="stat-icon <%= connectionStatus === 'connected' ? 'green' : 'red' %>">
+            <i class="fas <%= connectionStatus === 'connected' ? 'fa-check' : 'fa-times' %>"></i>
+          </div>
+          <div>
+            <div id="statusText" class="font-semibold">
+              <% if (connectionStatus === 'connected') { %>
+                Conectado
+              <% } else if (instanceName) { %>
+                Desconectado
+              <% } else { %>
+                Nao configurado
+              <% } %>
             </div>
-            
-            <div class="p-8 text-center">
-                <div id="status-icon-container" class="mb-4">
-                    <i class="fas fa-circle-notch fa-spin text-4xl text-gray-400"></i>
-                </div>
-
-                <h3 id="status-text" class="text-2xl font-bold mb-2">Verificando...</h3>
-                <p id="status-desc" class="opacity-70 mb-6">Aguarde enquanto verificamos a conexão com o servidor.</p>
-
-                <div id="qr-container" class="hidden bg-white p-4 rounded-xl border-2 border-dashed border-gray-300 inline-block mb-6">
-                    <div id="qrcode" class="flex justify-center"></div>
-                    <p class="text-sm text-gray-500 mt-2">Abra o WhatsApp > Menu > Aparelhos conectados</p>
-                </div>
-
-                <div id="actions-container">
-                    <button id="btn-connect" onclick="startConnection()" class="hidden bg-green-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-green-700 transition-colors shadow-lg">
-                        <i class="fas fa-qrcode mr-2"></i> Conectar WhatsApp
-                    </button>
-
-                    <button id="btn-disconnect" onclick="logout()" class="hidden bg-red-100 text-red-700 px-8 py-3 rounded-lg font-bold hover:bg-red-200 transition-colors border border-red-200">
-                        <i class="fas fa-sign-out-alt mr-2"></i> Desconectar
-                    </button>
-                </div>
+            <div class="text-xs text-secondary">
+              <% if (instanceName) { %>
+                Instancia: <strong><%= instanceName %></strong>
+              <% } else { %>
+                Crie uma instancia para comecar
+              <% } %>
             </div>
+          </div>
         </div>
+        <div class="flex gap-2">
+          <% if (!instanceName) { %>
+            <button onclick="createInstance()" class="btn btn-primary" id="btnCreate">
+              <i class="fas fa-plus"></i> Criar Instancia
+            </button>
+          <% } else if (connectionStatus !== 'connected') { %>
+            <button onclick="showQrCode()" class="btn btn-success" id="btnConnect">
+              <i class="fab fa-whatsapp"></i> Conectar
+            </button>
+          <% } else { %>
+            <button onclick="disconnect()" class="btn btn-danger" id="btnDisconnect">
+              <i class="fas fa-unlink"></i> Desconectar
+            </button>
+          <% } %>
+        </div>
+      </div>
 
-        <div class="bg-blue-50 rounded-xl p-6 border border-blue-100 text-gray-800">
-            <h4 class="font-bold text-blue-800 mb-2"><i class="fas fa-info-circle mr-2"></i> Como funciona?</h4>
-            <ul class="list-disc list-inside text-blue-700 space-y-1 text-sm">
-                <li>Escaneie o QR Code apenas uma vez.</li>
-                <li>O sistema manterá a conexão ativa para os envios automáticos (24h e 3h antes).</li>
-                <li>Cada estabelecimento tem sua própria conexão isolada.</li>
-            </ul>
-        </div>
+      <!-- QR Code -->
+      <div id="qrArea" style="display:none; text-align:center; margin-top: 20px;">
+        <p class="mb-3">Escaneie o QR Code com seu WhatsApp:</p>
+        <div id="qrLoading"><i class="fas fa-spinner spinner"></i> Gerando QR Code...</div>
+        <img id="qrImage" src="" alt="QR Code" style="display:none; max-width: 300px; margin: 0 auto; border-radius: 8px;">
+        <p class="text-xs text-secondary mt-2">O QR Code expira em 40 segundos. Clique em "Conectar" para gerar outro.</p>
+      </div>
     </div>
+  </div>
 
-    <script>
-        // === 1. Lógica de Menu e Tema ===
-        const THEMES = ["light", "medium-dark", "deep-dark"];
-        const htmlEl = document.documentElement;
+  <% if (instanceName) { %>
+  <!-- Bot WhatsApp -->
+  <div class="card mb-4">
+    <div class="card-header"><h3><i class="fas fa-robot" style="color: var(--primary); margin-right: 8px;"></i> Bot de Atendimento</h3></div>
+    <div class="card-body">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="font-semibold">Atendimento automatico pelo WhatsApp</div>
+          <div class="text-xs text-secondary">Clientes podem agendar, consultar e cancelar pelo WhatsApp</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="botToggle" <%= botEnabled ? 'checked' : '' %> onchange="toggleBot()">
+          <span class="slider round"></span>
+        </label>
+      </div>
+      <div id="botStatus" class="mt-2 text-xs">
+        <% if (botEnabled) { %>
+          <span style="color: var(--success);"><i class="fas fa-check-circle"></i> Bot ativo</span>
+        <% } else { %>
+          <span style="color: var(--text-secondary);"><i class="fas fa-pause-circle"></i> Bot desativado</span>
+        <% } %>
+      </div>
+    </div>
+  </div>
 
-        function getNextTheme(currentTheme) {
-            const currentIndex = THEMES.indexOf(currentTheme);
-            const nextIndex = (currentIndex + 1) % THEMES.length;
-            return THEMES[nextIndex];
+  <!-- Testar envio -->
+  <% if (connectionStatus === 'connected') { %>
+  <div class="card mb-4">
+    <div class="card-header"><h3><i class="fas fa-paper-plane" style="color: var(--primary); margin-right: 8px;"></i> Testar Envio</h3></div>
+    <div class="card-body">
+      <div class="form-group">
+        <label class="form-label">Numero de telefone</label>
+        <input type="text" id="testPhone" class="form-control" placeholder="(11) 99999-9999">
+      </div>
+      <button id="btnTest" onclick="testWhatsApp()" class="btn btn-success">
+        <i class="fab fa-whatsapp"></i> Enviar mensagem de teste
+      </button>
+      <div id="testResult" class="mt-3" style="display:none;"></div>
+    </div>
+  </div>
+  <% } %>
+  <% } %>
+
+  <!-- Como funciona -->
+  <div class="card">
+    <div class="card-header"><h3>Como funciona</h3></div>
+    <div class="card-body">
+      <ol style="padding-left: 20px; line-height: 2;">
+        <li>Clique em <strong>"Criar Instancia"</strong> para gerar sua conexao WhatsApp</li>
+        <li>Escaneie o <strong>QR Code</strong> com o WhatsApp do seu salao</li>
+        <li>Ative o <strong>Bot</strong> para atendimento automatico</li>
+        <li>Seus clientes poderao agendar, consultar e cancelar pelo WhatsApp!</li>
+      </ol>
+      <div class="alert alert-info mt-4">
+        <i class="fas fa-info-circle"></i>
+        <span>Lembretes automaticos (24h e 3h antes) funcionam quando ativados em <a href="/admin/configuracoes">Configuracoes</a>.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .3s; border-radius: 26px; }
+.slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+input:checked + .slider { background-color: #25D366; }
+input:checked + .slider:before { transform: translateX(24px); }
+</style>
+
+<script>
+  var pollInterval = null;
+
+  async function createInstance() {
+    var btn = document.getElementById('btnCreate');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner spinner"></i> Criando...';
+    try {
+      var res = await fetch('/api/whatsapp/create-instance', { method: 'POST' });
+      var data = await res.json();
+      if (res.ok) {
+        location.reload();
+      } else {
+        alert(data.error || 'Erro ao criar instancia');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-plus"></i> Criar Instancia';
+      }
+    } catch(e) {
+      alert('Erro de conexao');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-plus"></i> Criar Instancia';
+    }
+  }
+
+  async function showQrCode() {
+    var qrArea = document.getElementById('qrArea');
+    var qrImage = document.getElementById('qrImage');
+    var qrLoading = document.getElementById('qrLoading');
+
+    qrArea.style.display = 'block';
+    qrImage.style.display = 'none';
+    qrLoading.style.display = 'block';
+
+    try {
+      var res = await fetch('/api/whatsapp/qrcode');
+      var data = await res.json();
+
+      if (data.qrcode) {
+        qrImage.src = data.qrcode;
+        qrImage.style.display = 'block';
+        qrLoading.style.display = 'none';
+        startPolling();
+      } else {
+        qrLoading.innerHTML = '<i class="fas fa-exclamation-circle"></i> Nao foi possivel gerar o QR Code. Tente novamente.';
+      }
+    } catch(e) {
+      qrLoading.innerHTML = '<i class="fas fa-exclamation-circle"></i> Erro de conexao';
+    }
+  }
+
+  function startPolling() {
+    if (pollInterval) clearInterval(pollInterval);
+    pollInterval = setInterval(async () => {
+      try {
+        var res = await fetch('/api/whatsapp/status');
+        var data = await res.json();
+        if (data.status === 'connected') {
+          clearInterval(pollInterval);
+          location.reload();
         }
+      } catch(e) {}
+    }, 3000);
+  }
 
-        function updateIcons(theme) {
-            const isLight = theme === 'light';
-            const sun = document.getElementById('theme-icon-sun');
-            const moon = document.getElementById('theme-icon-moon');
-            
-            if(sun) sun.classList.toggle('hidden', !isLight);
-            if(moon) moon.classList.toggle('hidden', isLight);
-        }
+  async function disconnect() {
+    if (!confirm('Deseja desconectar o WhatsApp?')) return;
+    var btn = document.getElementById('btnDisconnect');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner spinner"></i> Desconectando...';
+    try {
+      await fetch('/api/whatsapp/disconnect', { method: 'POST' });
+      location.reload();
+    } catch(e) {
+      alert('Erro ao desconectar');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-unlink"></i> Desconectar';
+    }
+  }
 
-        function toggleTheme() {
-            const currentTheme = htmlEl.getAttribute('data-theme') || 'light';
-            const newTheme = getNextTheme(currentTheme);
-            htmlEl.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateIcons(newTheme);
-        }
+  async function toggleBot() {
+    try {
+      var res = await fetch('/api/whatsapp/toggle-bot', { method: 'POST' });
+      var data = await res.json();
+      var statusEl = document.getElementById('botStatus');
+      if (data.botEnabled) {
+        statusEl.innerHTML = '<span style="color: var(--success);"><i class="fas fa-check-circle"></i> Bot ativo</span>';
+      } else {
+        statusEl.innerHTML = '<span style="color: var(--text-secondary);"><i class="fas fa-pause-circle"></i> Bot desativado</span>';
+      }
+    } catch(e) {
+      alert('Erro ao alterar bot');
+    }
+  }
 
-        // Inicialização UI
-        document.addEventListener('DOMContentLoaded', () => {
-            // Menu Mobile
-            const menuBtn = document.getElementById('menu-button');
-            const mobileMenu = document.getElementById('mobile-menu');
-            const closeMenu = document.getElementById('close-menu');
+  async function testWhatsApp() {
+    var phone = document.getElementById('testPhone').value.trim();
+    if (!phone) { alert('Digite um numero'); return; }
+    var btn = document.getElementById('btnTest');
+    var result = document.getElementById('testResult');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner spinner"></i> Enviando...';
+    result.style.display = 'none';
+    try {
+      var res = await fetch('/api/whatsapp/test', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ phone: phone })
+      });
+      var data = await res.json();
+      if (res.ok) {
+        result.className = 'alert alert-success mt-3';
+        result.innerHTML = '<i class="fas fa-check-circle"></i> ' + (data.message || 'Enviado!');
+      } else {
+        result.className = 'alert alert-danger mt-3';
+        result.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + (data.error || 'Erro');
+      }
+      result.style.display = 'block';
+    } catch(e) {
+      result.className = 'alert alert-danger mt-3';
+      result.innerHTML = '<i class="fas fa-exclamation-circle"></i> Erro de conexao';
+      result.style.display = 'block';
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fab fa-whatsapp"></i> Enviar mensagem de teste';
+  }
+</script>
 
-            if(menuBtn && mobileMenu) {
-                menuBtn.addEventListener('click', () => mobileMenu.classList.remove('hidden'));
-                closeMenu.addEventListener('click', () => mobileMenu.classList.add('hidden'));
-            }
-
-            // Tema Desktop e Mobile
-            const themeBtn = document.getElementById('theme-toggle-btn');
-            const themeBtnMobile = document.getElementById('theme-toggle-btn-mobile');
-            
-            if(themeBtn) themeBtn.addEventListener('click', toggleTheme);
-            if(themeBtnMobile) themeBtnMobile.addEventListener('click', toggleTheme);
-
-            updateIcons(localStorage.getItem('theme') || 'light');
-            
-            // Inicia checagem do WhatsApp
-            checkInitialStatus();
-        });
-
-        // === 2. Lógica WhatsApp (Socket.IO) ===
-        const socket = io(); 
-        const orgId = "<%= orgId %>"; 
-        
-        const statusText = document.getElementById('status-text');
-        const statusDesc = document.getElementById('status-desc');
-        const statusIcon = document.getElementById('status-icon-container');
-        const qrContainer = document.getElementById('qr-container');
-        const qrcodeDiv = document.getElementById('qrcode');
-        const btnConnect = document.getElementById('btn-connect');
-        const btnDisconnect = document.getElementById('btn-disconnect');
-
-        function updateUI(state) {
-            qrContainer.classList.add('hidden');
-            btnConnect.classList.add('hidden');
-            btnDisconnect.classList.add('hidden');
-            qrcodeDiv.innerHTML = ""; 
-
-            if (state === 'CONNECTED' || state === 'AUTHENTICATED') {
-                statusIcon.innerHTML = '<i class="fas fa-check-circle text-5xl text-green-500"></i>';
-                statusText.innerText = 'WhatsApp Conectado';
-                statusDesc.innerText = 'O sistema está pronto para enviar mensagens.';
-                btnDisconnect.classList.remove('hidden');
-            } 
-            else if (state === 'DISCONNECTED') {
-                statusIcon.innerHTML = '<i class="fas fa-wifi text-5xl opacity-50"></i>';
-                statusText.innerText = 'Desconectado';
-                statusDesc.innerText = 'Nenhuma sessão ativa encontrada.';
-                btnConnect.classList.remove('hidden');
-            }
-            else if (state === 'QR_RECEIVED') {
-                statusIcon.innerHTML = '<div class="loader"></div>';
-                statusText.innerText = 'Escaneie o QR Code';
-                statusDesc.innerText = 'Aguardando leitura pelo celular...';
-                qrContainer.classList.remove('hidden');
-            }
-            else if (state === 'INITIALIZING') {
-                statusIcon.innerHTML = '<div class="loader"></div>';
-                statusText.innerText = 'Iniciando...';
-                statusDesc.innerText = 'Preparando o cliente WhatsApp.';
-            }
-        }
-
-        // Socket Listeners
-        socket.on('qr-' + orgId, (qrCodeData) => {
-            updateUI('QR_RECEIVED');
-            qrcodeDiv.innerHTML = "";
-            new QRCode(qrcodeDiv, { text: qrCodeData, width: 256, height: 256 });
-        });
-
-        socket.on('status-' + orgId, (data) => {
-            updateUI(data.status);
-        });
-
-        // Ações API
-        async function checkInitialStatus() {
-            try {
-                const res = await fetch('/api/whatsapp/status');
-                const data = await res.json();
-                updateUI(data.status);
-            } catch (error) { console.error(error); }
-        }
-
-        async function startConnection() {
-            updateUI('INITIALIZING');
-            try {
-                await fetch('/api/whatsapp/connect', { method: 'POST' });
-            } catch (error) { alert('Erro ao conectar'); updateUI('DISCONNECTED'); }
-        }
-
-        async function logout() {
-            if(!confirm('Desconectar o WhatsApp?')) return;
-            try {
-                await fetch('/api/whatsapp/logout', { method: 'POST' });
-                updateUI('DISCONNECTED');
-            } catch (error) { alert('Erro ao desconectar'); }
-        }
-    </script>
-</body>
-</html>
+<%- include('../partials/footer') %>

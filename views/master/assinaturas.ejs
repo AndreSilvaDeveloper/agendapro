@@ -1,0 +1,136 @@
+<%- include('../partials/head', { pageTitle: 'Assinaturas - Master' }) %>
+<%- include('../partials/master-sidebar', { path: 'assinaturas' }) %>
+
+<h1 class="mb-6">Assinaturas</h1>
+
+<!-- Stats -->
+<div class="grid grid-4 mb-6">
+  <div class="stat-card">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="stat-label">Total</div>
+        <div class="stat-value"><%= typeof stats !== 'undefined' ? stats.total : 0 %></div>
+      </div>
+      <div class="stat-icon purple"><i class="fas fa-credit-card"></i></div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="stat-label">Ativas</div>
+        <div class="stat-value text-success"><%= typeof stats !== 'undefined' ? stats.active : 0 %></div>
+      </div>
+      <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="stat-label">Trial</div>
+        <div class="stat-value" style="color: var(--info);"><%= typeof stats !== 'undefined' ? stats.trial : 0 %></div>
+      </div>
+      <div class="stat-icon blue"><i class="fas fa-flask"></i></div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="stat-label">Canceladas</div>
+        <div class="stat-value" style="color: var(--danger);"><%= typeof stats !== 'undefined' ? stats.canceled : 0 %></div>
+      </div>
+      <div class="stat-icon red"><i class="fas fa-times-circle"></i></div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+  <div class="card-body compact">
+    <form method="GET" action="/master/assinaturas" class="flex items-center gap-3 flex-wrap">
+      <select name="status" class="form-control" style="width: auto; min-width: 150px;">
+        <option value="">Todos os status</option>
+        <option value="trial" <%= (typeof query !== 'undefined' && query && query.status === 'trial') ? 'selected' : '' %>>Trial</option>
+        <option value="active" <%= (typeof query !== 'undefined' && query && query.status === 'active') ? 'selected' : '' %>>Ativo</option>
+        <option value="past_due" <%= (typeof query !== 'undefined' && query && query.status === 'past_due') ? 'selected' : '' %>>Inadimplente</option>
+        <option value="canceled" <%= (typeof query !== 'undefined' && query && query.status === 'canceled') ? 'selected' : '' %>>Cancelado</option>
+        <option value="expired" <%= (typeof query !== 'undefined' && query && query.status === 'expired') ? 'selected' : '' %>>Expirado</option>
+      </select>
+      <select name="plan" class="form-control" style="width: auto; min-width: 150px;">
+        <option value="">Todos os planos</option>
+        <% if (typeof plans !== 'undefined' && plans.length > 0) { %>
+          <% plans.forEach(function(plan) { %>
+            <option value="<%= plan.slug %>" <%= (typeof query !== 'undefined' && query && query.plan == plan.slug) ? 'selected' : '' %>><%= plan.name %></option>
+          <% }); %>
+        <% } %>
+      </select>
+      <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Filtrar</button>
+      <a href="/master/assinaturas" class="btn btn-outline btn-sm">Limpar</a>
+    </form>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+  <% if (typeof subscriptions === 'undefined' || subscriptions.length === 0) { %>
+    <div class="empty-state" style="padding: 60px 20px; text-align: center;">
+      <i class="fas fa-credit-card" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 12px;"></i>
+      <p class="text-secondary">Nenhuma assinatura encontrada.</p>
+    </div>
+  <% } else { %>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Organizacao</th>
+            <th>Plano</th>
+            <th>Ciclo</th>
+            <th>Status</th>
+            <th>Inicio</th>
+            <th>Fim</th>
+            <th>Gateway</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% subscriptions.forEach(function(sub) { %>
+            <tr>
+              <td class="font-medium"><%= sub.orgName || '-' %></td>
+              <td><span class="badge badge-info"><%= sub.planName || '-' %></span></td>
+              <td class="text-sm"><%= sub.cycle === 'monthly' ? 'Mensal' : sub.cycle === 'yearly' ? 'Anual' : (sub.cycle || '-') %></td>
+              <td>
+                <% if (sub.status === 'trial') { %>
+                  <span class="badge badge-info">Trial</span>
+                <% } else if (sub.status === 'active') { %>
+                  <span class="badge badge-success">Ativo</span>
+                <% } else if (sub.status === 'past_due') { %>
+                  <span class="badge badge-warning">Inadimplente</span>
+                <% } else if (sub.status === 'canceled') { %>
+                  <span class="badge badge-danger">Cancelado</span>
+                <% } else if (sub.status === 'expired') { %>
+                  <span class="badge badge-danger">Expirado</span>
+                <% } else { %>
+                  <span class="badge badge-neutral"><%= sub.status || 'N/A' %></span>
+                <% } %>
+              </td>
+              <td class="text-sm text-secondary"><%= sub.startDate ? new Date(sub.startDate).toLocaleDateString('pt-BR') : '-' %></td>
+              <td class="text-sm text-secondary"><%= sub.endDate ? new Date(sub.endDate).toLocaleDateString('pt-BR') : '-' %></td>
+              <td class="text-sm"><%= sub.gateway || '-' %></td>
+              <td class="text-right">
+                <div class="flex gap-1 justify-end">
+                  <% if (sub.orgId) { %>
+                    <a href="/master/organizacoes/<%= sub.orgId %>" class="btn btn-outline btn-sm" title="Ver organizacao"><i class="fas fa-eye"></i></a>
+                  <% } %>
+                </div>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>

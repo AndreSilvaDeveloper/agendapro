@@ -1,455 +1,208 @@
-<!DOCTYPE html>
-<html lang="pt-BR" class="h-full" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <title>Dashboard – <%= (typeof org !== 'undefined') ? org.name : 'AgendaPro' %></title>    
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<%- include('partials/head', { pageTitle: 'Dashboard' }) %>
+<%- include('partials/sidebar', { activePage: 'dashboard' }) %>
 
-    <script>
-        // Inicialização imediata do tema para evitar "piscar" na tela
-        (function() {
-            const THEMES = ["light", "medium-dark", "deep-dark"];
-            const savedTheme = localStorage.getItem('theme');
-            let initialTheme = 'light';
-            if (savedTheme && THEMES.includes(savedTheme)) {
-                initialTheme = savedTheme;
-            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                initialTheme = 'deep-dark';
-            }
-            document.documentElement.setAttribute('data-theme', initialTheme);
-        })();
-    </script>
-
-    <style>
-        /* === CORES E TEMAS === */
-        :root, [data-theme="light"] {
-            --color-gold-light: #FFD700; --color-gold-dark: #B8860B; --color-gold-accent: #DAA520;
-            --color-bg-primary: #f3f4f6; --color-bg-secondary: #ffffff; --color-bg-muted: #f9fafb;     
-            --color-text-primary: #1f2937; --color-text-secondary: #4b5563; --color-text-accent: #B8860B; --color-border: #e5e7eb;
-        }
-        [data-theme="medium-dark"] {
-            --color-gold-light: #FFD700; --color-gold-dark: #e0aa1f; --color-gold-accent: #DAA520;
-            --color-bg-primary: #1f2937; --color-bg-secondary: #374151; --color-bg-muted: #4b5563;     
-            --color-text-primary: #f9fafb; --color-text-secondary: #d1d5db; --color-text-accent: #e0aa1f; --color-border: #4b5563;
-        }
-        [data-theme="deep-dark"] {
-            --color-gold-light: #FFD700; --color-gold-dark: #e0aa1f; --color-gold-accent: #DAA520;
-            --color-bg-primary: #0a0e14; --color-bg-secondary: #1f2937; --color-bg-muted: #374151;
-            --color-text-primary: #f9fafb; --color-text-secondary: #d1d5db; --color-text-accent: #e0aa1f; --color-border: #4b5563;
-        }
-
-        body { 
-            background-color: var(--color-bg-primary); 
-            color: var(--color-text-primary);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow-y: auto; 
-            overflow-x: hidden;
-        }
-        
-        /* Mapeamento Tailwind para Variáveis CSS */
-        .bg-white { background-color: var(--color-bg-secondary) !important; }
-        .bg-gray-50, .bg-gray-100 { background-color: var(--color-bg-muted) !important; }
-        .border-gray-200 { border-color: var(--color-border) !important; }
-        .text-gray-800, .text-gray-900 { color: var(--color-text-primary) !important; }
-        .text-gray-500, .text-gray-600 { color: var(--color-text-secondary) !important; }
-        
-        .text-gold { color: var(--color-text-accent); }
-        .bg-gold { background-color: var(--color-gold-accent); }
-        .text-gradient-gold {
-            background: linear-gradient(90deg, #B8860B, #FFD700, #DAA520);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
-        .bg-shine-gold {
-            position: relative; overflow: hidden;
-            background: linear-gradient(135deg, var(--color-gold-accent), var(--color-gold-dark));
-        }
-        
-        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-        .custom-scroll::-webkit-scrollbar-thumb { background-color: var(--color-border); border-radius: 10px; }
-
-        .appointment-card { transition: all 0.2s ease; border-left: 4px solid transparent; }
-        .appointment-card:hover { border-left-color: var(--color-gold-dark); background-color: var(--color-bg-primary); transform: translateX(2px); }
-
-        .nav-link:hover { color: var(--color-text-accent); }
-    </style>
-</head>
-<body class="flex flex-col min-h-screen">
-    
-    <% if (locals.originalAdminSession) { %>
-      <div class="bg-yellow-400 text-yellow-900 text-center text-xs py-2 font-bold sticky top-0 z-[60]">
-        <i class="fas fa-user-secret"></i> Modo Admin: Visualizando <%= (typeof org !== 'undefined') ? org.name : '' %>
-        <a href="/master/stop-impersonation" class="underline ml-2">Sair</a>
+<!-- Stats -->
+<div class="grid grid-4 mb-6">
+  <div class="stat-card">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="stat-label">Receita hoje</div>
+        <div class="stat-value text-success">R$ <%= (receitaHoje || 0).toFixed(2).replace('.', ',') %></div>
       </div>
-    <% } %>
-
-    <header class="bg-white shadow-md border-b border-gray-200 sticky top-0 z-50">
-        <div class="w-full px-4 h-16 flex items-center justify-between">
-            <div class="flex items-center shrink-0 mr-6">
-                <h1 class="text-xl font-bold tracking-tight">Agenda<span class="text-gradient-gold">Pro</span></h1>
-            </div>
-
-            <nav class="hidden xl:flex items-center space-x-5 text-sm font-medium overflow-x-auto custom-scroll flex-1 px-2 py-1">
-                <a href="/admin/whatsapp" class="nav-link whitespace-nowrap"><i class="fab fa-whatsapp text-green-500 mr-1"></i>Conectar WhatsApp</a>
-                <a href="/agendamentos-por-dia" class="nav-link whitespace-nowrap"><i class="fas fa-calendar-alt mr-1"></i>Agenda</a>
-                <a href="/clients" class="nav-link whitespace-nowrap"><i class="fas fa-users mr-1"></i>Clientes</a>
-                <a href="/admin/servicos" class="nav-link whitespace-nowrap"><i class="fas fa-cut mr-1"></i>Serviços</a>
-                <a href="/admin/equipe" class="nav-link whitespace-nowrap"><i class="fas fa-users-cog mr-1"></i>Equipe</a>
-                <a href="/financeiro" class="nav-link whitespace-nowrap"><i class="fas fa-dollar-sign mr-1"></i>Financeiro</a>
-                <a href="/balanco" class="nav-link whitespace-nowrap"><i class="fas fa-balance-scale mr-1"></i>Balanço</a>
-                <a href="/expenses" class="nav-link whitespace-nowrap"><i class="fas fa-receipt mr-1"></i>Despesas</a>
-            </nav>
-
-            <div class="hidden xl:flex items-center space-x-3 ml-4 shrink-0">
-                <button id="theme-toggle-btn" class="p-2 rounded-full hover:bg-gray-100 transition text-gray-600">
-                    <i id="theme-icon-sun" class="fas fa-sun"></i> 
-                    <i id="theme-icon-moon" class="fas fa-moon hidden"></i> 
-                </button>
-                <div class="h-6 w-px bg-gray-300"></div>
-                <a href="/logout" class="text-red-600 hover:text-red-700 font-semibold text-sm">Sair</a>
-            </div>
-
-            <button id="menu-button" class="xl:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 text-xl">
-                <i class="fas fa-bars"></i>
-            </button>
-        </div>
-    </header>
-
-    <div id="mobile-menu" class="hidden fixed inset-0 z-50 flex flex-col xl:hidden" style="background-color: var(--color-bg-primary);">
-        <div class="flex justify-between items-center p-4 border-b border-gray-200 bg-white">
-            <span class="font-bold text-lg">Menu Principal</span>
-            <button id="close-menu" class="text-2xl text-red-500 hover:text-red-700"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="overflow-y-auto flex-1 p-4 space-y-2">
-            <a href="/admin/whatsapp" class="block p-3 rounded-lg bg-green-50 text-green-700 font-bold border border-green-200 mb-4">
-                <i class="fab fa-whatsapp mr-2"></i> Conectar WhatsApp
-            </a>
-            <div class="grid grid-cols-2 gap-2 mb-4">
-                <a href="/agendamentos-por-dia" class="flex flex-col items-center p-3 bg-white rounded shadow-sm border border-gray-200">
-                    <i class="fas fa-calendar-alt text-2xl text-gold mb-1"></i> <span class="text-xs font-bold">Agenda</span>
-                </a>
-                <a href="/clients" class="flex flex-col items-center p-3 bg-white rounded shadow-sm border border-gray-200">
-                    <i class="fas fa-users text-2xl text-blue-500 mb-1"></i> <span class="text-xs font-bold">Clientes</span>
-                </a>
-                <a href="/financeiro" class="flex flex-col items-center p-3 bg-white rounded shadow-sm border border-gray-200">
-                    <i class="fas fa-dollar-sign text-2xl text-green-600 mb-1"></i> <span class="text-xs font-bold">Financeiro</span>
-                </a>
-                <a href="/admin/servicos" class="flex flex-col items-center p-3 bg-white rounded shadow-sm border border-gray-200">
-                    <i class="fas fa-cut text-2xl text-gray-600 mb-1"></i> <span class="text-xs font-bold">Serviços</span>
-                </a>
-            </div>
-            <p class="text-xs font-bold text-gray-500 uppercase mt-4 mb-2">Outras Opções</p>
-            <a href="/admin/equipe" class="block p-3 rounded bg-white border border-gray-200 font-medium"><i class="fas fa-users-cog w-6 text-center text-gray-400"></i> Equipe</a>
-            <a href="/balanco" class="block p-3 rounded bg-white border border-gray-200 font-medium"><i class="fas fa-balance-scale w-6 text-center text-gray-400"></i> Balanço</a>
-            <a href="/expenses" class="block p-3 rounded bg-white border border-gray-200 font-medium"><i class="fas fa-receipt w-6 text-center text-gray-400"></i> Despesas</a>
-
-            <button id="theme-toggle-btn-mobile" class="w-full flex items-center justify-between p-3 rounded bg-gray-100 border border-gray-300 font-medium mt-6">
-                <span><i class="fas fa-adjust mr-2"></i> Alterar Tema</span>
-                <i id="theme-icon-indicator-mobile" class="fas fa-sun text-orange-500"></i>
-            </button>
-            <a href="/logout" class="block text-center p-3 text-red-600 font-bold mt-4 border border-red-100 rounded bg-red-50">Sair do Sistema</a>
-        </div>
+      <div class="stat-icon green"><i class="fas fa-dollar-sign"></i></div>
     </div>
+  </div>
 
-    <main class="flex-1 w-full max-w-7xl mx-auto p-3 lg:p-6 pb-20">
-        
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
-            
-            <div class="lg:col-span-8 bg-shine-gold rounded-xl p-6 text-white shadow-lg relative overflow-hidden flex flex-col justify-center min-h-[120px]">
-                <div class="relative z-10">
-                    <h2 class="text-2xl font-bold">Olá, <%= (typeof org !== 'undefined') ? org.name : 'Barber' %>!</h2>
-                    <p class="text-white text-opacity-90"><%= new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }) %></p>
-                </div>
-                <i class="fas fa-crown absolute right-4 bottom-[-10px] text-6xl opacity-20 rotate-12"></i>
+  <div class="stat-card">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="stat-label">Receita do mes</div>
+        <div class="stat-value" style="color: var(--info);">R$ <%= (receitaMes || 0).toFixed(2).replace('.', ',') %></div>
+      </div>
+      <div class="stat-icon blue"><i class="fas fa-chart-bar"></i></div>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="stat-label">Hoje</div>
+        <div class="stat-value"><%= proximosHoje ? proximosHoje.length : 0 %></div>
+      </div>
+      <div class="stat-icon purple"><i class="fas fa-calendar-day"></i></div>
+    </div>
+    <div class="text-xs text-secondary mt-2">agendamentos</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="stat-label">Amanha</div>
+        <div class="stat-value"><%= proximosAmanha ? proximosAmanha.length : 0 %></div>
+      </div>
+      <div class="stat-icon yellow"><i class="fas fa-calendar"></i></div>
+    </div>
+    <div class="text-xs text-secondary mt-2">agendamentos</div>
+  </div>
+</div>
+
+<!-- Link de agendamento -->
+<% if (typeof org !== 'undefined' && org && org.slug) { %>
+<div class="card mb-6">
+  <div class="card-body compact flex items-center justify-between gap-3" style="flex-wrap: wrap;">
+    <div class="flex items-center gap-2 text-sm">
+      <i class="fas fa-link text-primary-color"></i>
+      <span class="font-medium">Link de agendamento:</span>
+      <input type="text" readonly id="publicLinkInput" data-path="/salao/<%= org.slug %>"
+             value="Carregando..." class="form-control" style="max-width: 320px; padding: 5px 10px; font-size: 0.8rem;">
+    </div>
+    <div class="flex gap-2">
+      <button onclick="copyLink()" class="btn btn-outline btn-sm"><i class="fas fa-copy"></i> Copiar</button>
+      <button onclick="openDynamicLink()" class="btn btn-primary btn-sm"><i class="fas fa-external-link-alt"></i> Abrir</button>
+    </div>
+  </div>
+</div>
+<% } %>
+
+<!-- Hoje + Amanha -->
+<div class="grid" style="grid-template-columns: 1fr 1fr;">
+  <!-- Hoje -->
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fas fa-calendar-day" style="color: var(--primary); margin-right: 8px;"></i> Hoje</h3>
+      <span class="badge badge-info"><%= proximosHoje ? proximosHoje.length : 0 %></span>
+    </div>
+    <div class="card-body custom-scroll" style="max-height: 500px; overflow-y: auto; padding: 8px;">
+      <% if (!proximosHoje || proximosHoje.length === 0) { %>
+        <div class="empty-state">
+          <i class="fas fa-check-circle"></i>
+          <p>Agenda livre hoje!</p>
+        </div>
+      <% } else { %>
+        <div class="flex flex-col gap-2">
+          <% proximosHoje.forEach(function(item) { %>
+            <a href="/client/<%= item.clientId %>" class="appt-card" style="text-decoration: none; color: inherit;">
+              <div class="appt-time"><%= item.time %></div>
+              <div class="flex-1 min-h-0">
+                <div class="font-semibold truncate"><%= item.name %></div>
+                <div class="text-xs text-secondary truncate"><i class="fas fa-cut" style="margin-right: 4px;"></i><%= item.service %></div>
+              </div>
+              <i class="fas fa-chevron-right text-muted"></i>
+            </a>
+          <% }); %>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Amanha -->
+  <div class="card">
+    <div class="card-header">
+      <h3><i class="fas fa-sun" style="color: var(--warning); margin-right: 8px;"></i> Amanha</h3>
+      <span class="badge badge-neutral"><%= proximosAmanha ? proximosAmanha.length : 0 %></span>
+    </div>
+    <div class="card-body custom-scroll" style="max-height: 500px; overflow-y: auto; padding: 8px;">
+      <% if (!proximosAmanha || proximosAmanha.length === 0) { %>
+        <div class="empty-state">
+          <p>Nada agendado.</p>
+        </div>
+      <% } else { %>
+        <div class="flex flex-col gap-2">
+          <% proximosAmanha.forEach(function(item) { %>
+            <div class="appt-card" style="opacity: 0.8;">
+              <div class="appt-time" style="color: var(--text-secondary);"><%= item.time %></div>
+              <div class="flex-1 min-h-0">
+                <div class="font-medium truncate text-sm"><%= item.name %></div>
+                <div class="text-xs text-secondary truncate"><%= item.service %></div>
+              </div>
             </div>
+          <% }); %>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
 
-            <div class="lg:col-span-4 bg-white rounded-xl p-4 border border-gray-200 shadow-sm flex flex-col justify-center">
-                <div class="flex justify-between items-center mb-2">
-                    <span class="text-xs font-bold text-gray-500 uppercase flex items-center">
-                        <i class="fas fa-link mr-1"></i> Link de Agendamento
-                    </span>
-                    
-                    <button onclick="openDynamicLink()" 
-                       class="text-xs font-bold text-white bg-blue-500 hover:bg-blue-600 px-4 py-1.5 rounded shadow-sm transition-colors flex items-center cursor-pointer">
-                        Abrir <i class="fas fa-external-link-alt ml-2"></i>
-                    </button>
-                </div>
-                
-                <div class="flex items-center bg-gray-50 rounded border border-gray-300 p-2">
-                    <input type="text" readonly 
-                           data-path="/salao/<%= org.slug %>"
-                           value="Carregando..." 
-                           class="bg-transparent text-sm text-gray-600 w-full outline-none min-w-0"
-                           id="publicLinkInput">
-                    
-                    <button onclick="copyLink()" class="ml-2 text-gold hover:text-yellow-600 p-2" title="Copiar">
-                        <i class="far fa-copy text-lg"></i>
-                    </button>
-                </div>
-            </div>
+<!-- Hidden data for pending alerts -->
+<div id="dashboard-data" class="hidden" data-pending='<%- JSON.stringify(pendingAppointments || []) %>'></div>
 
-            <div class="lg:col-span-3 flex flex-col gap-4 order-last lg:order-none">
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase mb-3 tracking-wider">Ações Rápidas</h3>
-                    <div class="grid grid-cols-2 lg:grid-cols-1 gap-3">
-                        <a href="/agendamentos-por-dia" class="flex items-center justify-center lg:justify-start p-3 rounded-lg bg-yellow-50 text-yellow-800 hover:bg-yellow-100 transition font-semibold text-sm border border-yellow-100">
-                            <i class="fas fa-plus-circle text-lg mr-2"></i> Agendamento
-                        </a>
-                        <a href="/clients" class="flex items-center justify-center lg:justify-start p-3 rounded-lg bg-blue-50 text-blue-800 hover:bg-blue-100 transition font-semibold text-sm border border-blue-100">
-                            <i class="fas fa-user-plus text-lg mr-2"></i> Novo Cliente
-                        </a>
-                    </div>
-                </div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+  // Link dinmico
+  document.addEventListener('DOMContentLoaded', function() {
+    var input = document.getElementById('publicLinkInput');
+    if (input) {
+      input.value = window.location.origin + input.getAttribute('data-path');
+    }
+  });
 
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-bold text-gray-400 uppercase">Receita Hoje</span>
-                        <i class="fas fa-coins text-emerald-500"></i>
-                    </div>
-                    <p class="text-2xl font-bold text-emerald-600">R$ <%= (receitaHoje || 0).toFixed(2).replace('.', ',') %></p>
-                    <div class="h-px bg-gray-100 my-3"></div>
-                    <div class="flex justify-between items-center text-sm">
-                        <span class="text-gray-500">Mês:</span>
-                        <span class="font-bold text-blue-600">R$ <%= (receitaMes || 0).toFixed(2).replace('.', ',') %></span>
-                    </div>
-                </div>
-            </div>
+  function openDynamicLink() {
+    var input = document.getElementById('publicLinkInput');
+    if (input && input.value) window.open(input.value, '_blank') || (window.location.href = input.value);
+  }
 
-            <div class="lg:col-span-5 flex flex-col h-full">
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm flex-1 flex flex-col overflow-hidden">
-                    <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                        <h3 class="font-bold text-gray-800 flex items-center">
-                            <i class="fas fa-calendar-day text-gold mr-2"></i> Hoje
-                        </h3>
-                        <span class="bg-gold text-white text-xs font-bold px-2 py-0.5 rounded-full"><%= proximosHoje ? proximosHoje.length : 0 %></span>
-                    </div>
-                    
-                    <div class="p-3 overflow-y-auto custom-scroll flex-1 max-h-[500px] lg:max-h-none">
-                        <% if (!proximosHoje || proximosHoje.length === 0) { %>
-                            <div class="flex flex-col items-center justify-center h-40 text-gray-400">
-                                <i class="fas fa-check-circle text-4xl mb-2 opacity-20"></i>
-                                <p class="text-sm">Agenda livre hoje!</p>
-                            </div>
-                        <% } else { %>
-                            <div class="space-y-3">
-                                <% proximosHoje.forEach((item) => { %>
-                                    <div class="appointment-card bg-gray-50 rounded-lg p-3 border border-gray-100 shadow-sm flex flex-col sm:flex-row sm:items-center gap-3 relative">
-                                        <div class="flex items-center justify-between sm:justify-start w-full sm:w-auto">
-                                            <div class="bg-white px-3 py-1 rounded border border-gray-200 font-bold text-gray-800 text-lg">
-                                                <%= item.time %>
-                                            </div>
-                                            <a href="/client/<%= item.clientId %>" class="sm:hidden text-gray-400">
-                                                <i class="fas fa-chevron-right"></i>
-                                            </a>
-                                        </div>
-                                        <div class="flex-1 min-w-0">
-                                            <div class="font-bold text-gray-800 text-base truncate"><a href="/client/<%= item.clientId %>" class="hover:underline"><%= item.name %></a></div>
-                                            <div class="text-sm text-gray-500 truncate mt-1 flex items-center">
-                                                <i class="fas fa-cut text-xs mr-1 opacity-70"></i> <%= item.service %>
-                                            </div>
-                                        </div>
-                                        <a href="/client/<%= item.clientId %>" class="hidden sm:block text-gray-400 hover:text-gold transition px-2">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                    </div>
-                                <% }); %>
-                            </div>
-                        <% } %>
-                    </div>
-                </div>
-            </div>
+  function copyLink() {
+    var input = document.getElementById('publicLinkInput');
+    if (!input) return;
+    input.select();
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(input.value);
+    } else {
+      document.execCommand('copy');
+    }
+    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Link copiado!', showConfirmButton: false, timer: 1500 });
+  }
 
-            <div class="lg:col-span-4 flex flex-col h-full">
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm flex-1 flex flex-col overflow-hidden">
-                    <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                        <h3 class="font-bold text-gray-800 flex items-center">
-                            <i class="fas fa-sun text-gray-400 mr-2"></i> Amanhã
-                        </h3>
-                        <span class="bg-gray-200 text-gray-600 text-xs font-bold px-2 py-0.5 rounded-full"><%= proximosAmanha ? proximosAmanha.length : 0 %></span>
-                    </div>
+  // Pendentes
+  document.addEventListener('DOMContentLoaded', function() {
+    var dataEl = document.getElementById('dashboard-data');
+    if (!dataEl) return;
+    try {
+      var pending = JSON.parse(dataEl.dataset.pending || '[]');
+      if (pending.length === 0) return;
 
-                    <div class="p-3 overflow-y-auto custom-scroll flex-1 max-h-[500px] lg:max-h-none">
-                        <% if (!proximosAmanha || proximosAmanha.length === 0) { %>
-                            <div class="flex flex-col items-center justify-center h-40 text-gray-400">
-                                <p class="text-sm italic">Nada agendado.</p>
-                            </div>
-                        <% } else { %>
-                            <div class="space-y-2">
-                                <% proximosAmanha.forEach((item) => { %>
-                                    <div class="bg-gray-50 rounded p-2 border border-gray-100 flex items-center gap-3 opacity-80 hover:opacity-100">
-                                        <span class="font-bold text-gray-500 text-sm w-12 text-center"><%= item.time %></span>
-                                        <div class="min-w-0 flex-1">
-                                            <div class="font-semibold text-gray-700 truncate text-sm"><%= item.name %></div>
-                                            <div class="text-xs text-gray-400 truncate"><%= item.service %></div>
-                                        </div>
-                                    </div>
-                                <% }); %>
-                            </div>
-                        <% } %>
-                    </div>
-                </div>
-            </div>
+      var html = '<div style="text-align:left; max-height:300px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding:4px;">';
+      pending.forEach(function(appt) {
+        var d = new Date(appt.date);
+        var dateStr = d.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
+        var timeStr = appt.time || d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+        var cName = appt.Client ? appt.Client.name : 'Cliente';
+        var sName = (appt.AppointmentServices && appt.AppointmentServices[0]) ? appt.AppointmentServices[0].name : 'Servico';
 
-        </div> 
-        
-        <div id="dashboard-data" class="hidden" data-pending='<%- JSON.stringify(pendingAppointments || []) %>'></div>
-    </main>
+        html += '<div style="padding:12px; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-card);">';
+        html += '<div style="display:flex; justify-content:space-between; margin-bottom:8px;">';
+        html += '<div><strong>' + cName + '</strong><br><small style="color:var(--text-secondary)">' + sName + '</small></div>';
+        html += '<span class="badge badge-warning">' + dateStr + ' - ' + timeStr + '</span>';
+        html += '</div>';
+        html += '<div style="display:flex; gap:8px;">';
+        html += '<form action="/admin/appointment/' + appt.id + '/confirm" method="POST" style="flex:1;margin:0;">';
+        html += '<button class="btn btn-success btn-sm btn-block"><i class="fas fa-check"></i> Aceitar</button></form>';
+        html += '<form action="/admin/appointment/' + appt.id + '/cancel-by-admin" method="POST" style="flex:1;margin:0;" onsubmit="return promptCancelReason(this)">';
+        html += '<button class="btn btn-danger btn-sm btn-block"><i class="fas fa-times"></i> Recusar</button></form>';
+        html += '</div></div>';
+      });
+      html += '</div>';
 
-    <script>
-        // === CONTROLE DE TEMA ===
-        const htmlEl = document.documentElement;
-        function updateIcons(theme) {
-            const isLight = theme === 'light';
-            document.getElementById('theme-icon-sun').classList.toggle('hidden', !isLight);
-            document.getElementById('theme-icon-moon').classList.toggle('hidden', isLight);
-            
-            const mobIcon = document.getElementById('theme-icon-indicator-mobile');
-            if(mobIcon) mobIcon.className = isLight ? "fas fa-sun text-orange-500" : "fas fa-moon text-blue-400";
-        }
-        function toggleTheme() {
-            const themes = ["light", "medium-dark", "deep-dark"];
-            const current = htmlEl.getAttribute('data-theme') || 'light';
-            const next = themes[(themes.indexOf(current) + 1) % themes.length];
-            htmlEl.setAttribute('data-theme', next);
-            localStorage.setItem('theme', next);
-            updateIcons(next);
-        }
-        document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
-        document.getElementById('theme-toggle-btn-mobile').addEventListener('click', toggleTheme);
-        updateIcons(localStorage.getItem('theme') || 'light');
+      Swal.fire({
+        title: pending.length + ' agendamento(s) pendente(s)',
+        html: html,
+        showConfirmButton: false,
+        showCloseButton: true,
+        width: '420px',
+        background: 'var(--bg-card)',
+        color: 'var(--text-primary)'
+      });
+    } catch(e) { console.error(e); }
+  });
 
-        // === MENU MOBILE ===
-        const menuBtn = document.getElementById('menu-button');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const closeMenu = document.getElementById('close-menu');
-        function toggleMenu(show) {
-            if(show) { mobileMenu.classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
-            else { mobileMenu.classList.add('hidden'); document.body.style.overflow = ''; }
-        }
-        if(menuBtn) menuBtn.addEventListener('click', () => toggleMenu(true));
-        if(closeMenu) closeMenu.addEventListener('click', () => toggleMenu(false));
+  function promptCancelReason(form) {
+    var r = prompt('Motivo do cancelamento:');
+    if (!r || r.trim() === '') return false;
+    var i = document.createElement('input');
+    i.type = 'hidden'; i.name = 'cancellationReason'; i.value = r;
+    form.appendChild(i);
+    return true;
+  }
+</script>
 
-        // =========================================================================
-        // === SOLUÇÃO DEFINITIVA PARA LINK E DNS (CORRIGIDO PARA O SEU ERRO) ===
-        // =========================================================================
-        
-        // 1. Ao carregar a página, calcula o domínio atual (seja localhost ou render)
-        document.addEventListener('DOMContentLoaded', function() {
-            const input = document.getElementById('publicLinkInput');
-            if(input) {
-                // Recupera o final do link salvo no data-path
-                const path = input.getAttribute('data-path');
-                // Pega o domínio atual do navegador (ex: http://localhost:3003 ou https://seuapp.onrender.com)
-                const currentOrigin = window.location.origin;
-                // Atualiza o input com o link completo correto
-                input.value = currentOrigin + path;
-            }
-        });
-
-        // 2. Função para abrir o link (Funciona no Mobile e burla bloqueio de pop-up)
-        function openDynamicLink() {
-            const input = document.getElementById('publicLinkInput');
-            if(input && input.value) {
-                const url = input.value;
-                // Tenta abrir em nova aba
-                const newWindow = window.open(url, '_blank');
-                // Se falhar (bloqueador de pop-up), força abertura na mesma aba
-                if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
-                    window.location.href = url;
-                }
-            }
-        }
-
-        // 3. Função de Copiar
-        function copyLink() {
-            const copyText = document.getElementById("publicLinkInput");
-            copyText.select();
-            copyText.setSelectionRange(0, 99999);
-            
-            if (navigator.clipboard && window.isSecureContext) {
-                 navigator.clipboard.writeText(copyText.value).then(showCheckIcon);
-            } else {
-                 document.execCommand('copy');
-                 showCheckIcon();
-            }
-        }
-        function showCheckIcon() {
-            const btn = document.querySelector('button[title="Copiar"]');
-            const oldContent = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-check text-green-600"></i>';
-            setTimeout(() => btn.innerHTML = oldContent, 2000);
-        }
-
-        // =========================================================================
-        // === ALERTAS DE PENDÊNCIA (ESTILO ANTIGO RESTAURADO) ===
-        // =========================================================================
-        
-        function promptCancelReason(form) {
-            const r = prompt("Motivo do cancelamento:");
-            if(!r || r.trim() === "") return false;
-            const i = document.createElement('input'); i.type='hidden'; i.name='cancellationReason'; i.value=r; form.appendChild(i);
-            return true;
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const dataEl = document.getElementById('dashboard-data');
-            if(!dataEl) return;
-
-            try {
-                const pending = JSON.parse(dataEl.dataset.pending || '[]');
-                if (pending.length > 0) {
-                    let html = '<div class="text-left text-sm max-h-60 overflow-y-auto space-y-3 p-1 custom-scroll">';
-                    pending.forEach(appt => {
-                        const dateObj = new Date(appt.date);
-                        const dateStr = dateObj.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
-                        const timeStr = appt.time || dateObj.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-                        const cName = appt.Client ? appt.Client.name : 'Cliente';
-                        const sName = (appt.AppointmentServices && appt.AppointmentServices[0]) ? appt.AppointmentServices[0].name : 'Serviço';
-                        const pId = appt.id;
-                        
-                        html += `
-                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-sm">
-                            <div class="flex justify-between items-start mb-2">
-                                <div>
-                                    <strong class="text-gray-800 block">${cName}</strong> 
-                                    <span class="text-xs text-gray-500">${sName}</span>
-                                </div>
-                                <div class="text-xs font-bold text-yellow-700 bg-yellow-100 px-2 py-1 rounded">
-                                    ${dateStr} - ${timeStr}
-                                </div>
-                            </div>
-                            <div class="flex gap-2">
-                                <form action="/admin/appointment/${pId}/confirm" method="POST" class="flex-1">
-                                    <button class="w-full bg-green-100 text-green-700 py-1.5 rounded text-xs hover:bg-green-200 font-bold transition flex items-center justify-center">
-                                        <i class="fas fa-check mr-1"></i> Aceitar
-                                    </button>
-                                </form>
-                                <form action="/admin/appointment/${pId}/cancel-by-admin" method="POST" class="flex-1" onsubmit="return promptCancelReason(this)">
-                                    <button class="w-full bg-red-100 text-red-700 py-1.5 rounded text-xs hover:bg-red-200 font-bold transition flex items-center justify-center">
-                                        <i class="fas fa-times mr-1"></i> Recusar
-                                    </button>
-                                </form>
-                            </div>
-                        </div>`;
-                    });
-                    html += '</div>';
-                    
-                    Swal.fire({
-                        title: `<div class="flex items-center justify-center gap-2 text-lg text-yellow-600 font-bold"><i class="fas fa-bell"></i> ${pending.length} Pendente(s)</div>`,
-                        html: html,
-                        showConfirmButton: false,
-                        showCloseButton: true,
-                        width: '400px',
-                        padding: '1em',
-                        background: 'var(--color-bg-secondary)',
-                        color: 'var(--color-text-primary)'
-                    });
-                }
-            } catch(e) { console.error(e); }
-        });
-    </script>
-</body>
-</html>
+<%- include('partials/footer') %>

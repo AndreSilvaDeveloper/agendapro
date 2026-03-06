@@ -49,7 +49,13 @@ const User = sequelize.define('User', {
     allowNull: false,
   },
 
-  // 5. Role (Papel)
+  // 5. Telefone do usuario (para alertas de assinatura etc)
+  phone: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+
+  // 6. Role (Papel)
   role: {
     type: DataTypes.ENUM('owner', 'staff', 'superadmin'), // <-- MUDANÇA AQUI
     allowNull: false,

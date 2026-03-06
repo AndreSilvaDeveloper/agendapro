@@ -1,0 +1,202 @@
+<%- include('../partials/head', { pageTitle: org.name + ' - Master' }) %>
+<%- include('../partials/master-sidebar', { path: 'organizacoes' }) %>
+
+<div class="flex items-center gap-3 mb-6">
+  <a href="/master/organizacoes" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i></a>
+  <h1 style="margin: 0;"><%= org.name %></h1>
+  <span class="badge badge-neutral text-sm">ID: <%= org.id %></span>
+</div>
+
+<!-- Stats -->
+<div class="grid grid-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+  <div class="stat-card">
+    <div class="stat-label">Usuarios</div>
+    <div class="stat-value" style="color: var(--primary);"><%= stats.totalUsers %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Clientes</div>
+    <div class="stat-value text-success"><%= stats.totalClients %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Profissionais</div>
+    <div class="stat-value" style="color: var(--info);"><%= stats.totalStaff %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Servicos</div>
+    <div class="stat-value" style="color: var(--warning);"><%= stats.totalServices %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Agendamentos</div>
+    <div class="stat-value"><%= stats.totalAppointments %></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Confirmados</div>
+    <div class="stat-value text-success"><%= stats.confirmedAppointments %></div>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns: 1fr 1fr; gap: 24px;">
+  <!-- Info da Org -->
+  <div class="card">
+    <div class="card-header"><h3>Informacoes</h3></div>
+    <div class="card-body">
+      <div class="flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <span class="text-secondary">Nome</span>
+          <span class="font-medium"><%= org.name %></span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-secondary">Slug</span>
+          <span class="font-medium"><%= org.slug %></span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-secondary">Criado em</span>
+          <span class="font-medium"><%= new Date(org.createdAt).toLocaleDateString('pt-BR') %></span>
+        </div>
+      </div>
+    </div>
+    <div style="padding: 12px 20px; border-top: 1px solid var(--border-light);">
+      <a href="/master/impersonate/<%= org.id %>" class="btn btn-primary btn-sm btn-block">
+        <i class="fas fa-sign-in-alt"></i> Acessar como este salao
+      </a>
+    </div>
+  </div>
+
+  <!-- Assinatura -->
+  <div class="card">
+    <div class="card-header"><h3>Assinatura</h3></div>
+    <div class="card-body">
+      <% if (subscription) { %>
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <span class="text-secondary">Plano</span>
+            <span class="badge badge-info"><%= plan ? plan.name : '-' %></span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-secondary">Status</span>
+            <% if (subscription.status === 'trial') { %>
+              <span class="badge badge-info">Trial</span>
+            <% } else if (subscription.status === 'active') { %>
+              <span class="badge badge-success">Ativo</span>
+            <% } else if (subscription.status === 'past_due') { %>
+              <span class="badge badge-warning">Inadimplente</span>
+            <% } else if (subscription.status === 'canceled') { %>
+              <span class="badge badge-danger">Cancelado</span>
+            <% } else { %>
+              <span class="badge badge-neutral"><%= subscription.status %></span>
+            <% } %>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-secondary">Ciclo</span>
+            <span class="font-medium"><%= subscription.billingCycle === 'yearly' ? 'Anual' : 'Mensal' %></span>
+          </div>
+          <% if (subscription.trialEndsAt) { %>
+            <div class="flex items-center justify-between">
+              <span class="text-secondary">Trial ate</span>
+              <span class="font-medium"><%= new Date(subscription.trialEndsAt).toLocaleDateString('pt-BR') %></span>
+            </div>
+          <% } %>
+          <% if (subscription.currentPeriodEnd) { %>
+            <div class="flex items-center justify-between">
+              <span class="text-secondary">Periodo ate</span>
+              <span class="font-medium"><%= new Date(subscription.currentPeriodEnd).toLocaleDateString('pt-BR') %></span>
+            </div>
+          <% } %>
+        </div>
+      <% } else { %>
+        <p class="text-secondary text-center" style="padding: 20px 0;">Sem assinatura</p>
+      <% } %>
+    </div>
+
+    <!-- Alterar plano -->
+    <div style="padding: 12px 20px; border-top: 1px solid var(--border-light);">
+      <form action="/master/subscription" method="POST">
+        <input type="hidden" name="orgId" value="<%= org.id %>">
+        <div class="flex flex-col gap-2">
+          <select name="planId" class="form-control">
+            <% plans.forEach(function(p) { %>
+              <option value="<%= p.id %>" <%= (subscription && subscription.planId == p.id) ? 'selected' : '' %>><%= p.name %> - R$ <%= parseFloat(p.price).toFixed(2).replace('.', ',') %>/mes</option>
+            <% }); %>
+          </select>
+          <div class="flex gap-2">
+            <select name="status" class="form-control" style="flex: 1;">
+              <option value="active" <%= (subscription && subscription.status === 'active') ? 'selected' : '' %>>Ativo</option>
+              <option value="trial" <%= (subscription && subscription.status === 'trial') ? 'selected' : '' %>>Trial</option>
+              <option value="canceled" <%= (subscription && subscription.status === 'canceled') ? 'selected' : '' %>>Cancelado</option>
+            </select>
+            <select name="billingCycle" class="form-control" style="flex: 1;">
+              <option value="monthly" <%= (subscription && subscription.billingCycle === 'monthly') ? 'selected' : '' %>>Mensal</option>
+              <option value="yearly" <%= (subscription && subscription.billingCycle === 'yearly') ? 'selected' : '' %>>Anual</option>
+            </select>
+          </div>
+          <select name="useGateway" class="form-control">
+            <option value="">Manual (sem gateway)</option>
+            <option value="asaas">Cobrar via Asaas</option>
+          </select>
+          <button type="submit" class="btn btn-primary btn-sm btn-block">
+            <i class="fas fa-save"></i> <%= subscription ? 'Alterar Plano' : 'Atribuir Plano' %>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Usuarios da Org -->
+<div class="card mt-4">
+  <div class="card-header"><h3>Usuarios</h3></div>
+  <% if (org.Users && org.Users.length > 0) { %>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Criado em</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% org.Users.forEach(function(user) { %>
+            <tr>
+              <td class="font-medium"><%= user.username %></td>
+              <td class="text-sm"><%= user.email %></td>
+              <td><span class="badge badge-neutral"><%= user.role %></span></td>
+              <td>
+                <% if (user.isBlocked) { %>
+                  <span class="badge badge-danger">Bloqueado</span>
+                <% } else { %>
+                  <span class="badge badge-success">Ativo</span>
+                <% } %>
+              </td>
+              <td class="text-sm text-secondary"><%= new Date(user.createdAt).toLocaleDateString('pt-BR') %></td>
+              <td class="text-right">
+                <% if (user.isBlocked) { %>
+                  <form action="/master/user/<%= user.id %>/unblock" method="POST" style="margin:0;">
+                    <button class="btn btn-success btn-sm"><i class="fas fa-unlock"></i></button>
+                  </form>
+                <% } else { %>
+                  <form action="/master/user/<%= user.id %>/block" method="POST" onsubmit="return confirm('Bloquear?')" style="margin:0;">
+                    <button class="btn btn-danger btn-sm"><i class="fas fa-ban"></i></button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } else { %>
+    <div class="card-body text-center text-secondary">Nenhum usuario.</div>
+  <% } %>
+</div>
+
+<style>
+  @media (max-width: 768px) {
+    .grid[style*="1fr 1fr"] { grid-template-columns: 1fr !important; }
+  }
+</style>
+
+<%- include('../partials/footer') %>

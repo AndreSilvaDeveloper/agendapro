@@ -1,0 +1,128 @@
+<%- include('../partials/head', { pageTitle: 'Financeiro - Master' }) %>
+<%- include('../partials/master-sidebar', { path: 'financeiro' }) %>
+
+<div class="flex items-center justify-between mb-6">
+  <h1>Financeiro</h1>
+  <form method="GET" action="/master/financeiro" class="flex items-center gap-2">
+    <input type="month" name="period" class="form-control" style="width: auto;"
+           value="<%= typeof query !== 'undefined' && query.period ? query.period : new Date().toISOString().slice(0,7) %>">
+    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i></button>
+  </form>
+</div>
+
+<!-- KPI Stats -->
+<div class="grid grid-4 mb-6">
+  <div class="stat-card">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="stat-label">MRR</div>
+        <div class="stat-value text-success">R$ <%= typeof stats !== 'undefined' ? stats.mrr : '0,00' %></div>
+      </div>
+      <div class="stat-icon green"><i class="fas fa-chart-line"></i></div>
+    </div>
+    <div class="text-xs text-secondary mt-2">Receita Recorrente Mensal</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="stat-label">ARR</div>
+        <div class="stat-value" style="color: var(--primary);">R$ <%= typeof stats !== 'undefined' ? stats.arr : '0,00' %></div>
+      </div>
+      <div class="stat-icon purple"><i class="fas fa-chart-bar"></i></div>
+    </div>
+    <div class="text-xs text-secondary mt-2">Receita Recorrente Anual</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="stat-label">Churn Rate</div>
+        <div class="stat-value" style="color: var(--danger);"><%= typeof stats !== 'undefined' ? stats.churnRate : '0' %>%</div>
+      </div>
+      <div class="stat-icon red"><i class="fas fa-user-minus"></i></div>
+    </div>
+    <div class="text-xs text-secondary mt-2">Taxa de cancelamento</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="stat-label">ARPU</div>
+        <div class="stat-value" style="color: var(--info);">R$ <%= typeof stats !== 'undefined' ? stats.arpu : '0,00' %></div>
+      </div>
+      <div class="stat-icon blue"><i class="fas fa-user-tag"></i></div>
+    </div>
+    <div class="text-xs text-secondary mt-2">Receita media por usuario</div>
+  </div>
+</div>
+
+<!-- Chart area -->
+<div class="card mb-6">
+  <div class="card-header">
+    <h3><i class="fas fa-chart-area" style="color: var(--primary); margin-right: 8px;"></i> Evolucao da Receita</h3>
+  </div>
+  <div class="card-body">
+    <div id="revenueChart" style="width: 100%; height: 300px; display: flex; align-items: center; justify-content: center; background: var(--bg-body); border-radius: var(--radius); border: 2px dashed var(--border-color);">
+      <div class="text-center text-secondary">
+        <i class="fas fa-chart-area" style="font-size: 2.5rem; opacity: 0.3; margin-bottom: 12px;"></i>
+        <p class="text-sm">Grafico de receita (Chart.js)</p>
+        <p class="text-xs text-muted">Integre Chart.js para visualizar a evolucao mensal</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Transactions -->
+<div class="card">
+  <div class="card-header">
+    <h3><i class="fas fa-receipt" style="color: var(--warning); margin-right: 8px;"></i> Transacoes</h3>
+  </div>
+  <% if (typeof transactions === 'undefined' || transactions.length === 0) { %>
+    <div class="empty-state" style="padding: 40px 20px; text-align: center;">
+      <i class="fas fa-receipt" style="font-size: 1.5rem; color: var(--text-muted); margin-bottom: 12px;"></i>
+      <p class="text-secondary">Nenhuma transacao encontrada neste periodo.</p>
+    </div>
+  <% } else { %>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Organizacao</th>
+            <th>Plano</th>
+            <th>Valor</th>
+            <th>Status</th>
+            <th>Gateway</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% transactions.forEach(function(tx) { %>
+            <tr>
+              <td class="text-sm"><%= tx.date || '-' %></td>
+              <td class="font-medium"><%= tx.org || '-' %></td>
+              <td><span class="badge badge-info"><%= tx.plan || '-' %></span></td>
+              <td class="font-semibold">R$ <%= tx.value ? parseFloat(tx.value).toFixed(2).replace('.', ',') : '0,00' %></td>
+              <td>
+                <% if (tx.status === 'active') { %>
+                  <span class="badge badge-success">Ativo</span>
+                <% } else if (tx.status === 'trial') { %>
+                  <span class="badge badge-info">Trial</span>
+                <% } else if (tx.status === 'past_due') { %>
+                  <span class="badge badge-warning">Inadimplente</span>
+                <% } else if (tx.status === 'canceled') { %>
+                  <span class="badge badge-danger">Cancelado</span>
+                <% } else { %>
+                  <span class="badge badge-neutral"><%= tx.status || '-' %></span>
+                <% } %>
+              </td>
+              <td class="text-sm"><%= tx.gateway || '-' %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>

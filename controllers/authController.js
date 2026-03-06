@@ -50,16 +50,21 @@ exports.postLogin = async (req, res) => {
       });
     }
 
-    // --- MUDANÇA: Verifica se o usuário está bloqueado ---
-    // O superadmin NUNCA pode ser bloqueado
+    // Se usuario bloqueado (assinatura vencida), permite login mas redireciona para pagamento
     if (user.isBlocked && user.role !== "superadmin") {
-      return res.render("login", {
-        error:
-          "Sua conta está bloqueada. Entre em contato com o administrador.",
-        success: null,
+      req.session.loggedIn = true;
+      req.session.userId = user.id;
+      req.session.username = user.username;
+      req.session.role = user.role;
+      req.session.organizationId = user.organizationId;
+      return req.session.save((err) => {
+        if (err) {
+          console.error("Erro ao salvar sessao:", err);
+          return res.render("login", { error: "Erro interno.", success: null });
+        }
+        return res.redirect("/admin/assinatura?blocked=true");
       });
     }
-    // --- FIM DA MUDANÇA ---
 
     // Define os dados da sessão
     req.session.loggedIn = true;
@@ -101,39 +106,53 @@ exports.postLogin = async (req, res) => {
 
 // --- Página de Registro (GET) ---
 // (Sem alterações)
-exports.getRegister = (req, res) => {
-  res.render("register", { error: null });
+exports.getRegister = async (req, res) => {
+  const planSlug = req.query.plan || null;
+  let selectedPlan = null;
+  if (planSlug && db.Plan) {
+    selectedPlan = await db.Plan.findOne({ where: { slug: planSlug, isActive: true } });
+  }
+  res.render("register", { error: null, selectedPlan: selectedPlan ? selectedPlan.toJSON() : null });
 };
 
 // --- Processar o Registro (POST) ---
 // (Sem alterações)
 exports.postRegister = async (req, res) => {
   const { salonName, username, email, password, passwordConfirm } = req.body;
+  const planSlug = req.query.plan || null;
 
-  // --- Validações (sem alterações) ---
+  // Buscar plano selecionado para re-exibir na view em caso de erro
+  let selectedPlan = null;
+  if (planSlug && db.Plan) {
+    const p = await db.Plan.findOne({ where: { slug: planSlug, isActive: true } });
+    if (p) selectedPlan = p.toJSON();
+  }
+
+  // --- Validacoes ---
   if (!salonName || !username || !email || !password || !passwordConfirm) {
     return res.render("register", {
       error: "Todos os campos são obrigatórios.",
+      selectedPlan,
     });
   }
   if (password !== passwordConfirm) {
-    return res.render("register", { error: "As senhas não coincidem." });
+    return res.render("register", { error: "As senhas não coincidem.", selectedPlan });
   }
   if (password.length < 6) {
     return res.render("register", {
       error: "A senha deve ter pelo menos 6 caracteres.",
+      selectedPlan,
     });
   }
 
-  // --- Pré-verificações (Atualizado) ---
+  // --- Pre-verificacoes ---
   let testSlug;
   try {
-    // ATUALIZADO: User.findOne -> db.User.findOne
     const existingEmail = await db.User.findOne({
       where: { email: email.toLowerCase() },
     });
     if (existingEmail) {
-      return res.render("register", { error: "Este e-mail já está em uso." });
+      return res.render("register", { error: "Este e-mail já está em uso.", selectedPlan });
     }
 
     testSlug = slugify(salonName, {
@@ -142,51 +161,76 @@ exports.postRegister = async (req, res) => {
       remove: /[*+~.()'"!:@]/g,
     });
 
-    // ATUALIZADO: Organization.findOne -> db.Organization.findOne
     const existingSlug = await db.Organization.findOne({
       where: { slug: testSlug },
     });
     if (existingSlug) {
       return res.render("register", {
         error: "Este nome de salão já está em uso. Por favor, escolha outro.",
+        selectedPlan,
       });
     }
   } catch (err) {
     console.error("Erro na pré-verificação do registro:", err);
     return res.render("register", {
       error: "Erro ao verificar dados. Tente novamente.",
+      selectedPlan,
     });
   }
 
-  // --- ATUALIZADO: Transação do Sequelize ---
+  // --- Transacao do Sequelize ---
   try {
     const newUser = await db.sequelize.transaction(async (t) => {
-      // 1. Criar a Organização
+      // 1. Criar a Organizacao
       const newOrg = await db.Organization.create(
-        {
-          name: salonName,
-          slug: testSlug,
-        },
+        { name: salonName, slug: testSlug },
         { transaction: t }
-      ); // Passa a transação 't'
+      );
 
-      // 2. Criar o Usuário 'owner'
+      // 2. Criar o Usuario 'owner'
       const user = await db.User.create(
         {
-          organizationId: newOrg.id, // ATUALIZADO: newOrg._id -> newOrg.id
+          organizationId: newOrg.id,
           username: username,
           email: email,
           password: password,
           role: "owner",
         },
         { transaction: t }
-      ); // Passa a transação 't'
+      );
 
-      return user; // Retorna o usuário criado da transação
+      // 3. Criar Assinatura (trial ou plano selecionado)
+      if (db.Subscription) {
+        let planId = null;
+        if (selectedPlan) {
+          planId = selectedPlan.id;
+        } else if (db.Plan) {
+          // Plano gratuito como fallback
+          const freePlan = await db.Plan.findOne({ where: { slug: 'gratuito', isActive: true }, transaction: t });
+          if (freePlan) planId = freePlan.id;
+        }
+
+        if (planId) {
+          const trialDays = parseInt(process.env.TRIAL_DAYS) || 14;
+          await db.Subscription.create(
+            {
+              organizationId: newOrg.id,
+              planId: planId,
+              status: 'trial',
+              billingCycle: 'monthly',
+              trialEndsAt: new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000),
+              currentPeriodStart: new Date(),
+              currentPeriodEnd: new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000),
+            },
+            { transaction: t }
+          );
+        }
+      }
+
+      return user;
     });
 
-    // Se a transação foi bem-sucedida:
-    // 3. Loga o novo usuário
+    // Loga o novo usuario
     req.session.loggedIn = true;
     req.session.userId = newUser.id;
     req.session.username = newUser.username;
@@ -216,7 +260,7 @@ exports.postRegister = async (req, res) => {
         errorMsg = "Este nome de usuário já está em uso para este salão.";
       }
     }
-    res.render("register", { error: errorMsg });
+    res.render("register", { error: errorMsg, selectedPlan });
   }
 };
 

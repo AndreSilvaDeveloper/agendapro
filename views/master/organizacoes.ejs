@@ -1,0 +1,152 @@
+<%- include('../partials/head', { pageTitle: 'Organizacoes - Master' }) %>
+<%- include('../partials/master-sidebar', { path: 'organizacoes' }) %>
+
+<div class="flex items-center justify-between mb-6">
+  <h1>Organizacoes</h1>
+  <span class="badge badge-neutral text-sm"><%= typeof pagination !== 'undefined' ? pagination.total : 0 %> total</span>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+  <div class="card-body compact">
+    <form method="GET" action="/master/organizacoes" class="flex items-center gap-3 flex-wrap">
+      <div class="input-group" style="flex: 1; min-width: 200px;">
+        <i class="fas fa-search input-icon"></i>
+        <input type="text" name="search" class="form-control" placeholder="Buscar por nome, email..." value="<%= typeof query !== 'undefined' && query.search ? query.search : '' %>">
+      </div>
+      <select name="plan" class="form-control" style="width: auto; min-width: 150px;">
+        <option value="">Todos os planos</option>
+        <% if (typeof plans !== 'undefined' && plans.length > 0) { %>
+          <% plans.forEach(function(plan) { %>
+            <option value="<%= plan.id %>" <%= (typeof query !== 'undefined' && query.plan == plan.id) ? 'selected' : '' %>><%= plan.name %></option>
+          <% }); %>
+        <% } %>
+      </select>
+      <select name="status" class="form-control" style="width: auto; min-width: 150px;">
+        <option value="">Todos os status</option>
+        <option value="trial" <%= (typeof query !== 'undefined' && query.status === 'trial') ? 'selected' : '' %>>Trial</option>
+        <option value="active" <%= (typeof query !== 'undefined' && query.status === 'active') ? 'selected' : '' %>>Ativo</option>
+        <option value="past_due" <%= (typeof query !== 'undefined' && query.status === 'past_due') ? 'selected' : '' %>>Inadimplente</option>
+        <option value="canceled" <%= (typeof query !== 'undefined' && query.status === 'canceled') ? 'selected' : '' %>>Cancelado</option>
+        <option value="expired" <%= (typeof query !== 'undefined' && query.status === 'expired') ? 'selected' : '' %>>Expirado</option>
+      </select>
+      <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Filtrar</button>
+      <a href="/master/organizacoes" class="btn btn-outline btn-sm">Limpar</a>
+    </form>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+  <% if (typeof organizations === 'undefined' || organizations.length === 0) { %>
+    <div class="empty-state" style="padding: 60px 20px; text-align: center;">
+      <i class="fas fa-building" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 12px;"></i>
+      <p class="text-secondary">Nenhuma organizacao encontrada.</p>
+    </div>
+  <% } else { %>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>Proprietario</th>
+            <th>Email</th>
+            <th>Plano</th>
+            <th>Assinatura</th>
+            <th>WhatsApp</th>
+            <th>Criado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% organizations.forEach(function(org) {
+            var owner = (org.Users && org.Users.length > 0) ? org.Users[0] : null;
+          %>
+            <tr>
+              <td class="text-sm text-secondary"><%= org.id %></td>
+              <td class="font-medium"><%= org.name %></td>
+              <td><%= owner ? owner.username : '-' %></td>
+              <td class="text-sm"><%= owner ? owner.email : '-' %></td>
+              <td>
+                <span class="badge badge-info"><%= org.planName || 'Sem plano' %></span>
+              </td>
+              <td>
+                <% var subStatus = org.subscriptionStatus || 'N/A'; %>
+                <% if (subStatus === 'trial') { %>
+                  <span class="badge badge-info">Trial</span>
+                <% } else if (subStatus === 'active') { %>
+                  <span class="badge badge-success">Ativo</span>
+                <% } else if (subStatus === 'past_due') { %>
+                  <span class="badge badge-warning">Inadimplente</span>
+                <% } else if (subStatus === 'canceled') { %>
+                  <span class="badge badge-danger">Cancelado</span>
+                <% } else if (subStatus === 'expired') { %>
+                  <span class="badge badge-danger">Expirado</span>
+                <% } else { %>
+                  <span class="badge badge-neutral"><%= subStatus %></span>
+                <% } %>
+              </td>
+              <td>
+                <% if (org.whatsappConnected) { %>
+                  <span class="badge badge-success"><i class="fab fa-whatsapp"></i> Conectado</span>
+                <% } else { %>
+                  <span class="badge badge-neutral">Desconectado</span>
+                <% } %>
+              </td>
+              <td class="text-sm text-secondary">
+                <%= org.createdAt ? new Date(org.createdAt).toLocaleDateString('pt-BR') : '-' %>
+              </td>
+              <td class="text-right">
+                <div class="flex gap-1 justify-end">
+                  <a href="/master/organizacoes/<%= org.id %>" class="btn btn-outline btn-sm" title="Ver detalhes"><i class="fas fa-eye"></i></a>
+                  <a href="/master/impersonate/<%= org.id %>" class="btn btn-outline btn-sm" title="Impersonar"><i class="fas fa-sign-in-alt"></i></a>
+                  <% if (owner) { %>
+                    <% if (owner.isBlocked) { %>
+                      <form action="/master/user/<%= owner.id %>/unblock" method="POST" style="margin:0;">
+                        <button class="btn btn-success btn-sm" title="Desbloquear"><i class="fas fa-unlock"></i></button>
+                      </form>
+                    <% } else { %>
+                      <form action="/master/user/<%= owner.id %>/block" method="POST" onsubmit="return confirm('Bloquear este usuario?')" style="margin:0;">
+                        <button class="btn btn-danger btn-sm" title="Bloquear"><i class="fas fa-ban"></i></button>
+                      </form>
+                    <% } %>
+                  <% } %>
+                </div>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <% if (typeof pagination !== 'undefined' && pagination.totalPages > 1) { %>
+      <div class="card-body compact flex items-center justify-between" style="border-top: 1px solid var(--border-light);">
+        <span class="text-sm text-secondary">
+          Mostrando <%= ((pagination.page - 1) * pagination.limit) + 1 %> - <%= Math.min(pagination.page * pagination.limit, pagination.total) %> de <%= pagination.total %>
+        </span>
+        <div class="flex gap-1">
+          <% if (pagination.page > 1) { %>
+            <a href="/master/organizacoes?page=<%= pagination.page - 1 %><%= typeof query !== 'undefined' && query.search ? '&search=' + query.search : '' %><%= typeof query !== 'undefined' && query.plan ? '&plan=' + query.plan : '' %><%= typeof query !== 'undefined' && query.status ? '&status=' + query.status : '' %>" class="btn btn-outline btn-sm">
+              <i class="fas fa-chevron-left"></i> Anterior
+            </a>
+          <% } %>
+          <% for (var i = 1; i <= pagination.totalPages; i++) { %>
+            <a href="/master/organizacoes?page=<%= i %><%= typeof query !== 'undefined' && query.search ? '&search=' + query.search : '' %><%= typeof query !== 'undefined' && query.plan ? '&plan=' + query.plan : '' %><%= typeof query !== 'undefined' && query.status ? '&status=' + query.status : '' %>"
+               class="btn btn-sm <%= i === pagination.page ? 'btn-primary' : 'btn-outline' %>">
+              <%= i %>
+            </a>
+          <% } %>
+          <% if (pagination.page < pagination.totalPages) { %>
+            <a href="/master/organizacoes?page=<%= pagination.page + 1 %><%= typeof query !== 'undefined' && query.search ? '&search=' + query.search : '' %><%= typeof query !== 'undefined' && query.plan ? '&plan=' + query.plan : '' %><%= typeof query !== 'undefined' && query.status ? '&status=' + query.status : '' %>" class="btn btn-outline btn-sm">
+              Proximo <i class="fas fa-chevron-right"></i>
+            </a>
+          <% } %>
+        </div>
+      </div>
+    <% } %>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>

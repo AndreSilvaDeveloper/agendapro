@@ -1,1131 +1,551 @@
-<!DOCTYPE html>
-<html lang="pt-BR" class="h-full" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <title><%= client.name %> – Detalhes</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<%- include('partials/head', { pageTitle: clientData.name + ' - Detalhes' }) %>
+<%- include('partials/sidebar', { activePage: 'clientes' }) %>
 
-    <script>
-        (function() {
-            const THEMES = ["light", "medium-dark", "deep-dark"];
-            const savedTheme = localStorage.getItem('theme');
-            let initialTheme = 'light';
-
-            if (savedTheme && THEMES.includes(savedTheme)) {
-                initialTheme = savedTheme;
-            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                initialTheme = 'deep-dark';
-            }
-            document.documentElement.setAttribute('data-theme', initialTheme);
-        })();
-    </script>
-
-    <style>
-        /* ================================================= */
-        /* === 1. DEFINIÇÃO DAS CORES PARA TRÊS TEMAS === */
-        /* ================================================= */
-
-        /* --- TEMA 1: LIGHT --- */
-        :root, [data-theme="light"] {
-            --color-gold-light: #FFD700; 
-            --color-gold-dark: #B8860B; 
-            --color-gold-accent: #DAA520;
-            --color-bg-primary: #f3f4f6;
-            --color-bg-secondary: #ffffff;
-            --color-bg-muted: #f9fafb;      
-            --color-bg-accent-light: #FFFBEB;
-            --color-bg-accent-dark: #fefce8;
-            --color-text-primary: #1f2937;
-            --color-text-secondary: #4b5563;
-            --color-text-accent: #B8860B;
-            --color-text-accent-muted: #b45309;
-            --color-border: #e5e7eb;
-        }
-
-        /* --- TEMA 2: MEDIUM DARK --- */
-        [data-theme="medium-dark"] {
-            --color-gold-light: #FFD700;
-            --color-gold-dark: #e0aa1f;
-            --color-gold-accent: #DAA520;
-            --color-bg-primary: #1f2937;
-            --color-bg-secondary: #374151;
-            --color-bg-muted: #4b5563;      
-            --color-bg-accent-light: #422c01;
-            --color-bg-accent-dark: #423001;
-            --color-text-primary: #f9fafb;
-            --color-text-secondary: #d1d5db;
-            --color-text-accent: #e0aa1f;
-            --color-text-accent-muted: #fde047;
-            --color-border: #4b5563;
-        }
-
-        /* --- TEMA 3: DEEP DARK --- */
-        [data-theme="deep-dark"] {
-            --color-gold-light: #FFD700;
-            --color-gold-dark: #e0aa1f;
-            --color-gold-accent: #DAA520;
-            --color-bg-primary: #0a0e14;
-            --color-bg-secondary: #1f2937;
-            --color-bg-muted: #374151;
-            --color-bg-accent-light: #422c01;
-            --color-bg-accent-dark: #423001;
-            --color-text-primary: #f9fafb;
-            --color-text-secondary: #d1d5db;
-            --color-text-accent: #e0aa1f;
-            --color-text-accent-muted: #fde047;
-            --color-border: #4b5563;
-        }
-
-        /* ================================================= */
-        /* === 2. ESTILOS BASE (Mapeamento) === */
-        /* ================================================= */
-        
-        body { 
-            min-height: 100%; 
-            background-color: var(--color-bg-primary); 
-            color: var(--color-text-primary);
-            /* Permite scroll natural nesta página detalhada */
-            overflow-y: auto; 
-            display: flex;
-            flex-direction: column;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        } 
-        
-        /* Mapeamento de Classes Tailwind */
-        .bg-white, .bg-gray-800 { background-color: var(--color-bg-secondary) !important; }
-        .bg-gray-50, .bg-gray-700\/50, .bg-gray-100 { background-color: var(--color-bg-muted) !important; }
-        .bg-gold-light, .bg-gold { background-color: var(--color-bg-accent-light) !important; }
-        
-        .border-gray-200, .border-gray-300, .border-gray-700, .border-gray-100 { border-color: var(--color-border) !important; }
-        
-        .text-gray-900, .text-gray-800 { color: var(--color-text-primary) !important; }
-        .text-gray-700, .text-gray-600, .text-gray-500 { color: var(--color-text-secondary) !important; }
-        .text-gold { color: var(--color-text-accent) !important; }
-        
-        /* Link Mobile */
-        .mobile-nav-link { 
-            color: var(--color-text-primary);
-            transition: color 0.2s ease;
-        }
-        
-        /* Scroll */
-        .custom-scroll::-webkit-scrollbar { width: 6px; }
-        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-        .custom-scroll::-webkit-scrollbar-thumb { background-color: var(--color-border); border-radius: 20px; }
-        .custom-scroll:hover::-webkit-scrollbar-thumb { background-color: var(--color-gold-accent); }
-
-        /* Efeitos Específicos desta Página */
-        .text-gradient-gold {
-            background: linear-gradient( 90deg, #B8860B, #FFD700, #DAA520, #FFD700, #B8860B );
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            background-size: 200% auto;
-            animation: text-shine 4s linear infinite;
-        }
-        @keyframes text-shine {
-            from { background-position: 200% center; }
-            to { background-position: 0% center; }
-        }
-        
-        .bg-shine-gold { position: relative; overflow: hidden; background-color: var(--color-gold-accent); }
-        .bg-shine-gold::after {
-            content: ''; position: absolute; top: -10%; left: -75%; width: 50%; height: 120%;
-            background: linear-gradient( 90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.4) 50%, rgba(255, 255, 255, 0) 100% );
-            transform: skewX(-25deg);
-            animation: bg-shine 5s infinite linear;
-        }
-        @keyframes bg-shine { 0% { left: -75%; } 100% { left: 125%; } }
-        
-        .card-hover { transition: all 0.3s ease; }
-        .card-hover:hover { transform: translateY(-2px); } /* Sombra removida para consistência com dark mode */
-        
-        /* Badges de Status */
-        .status-badge { display: inline-flex; align-items: center; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
-        
-        .status-paid { background-color: rgba(52, 211, 153, 0.2); color: #166534; }
-        [data-theme^="dark"] .status-paid { color: #4ade80; }
-
-        .status-pending { background-color: rgba(251, 191, 36, 0.2); color: #92400e; }
-        [data-theme^="dark"] .status-pending { color: #fcd34d; }
-
-        .status-overdue { background-color: rgba(248, 113, 113, 0.2); color: #991b1b; }
-        [data-theme^="dark"] .status-overdue { color: #f87171; }
-
-        .history-badge { background-color: rgba(99, 102, 241, 0.2); color: #3730a3; }
-        [data-theme^="dark"] .history-badge { color: #818cf8; }
-
-    </style>
-</head>
-<body class="flex flex-col min-h-screen">
-    
-    <% if (locals.originalAdminSession) { %>
-      <div class="bg-yellow-400 text-yellow-900 text-center text-xs py-2 font-bold sticky top-0 z-[60]">
-        <i class="fas fa-user-secret"></i> Modo Admin: Visualizando <%= (typeof org !== 'undefined') ? org.name : '' %>
-        <a href="/master/stop-impersonation" class="underline ml-2">Sair</a>
+<!-- Header do cliente -->
+<div class="card mb-6">
+  <div class="card-body">
+    <div class="flex items-center justify-between" style="flex-wrap: wrap; gap: 16px;">
+      <div class="flex items-center gap-4">
+        <div class="list-item-avatar avatar-primary" style="width: 56px; height: 56px; font-size: 1.3rem;">
+          <i class="fas fa-user"></i>
+        </div>
+        <div>
+          <h1 style="font-size: 1.5rem;"><%= clientData.name %></h1>
+          <div class="flex items-center gap-2 text-secondary">
+            <i class="fas fa-phone" style="font-size: 0.8rem;"></i>
+            <span><%= clientData.phone %></span>
+          </div>
+          <% if (typeof isHistory !== 'undefined' && isHistory) { %>
+            <span class="badge badge-warning mt-2"><i class="fas fa-history"></i> Historico completo</span>
+          <% } %>
+        </div>
       </div>
+
+      <div class="flex gap-2" style="flex-wrap: wrap;">
+        <% if (typeof isHistory === 'undefined' || !isHistory) { %>
+          <form action="/client/<%= clientData.id %>/edit" method="POST" onsubmit="return editClient(this, '<%= clientData.name %>', '<%= clientData.phone %>')" style="margin:0;">
+            <button class="btn btn-outline btn-sm"><i class="fas fa-edit"></i> Editar</button>
+          </form>
+          <a href="/client/<%= clientData.id %>/historico" class="btn btn-outline btn-sm"><i class="fas fa-history"></i> Historico</a>
+          <form action="/client/<%= clientData.id %>/delete" method="POST" onsubmit="return confirm('Excluir este cliente?')" style="margin:0;">
+            <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: var(--danger);"><i class="fas fa-trash"></i> Excluir</button>
+          </form>
+        <% } else { %>
+          <a href="/client/<%= clientData.id %>" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Voltar</a>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-12" style="gap: 24px;">
+  <div class="col-span-8 flex flex-col gap-6">
+
+    <% if (typeof isHistory === 'undefined' || !isHistory) { %>
+    <!-- Novo Agendamento -->
+    <div class="card">
+      <div class="card-header" style="background: var(--primary); color: #fff; border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
+        <h3 style="color:#fff;"><i class="fas fa-calendar-plus" style="margin-right: 8px;"></i> Novo Agendamento</h3>
+      </div>
+      <div class="card-body">
+        <form action="/appointment" method="POST" onsubmit="return processForm()">
+          <input type="hidden" name="clientId" value="<%= clientData.id %>">
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Data</label>
+              <input type="date" name="date" required class="form-control">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Horario</label>
+              <input type="time" name="time" required class="form-control">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Profissional</label>
+              <select name="staffId" required class="form-control">
+                <option value="">Selecione...</option>
+                <% if (typeof staff !== 'undefined' && staff.length > 0) { %>
+                  <% staff.forEach(function(s) { %>
+                    <option value="<%= s.id %>"><%= s.name %></option>
+                  <% }); %>
+                <% } %>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Duracao (min)</label>
+              <input type="number" name="duration" placeholder="30" required class="form-control">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Servicos</label>
+            <div id="serviceCheckboxes" class="text-sm text-secondary" style="padding: 8px 0;">
+              Selecione um profissional para ver os servicos
+            </div>
+          </div>
+
+          <input type="hidden" name="services" id="servicesInput">
+          <input type="hidden" name="products" id="productsInput">
+
+          <button type="submit" class="btn btn-primary btn-block btn-lg">
+            <i class="fas fa-calendar-check"></i> Agendar
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Produtos -->
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fas fa-box" style="color: var(--primary); margin-right: 8px;"></i> Produtos</h3>
+      </div>
+      <div class="card-body">
+        <form action="/client/<%= clientData.id %>/add-product" method="POST" class="mb-4">
+          <div class="flex gap-2" style="flex-wrap: wrap;">
+            <input name="name" type="text" placeholder="Nome do produto" required class="form-control" style="flex:1; min-width: 160px;">
+            <input name="price" type="number" step="0.01" placeholder="Preco" required class="form-control" style="width: 120px;">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Adicionar</button>
+          </div>
+        </form>
+
+        <% if (clientData.Products && clientData.Products.length) { %>
+          <div class="flex flex-col gap-3">
+            <% clientData.Products.forEach(function(p) { %>
+              <%
+                var totalPaid = (p.Payments || []).reduce(function(sum, pay) { return sum + parseFloat(pay.amount); }, 0);
+                var remaining = parseFloat(p.price) - totalPaid;
+                var isPaid = remaining <= 0;
+              %>
+              <div class="card">
+                <div class="card-body compact">
+                  <div class="flex items-center justify-between mb-2" style="flex-wrap: wrap; gap: 8px;">
+                    <div>
+                      <span class="font-semibold"><%= p.name %></span>
+                      <% if (isPaid) { %>
+                        <span class="badge badge-success" style="margin-left: 8px;">Pago</span>
+                      <% } else { %>
+                        <span class="badge badge-warning" style="margin-left: 8px;">Pendente</span>
+                      <% } %>
+                    </div>
+                    <div class="flex gap-1">
+                      <form action="/client/<%= clientData.id %>/product/<%= p.id %>/pay" method="POST" onsubmit="return pagarValor(this)" data-remaining="<%= remaining %>" style="margin:0;">
+                        <button class="btn btn-success btn-sm"><i class="fas fa-credit-card"></i></button>
+                      </form>
+                      <form action="/client/<%= clientData.id %>/product/<%= p.id %>/edit" method="POST" onsubmit="return editItem(this, '<%= p.name %>', '<%= p.price %>')" style="margin:0;">
+                        <button class="btn btn-outline btn-sm"><i class="fas fa-edit"></i></button>
+                      </form>
+                      <form action="/client/<%= clientData.id %>/product/<%= p.id %>/delete" method="POST" onsubmit="return confirm('Excluir?')" style="margin:0;">
+                        <button class="btn btn-ghost btn-sm" style="color:var(--danger);"><i class="fas fa-trash"></i></button>
+                      </form>
+                    </div>
+                  </div>
+                  <div class="text-sm text-secondary">
+                    Total: R$ <%= parseFloat(p.price).toFixed(2) %> |
+                    Pago: R$ <%= totalPaid.toFixed(2) %>
+                    <% if (remaining > 0) { %> | <span class="text-danger font-semibold">Restante: R$ <%= remaining.toFixed(2) %></span><% } %>
+                  </div>
+
+                  <% if (p.Payments && p.Payments.length) { %>
+                    <div class="divider"></div>
+                    <div class="text-xs font-semibold text-secondary mb-2">Pagamentos:</div>
+                    <% p.Payments.forEach(function(pay) { %>
+                      <div class="flex items-center justify-between text-sm" style="padding: 4px 0; border-bottom: 1px solid var(--border-light);">
+                        <span><i class="fas fa-check-circle text-success" style="margin-right:4px;"></i> R$ <%= parseFloat(pay.amount).toFixed(2) %> - <%= new Date(pay.paidAt).toLocaleDateString('pt-BR') %> (<%= pay.method %>)</span>
+                        <form action="/client/<%= clientData.id %>/product/<%= p.id %>/remove-payment/<%= pay.id %>" method="POST" onsubmit="return confirm('Excluir pagamento?')" style="margin:0;">
+                          <button class="btn btn-ghost btn-sm" style="color:var(--danger); padding:2px 6px;"><i class="fas fa-trash" style="font-size:0.7rem;"></i></button>
+                        </form>
+                      </div>
+                    <% }); %>
+                  <% } %>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+        <% } else { %>
+          <div class="empty-state"><i class="fas fa-box-open"></i><p>Nenhum produto cadastrado.</p></div>
+        <% } %>
+      </div>
+    </div>
     <% } %>
 
-    <header class="bg-white shadow-md border-b border-gray-200 shrink-0 h-16 flex items-center z-50 sticky top-0">
-        <div class="w-full max-w-full px-4 flex items-center justify-between">
-            
-            <div class="flex items-center shrink-0 mr-4">
-                <button onclick="history.back()" class="mr-4 text-gold hover:text-gold-dark transition-colors lg:hidden">
-                    <i class="fas fa-arrow-left"></i>
-                </button>
-                
-                <h1 class="flex items-center text-gray-800 text-lg font-bold">
-                   Agenda Pro
-                </h1>
-                <div class="h-6 w-px bg-gray-200 hidden sm:block ml-4"></div>
-            </div>
+    <!-- Agendamentos -->
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fas fa-calendar-alt" style="color: var(--primary); margin-right: 8px;"></i>
+          <% if (typeof isHistory !== 'undefined' && isHistory) { %>Historico<% } else { %>Agendamentos<% } %>
+        </h3>
+      </div>
+      <div class="card-body">
+        <%
+          var visible;
+          if (typeof isHistory !== 'undefined' && isHistory) {
+            visible = appointments || [];
+          } else {
+            visible = (appointments || []).filter(function(a) {
+              var parts = a.formatted.split(' ')[0].split('/');
+              var apptDate = new Date(parts[2] + '-' + parts[1] + '-' + parts[0] + 'T00:00:00');
+              var todayMid = new Date(); todayMid.setHours(0,0,0,0);
+              if (apptDate >= todayMid) return true;
+              for (var si = 0; si < (a.AppointmentServices || []).length; si++) {
+                var s = a.AppointmentServices[si];
+                var paid = (s.AppointmentPayments || []).reduce(function(sum, p) { return sum + parseFloat(p.amount); }, 0);
+                if (paid < parseFloat(s.price)) return true;
+              }
+              return false;
+            });
+          }
+        %>
 
-            <nav class="hidden xl:flex items-center space-x-4 text-sm whitespace-nowrap overflow-x-auto custom-scroll pb-1 lg:pb-0">
-                <a href="/dashboard" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-home mr-1"></i>Dash
-                </a>
-                <a href="/agendamentos-por-dia" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-calendar-alt mr-1"></i>Agenda
-                </a>
-                <a href="/clients" class="text-gradient-gold font-semibold">
-                    <i class="fas fa-users mr-1"></i>Clientes
-                </a>
-                <a href="/admin/servicos" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-cut mr-1"></i>Serviços
-                </a>
-                <a href="/admin/equipe" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-users-cog mr-1"></i>Equipe
-                </a>
-                <a href="/financeiro" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-dollar-sign mr-1"></i>Financeiro
-                </a>
-                <a href="/balanco" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-balance-scale mr-1"></i>Balanço
-                </a>
-                <a href="/expenses" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-receipt mr-1"></i>Despesas
-                </a>
-                
-                <div class="h-4 w-px bg-gray-300 mx-2"></div>
-
-                <button id="theme-toggle-btn" class="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600">
-                    <i id="theme-icon-sun" class="fas fa-sun"></i> <i id="theme-icon-moon" class="fas fa-moon hidden"></i> 
-                </button>
-                
-                <a href="/logout" class="text-red-600 hover:text-red-700 transition-colors font-semibold">
-                    <i class="fas fa-sign-out-alt mr-1"></i>Sair
-                </a>
-            </nav>
-
-            <button id="menu-button" class="xl:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                <i class="fas fa-bars text-gold"></i>
-            </button>
-        </div>
-    </header>
-
-    <div id="mobile-menu" class="hidden fixed inset-0 z-50 flex flex-col p-6 space-y-4 overflow-y-auto xl:hidden" style="background-color: var(--color-bg-primary);">
-        <div class="flex justify-end">
-            <button id="close-menu" class="text-2xl" style="color: var(--color-text-primary);"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="flex flex-col space-y-3 text-center">
-            <a href="/dashboard" class="mobile-nav-link text-lg py-2 border-b border-gray-700 hover:text-gold">Dashboard</a>
-            <a href="/agendamentos-por-dia" class="mobile-nav-link text-lg py-2 hover:text-gold">Agendamentos</a>
-            <a href="/clients" class="mobile-nav-link text-gold text-lg font-bold py-2 border-b border-gray-700">Clientes</a>
-            <a href="/admin/servicos" class="mobile-nav-link text-lg py-2 hover:text-gold">Serviços</a>
-            <a href="/admin/equipe" class="mobile-nav-link text-lg py-2 hover:text-gold">Equipe</a>
-            <a href="/financeiro" class="mobile-nav-link text-lg py-2 hover:text-gold">Financeiro</a>
-            <a href="/balanco" class="mobile-nav-link text-lg py-2 hover:text-gold">Balanço</a>
-            <a href="/expenses" class="mobile-nav-link text-lg py-2 hover:text-gold">Despesas</a>
-            
-            <button id="theme-toggle-btn-mobile" class="w-full flex items-center justify-center space-x-3 p-3 rounded-lg mobile-nav-link hover:bg-gray-700 hover:text-gold border border-gray-500 mt-4">
-                <i id="theme-icon-sun-mobile" class="fas fa-sun w-5 text-center"></i>
-                <i id="theme-icon-moon-mobile" class="fas fa-moon w-5 text-center hidden"></i>
-                <span>Alternar Tema</span>
-            </button>
-
-            <a href="/logout" class="mobile-nav-link text-red-400 text-lg py-2 font-bold mt-4">Sair do Sistema</a>
-        </div>
-    </div>
-
-
-    <div class="max-w-7xl mx-auto px-4 py-8 w-full">
-        
-        <div class="bg-white rounded-2xl shadow-lg p-6 mb-8 card-hover animate-fade-in border border-gray-200">
-            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-                <div class="flex items-center space-x-4">
-                    <div class="w-16 h-16 bg-gold rounded-full flex items-center justify-center">
-                        <i class="fas fa-user text-white text-2xl"></i>
-                    </div>
+        <% if (visible.length === 0) { %>
+          <div class="empty-state"><i class="fas fa-calendar-times"></i><p>Nenhum agendamento encontrado.</p></div>
+        <% } else { %>
+          <div class="flex flex-col gap-4">
+            <% visible.forEach(function(a) {
+              var parts2 = a.formatted.split(' ');
+              var datePart = parts2[0];
+              var timePart = parts2[2] || '';
+              var dp = datePart.split('/');
+              var apptDate2 = new Date(dp[2] + '-' + dp[1] + '-' + dp[0] + 'T00:00:00');
+              var td = new Date(); td.setHours(0,0,0,0);
+              var isPast = apptDate2 < td;
+            %>
+              <div class="card" style="<%= isPast ? 'opacity: 0.7;' : '' %>">
+                <div class="card-body compact">
+                  <div class="flex items-center justify-between mb-3" style="flex-wrap: wrap; gap: 8px;">
                     <div>
-                        <h1 class="text-3xl font-bold text-gray-900"><%= client.name %></h1>
-                        <div class="flex items-center text-gray-600 mt-1">
-                            <i class="fas fa-phone mr-2"></i>
-                            <span><%= client.phone %></span>
-                        </div>
-                        <% if (typeof isHistory !== 'undefined' && isHistory) { %>
-                        <div class="mt-2">
-                            <span class="status-badge history-badge">
-                                <i class="fas fa-history mr-1"></i>
-                                Visualizando Histórico
-                            </span>
-                        </div>
-                        <% } %>
+                      <span class="font-semibold"><i class="fas fa-clock" style="color: var(--primary); margin-right: 4px;"></i> <%= a.formatted %> (<%= a.duration %> min)</span>
+                      <% if (isPast) { %><span class="badge badge-neutral" style="margin-left:8px;">Passado</span><% } %>
                     </div>
-                </div>
-                
-                <div class="flex flex-wrap gap-2">
-                    <% if (typeof isHistory === 'undefined' || !isHistory) { %>
-                    <form action="/client/<%= client.id %>/edit" method="POST" onsubmit="return editClient(this, '<%= client.name %>', '<%= client.phone %>')" class="inline">
-                        <button class="flex items-center space-x-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
-                            <i class="fas fa-edit"></i>
-                            <span>Editar</span>
+                    <div class="flex gap-1" style="flex-wrap: wrap;">
+                      <% if (!isPast) { %>
+                        <button type="button" onclick="sendAutomaticReminder(this, '<%= clientData.name %>', '<%= clientData.phone %>', '<%= a.formatted %>')" class="btn btn-success btn-sm">
+                          <i class="fab fa-whatsapp"></i> <span class="hidden-mobile">Lembrar</span>
                         </button>
-                    </form>
-                    <a href="/client/<%= client.id %>/historico" class="flex items-center space-x-2 px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors">
-                        <i class="fas fa-history"></i>
-                        <span>Histórico</span>
-                    </a>
-                    <form action="/client/<%= client.id %>/delete" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este cliente?')" class="inline">
-                        <button class="flex items-center space-x-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
-                            <i class="fas fa-trash"></i>
-                            <span>Excluir</span>
-                        </button>
-                    </form>
-                    <% } else { %>
-                    <button onclick="history.back()" class="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                        <i class="fas fa-arrow-left"></i>
-                        <span>Voltar</span>
-                    </button>
-                    <% } %>
-                </div>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
-            <div class="xl:col-span-2 space-y-8">
-                
-                <% if (typeof isHistory === 'undefined' || !isHistory) { %>
-                <div class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover animate-fade-in border border-gray-200">
-                    <div class="bg-gold p-6 bg-shine-gold">
-                        <h2 class="text-xl font-bold text-white flex items-center">
-                            <i class="fas fa-calendar-plus mr-3"></i>
-                            Novo Agendamento
-                        </h2>
+                      <% } %>
+                      <form action="/appointment/<%= a.id %>/edit-datetime" method="POST" onsubmit='return editDateTime(this, "<%= datePart %>", "<%= timePart %>")' style="margin:0;">
+                        <button class="btn btn-outline btn-sm"><i class="fas fa-edit"></i></button>
+                      </form>
+                      <form action="/appointment/<%= a.id %>/cancel" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este agendamento?')" style="margin:0;">
+                        <button class="btn btn-outline btn-sm" style="color:var(--danger); border-color: var(--danger);"><i class="fas fa-trash"></i></button>
+                      </form>
                     </div>
-                    <div class="p-6">
-                        <form action="/appointment" method="POST" onsubmit="return processForm()" class="space-y-6">
-                            <input type="hidden" name="clientId" value="<%= client.id %>">
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Data</label>
-                                    <input type="date" name="date" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all bg-white text-gray-900">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Horário</label>
-                                    <input type="time" name="time" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all bg-white text-gray-900">
-                                </div>
-                                
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Profissional</label>
-                                    <select name="staffId" id="staffIdSelect" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent bg-white text-gray-900">
-                                        <option value="">Selecione...</option>
-                                        <% if (typeof staff !== 'undefined' && staff.length > 0) { %>
-                                            <% staff.forEach(function(s) { %>
-                                                <option value="<%= s.id %>"><%= s.name %></option>
-                                            <% }); %>
-                                        <% } %>
-                                    </select>
-                                </div>
+                  </div>
 
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Duração (min)</label>
-                                    <input type="number" name="duration" placeholder="30" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all bg-white text-gray-900">
-                                </div>
+                  <% if (a.AppointmentServices && a.AppointmentServices.length) { %>
+                    <div class="divider"></div>
+                    <% a.AppointmentServices.forEach(function(service) {
+                      var svcPaid = (service.AppointmentPayments || []).reduce(function(sum, p) { return sum + parseFloat(p.amount); }, 0);
+                      var svcRemaining = parseFloat(service.price) - svcPaid;
+                      var isSvcPaid = svcRemaining <= 0;
+                    %>
+                      <div style="padding: 8px 0; border-bottom: 1px solid var(--border-light);">
+                        <div class="flex items-center justify-between" style="flex-wrap: wrap; gap: 8px;">
+                          <div>
+                            <span class="font-medium"><%= service.name %></span>
+                            <% if (isSvcPaid) { %>
+                              <span class="badge badge-success" style="margin-left:6px;">Pago</span>
+                            <% } else { %>
+                              <span class="badge badge-warning" style="margin-left:6px;">Pendente</span>
+                            <% } %>
+                            <div class="text-xs text-secondary mt-1">
+                              R$ <%= parseFloat(service.price).toFixed(2) %>
+                              <% if (svcPaid > 0) { %> | Pago: R$ <%= svcPaid.toFixed(2) %><% } %>
+                              <% if (svcRemaining > 0) { %> | <span class="text-danger">Restante: R$ <%= svcRemaining.toFixed(2) %></span><% } %>
                             </div>
-
-                            <div>
-                                <div class="flex items-center justify-between mb-4">
-                                    <h3 class="text-lg font-semibold text-gray-900">Serviços</h3>
-                                    <button type="button" onclick="addService()" class="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-opacity">
-                                        <i class="fas fa-plus"></i>
-                                        <span>+ Serviço</span>
-                                    </button>
-                                </div>
-                                <div id="services" class="space-y-3"></div>
-                            </div>
-
-                            <input type="hidden" name="services" id="servicesInput">
-                            <input type="hidden" name="products" id="productsInput">
-                            
-                            <button type="submit" class="w-full bg-gold text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity bg-shine-gold">
-                                <i class="fas fa-calendar-check mr-2"></i>
-                                Agendar
-                            </button>
-                        </form>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover animate-fade-in border border-gray-200">
-                    <div class="bg-gold p-6 bg-shine-gold">
-                        <h2 class="text-xl font-bold text-white flex items-center">
-                            <i class="fas fa-box mr-3"></i>
-                            Produtos
-                        </h2>
-                    </div>
-                    <div class="p-6">
-                        <form action="/client/<%= client.id %>/add-product" method="POST" class="mb-6">
-                            <div class="flex flex-col sm:flex-row gap-3">
-                                <input name="name" type="text" placeholder="Nome do produto" required 
-                                       class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent bg-white text-gray-900">
-                                <input name="price" type="number" step="0.01" placeholder="Preço" required 
-                                       class="sm:w-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent bg-white text-gray-900">
-                                <button type="submit" class="bg-gold text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity">
-                                    <i class="fas fa-plus mr-2"></i>
-                                    Adicionar
-                                </button>
-                            </div>
-                        </form>
-
-                        <% if (client.Products && client.Products.length) { %>
-                        <div class="space-y-4">
-                            <% client.Products.forEach((p) => { %>
-                            <% 
-                                const totalPaid = (p.Payments || []).reduce((sum, pay) => sum + parseFloat(pay.amount), 0);
-                                const remaining = parseFloat(p.price) - totalPaid;
-                                const isPaid = remaining <= 0;
-                            %>
-                            <div class="bg-white p-4 rounded-xl border border-gray-200">
-                                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-3 lg:space-y-0">
-                                    <div class="flex-1">
-                                        <div class="flex items-center space-x-3 mb-2">
-                                            <h4 class="font-semibold text-gray-900 text-lg"><%= p.name %></h4>
-                                            <% if (isPaid) { %>
-                                                <span class="status-badge status-paid">
-                                                    <i class="fas fa-check-circle mr-1"></i>
-                                                    Pago
-                                                </span>
-                                            <% } else { %>
-                                                <span class="status-badge status-pending">
-                                                    <i class="fas fa-clock mr-1"></i>
-                                                    Pendente
-                                                </span>
-                                            <% } %>
-                                        </div>
-                                        <div class="flex flex-wrap gap-4 text-sm text-gray-600">
-                                            <span><strong>Total:</strong> R$ <%= parseFloat(p.price).toFixed(2) %></span>
-                                            <span><strong>Pago:</strong> R$ <%= totalPaid.toFixed(2) %></span>
-                                            <% if (remaining > 0) { %>
-                                                <span class="text-red-600 font-semibold">
-                                                    <strong>Restante:</strong> R$ <%= remaining.toFixed(2) %>
-                                                </span>
-                                            <% } %>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="flex flex-wrap gap-2">
-                                        <form action="/client/<%= client.id %>/product/<%= p.id %>/pay" method="POST" onsubmit="return pagarValor(this)" data-remaining="<%= remaining %>" class="inline">
-                                            <button class="flex items-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-opacity">
-                                                <i class="fas fa-credit-card"></i>
-                                                <span>Pagar</span>
-                                            </button>
-                                        </form>
-                                        <form action="/client/<%= client.id %>/product/<%= p.id %>/edit" method="POST" onsubmit="return editItem(this, '<%= p.name %>', '<%= p.price %>')" class="inline">
-                                            <button class="flex items-center space-x-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
-                                                <i class="fas fa-edit"></i>
-                                                <span>Editar</span>
-                                            </button>
-                                        </form>
-                                        <form action="/client/<%= client.id %>/product/<%= p.id %>/delete" method="POST" onsubmit="return confirm('Excluir este produto?')" class="inline">
-                                            <button class="flex items-center space-x-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
-                                                <i class="fas fa-trash"></i>
-                                                <span>Excluir</span>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </div>
-                                
-                                <% if (p.Payments && p.Payments.length) { %>
-                                <div class="mt-4 pt-4 border-t border-gray-200">
-                                    <h5 class="text-sm font-semibold text-gray-700 mb-3 flex items-center">
-                                        <i class="fas fa-history mr-2"></i>
-                                        Histórico de Pagamentos
-                                    </h5>
-                                    <div class="space-y-2">
-                                        <% p.Payments.forEach((pay) => { %>
-                                        <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
-                                            <div class="flex items-center space-x-3">
-                                                <div class="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center">
-                                                    <i class="fas fa-check text-white text-xs"></i>
-                                                </div>
-                                                <div>
-                                                    <div class="font-semibold text-gray-900">R$ <%= parseFloat(pay.amount).toFixed(2) %></div>
-                                                    <div class="text-xs text-gray-600">
-                                                        <%= new Date(pay.paidAt).toLocaleDateString('pt-BR') %> • <%= pay.method %>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <form action="/client/<%= client.id %>/product/<%= p.id %>/remove-payment/<%= pay.id %>" method="POST" onsubmit="return confirm('Excluir este pagamento?')" class="inline">
-                                                <button class="text-red-600 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-colors">
-                                                    <i class="fas fa-trash text-xs"></i>
-                                                </button>
-                                            </form>
-                                        </div>
-                                        <% }) %>
-                                    </div>
-                                </div>
-                                <% } %>
-                            </div>
-                            <% }) %>
+                          </div>
+                          <div class="flex gap-1">
+                            <form action="/appointment/<%= a.id %>/pay-service/<%= service.id %>" method="POST" onsubmit="return pagarValor(this)" data-remaining="<%= svcRemaining %>" style="margin:0;">
+                              <button class="btn btn-success btn-sm"><i class="fas fa-credit-card"></i></button>
+                            </form>
+                            <form action="/appointment/<%= a.id %>/edit-service/<%= service.id %>" method="POST" onsubmit="return editItem(this, '<%= service.name %>', '<%= service.price %>')" style="margin:0;">
+                              <button class="btn btn-outline btn-sm"><i class="fas fa-edit"></i></button>
+                            </form>
+                            <form action="/appointment/<%= a.id %>/remove-service/<%= service.id %>" method="POST" onsubmit="return confirm('Excluir?')" style="margin:0;">
+                              <button class="btn btn-ghost btn-sm" style="color:var(--danger);"><i class="fas fa-trash"></i></button>
+                            </form>
+                          </div>
                         </div>
-                        <% } else { %>
-                        <div class="text-center py-8 text-gray-500">
-                            <i class="fas fa-box-open text-4xl mb-4"></i>
-                            <p>Nenhum produto cadastrado ainda.</p>
-                        </div>
-                        <% } %>
-                    </div>
-                </div>
-                <% } %>
 
-                <div class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover animate-fade-in border border-gray-200">
-                    <div class="bg-gold p-6 bg-shine-gold">
-                        <h2 class="text-xl font-bold text-white flex items-center">
-                            <i class="fas fa-calendar-alt mr-3"></i>
-                            <% if (typeof isHistory !== 'undefined' && isHistory) { %>Histórico de Agendamentos<% } else { %>Agendamentos<% } %>
-                        </h2>
-                    </div>
-                    <div class="p-6">
-                        <%
-                        let visible;
-                        if (typeof isHistory !== 'undefined' && isHistory) {
-                            visible = appointments || [];
-                        } else {
-                            // Filtra apenas agendamentos futuros ou com pagamentos pendentes
-                            visible = (appointments || []).filter(a => {
-                                const [d, m, y] = a.formatted.split(' ')[0].split('/');
-                                const apptDate = new Date(`${y}-${m}-${d}T00:00:00`);
-                                const todayMid = new Date();
-                                todayMid.setHours(0,0,0,0);
-                                
-                                if (apptDate >= todayMid) return true;
-                                
-                                for (let s of a.AppointmentServices || []) {
-                                    const paid = (s.AppointmentPayments || []).reduce((sum,p)=> sum + parseFloat(p.amount), 0);
-                                    if (paid < parseFloat(s.price)) return true;
-                                }
-                                return false;
-                            });
-                        }
-                        %>
-
-                        <% if (visible.length === 0) { %>
-                        <div class="text-center py-8 text-gray-500">
-                            <i class="fas fa-calendar-times text-4xl mb-4"></i>
-                            <p><% if (typeof isHistory !== 'undefined' && isHistory) { %>Nenhum agendamento encontrado no histórico.<% } else { %>Nenhum agendamento futuro ou pendente.<% } %></p>
-                        </div>
-                        <% } else { %>
-                        <div class="space-y-4">
-                            <% visible.forEach(function(a) { 
-                                const [datePart, , timePart] = a.formatted.split(' ');
-                                const [d, m, y] = datePart.split('/');
-                                const apptDate = new Date(`${y}-${m}-${d}T00:00:00`);
-                                const todayMid = new Date();
-                                todayMid.setHours(0,0,0,0);
-                                const isPast = apptDate < todayMid;
-                            %>
-                            <div class="bg-white p-4 rounded-xl border border-gray-200 <%= isPast ? 'opacity-75' : '' %>">
-                                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-3 lg:space-y-0 mb-4">
-                                    <div>
-                                        <h4 class="font-semibold text-gray-900 text-lg flex items-center">
-                                            <i class="fas fa-clock mr-2 text-gold"></i>
-                                            <%= a.formatted %> (<%= a.duration %> min)
-                                            <% if (isPast) { %>
-                                                <span class="ml-3 status-badge history-badge">
-                                                    <i class="fas fa-history mr-1"></i> Passado
-                                                </span>
-                                            <% } %>
-                                        </h4>
-                                    </div>
-
-                                    <div class="flex flex-wrap gap-2">
-                                        <% if (!isPast) { %>
-                                        <button type="button" 
-                                            onclick="sendAutomaticReminder(this, '<%= client.name %>', '<%= client.phone %>', '<%= a.formatted %>')"
-                                            class="flex items-center space-x-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors btn-whatsapp-sender">
-                                            <i class="fab fa-whatsapp"></i>
-                                            <span class="hidden sm:inline">Lembrar (Auto)</span>
-                                        </button>
-                                        <% } %>
-
-                                        <form action="/appointment/<%= a.id %>/edit-datetime" method="POST"
-                                              onsubmit='return editDateTime(this, "<%= datePart %>", "<%= timePart %>")'
-                                              class="inline">
-                                            <button class="flex items-center space-x-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
-                                                <i class="fas fa-edit"></i>
-                                                <span class="hidden sm:inline">Alterar</span>
-                                            </button>
-                                        </form>
-
-                                        <form action="/appointment/<%= a.id %>/cancel" method="POST" onsubmit="return promptCancelReason(this)" class="inline">
-                                            <button class="flex items-center space-x-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
-                                                <i class="fas fa-times"></i>
-                                                <span class="hidden sm:inline">Cancelar</span>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </div>
-                                
-                                <% if (a.AppointmentServices && a.AppointmentServices.length) { %>
-                                <div class="border-t border-gray-200 pt-4">
-                                    <h5 class="font-semibold text-gray-700 mb-3 flex items-center">
-                                        <i class="fas fa-concierge-bell mr-2"></i> Serviços:
-                                    </h5>
-                                    <div class="space-y-3">
-                                        <% a.AppointmentServices.forEach(function(service) { 
-                                            const servicePaid = (service.AppointmentPayments || []).reduce((sum, p) => sum + parseFloat(p.amount), 0);
-                                            const serviceRemaining = parseFloat(service.price) - servicePaid;
-                                            const isServicePaid = serviceRemaining <= 0;
-                                        %>
-                                        <div class="bg-white p-4 rounded-lg border border-gray-200">
-                                            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-2 lg:space-y-0">
-                                                <div class="flex-1">
-                                                    <div class="flex items-center space-x-3 mb-2">
-                                                        <h6 class="font-semibold text-gray-900"><%= service.name %></h6>
-                                                        <% if (isServicePaid) { %>
-                                                            <span class="status-badge status-paid">
-                                                                <i class="fas fa-check-circle mr-1"></i> Pago
-                                                            </span>
-                                                        <% } else { %>
-                                                            <span class="status-badge status-pending">
-                                                                <i class="fas fa-clock mr-1"></i> Pendente
-                                                            </span>
-                                                        <% } %>
-                                                    </div>
-                                                    <div class="text-sm text-gray-600">
-                                                        <span><strong>Valor:</strong> R$ <%= parseFloat(service.price).toFixed(2) %></span>
-                                                        <% if (servicePaid > 0) { %>
-                                                            <span class="ml-4"><strong>Pago:</strong> R$ <%= servicePaid.toFixed(2) %></span>
-                                                        <% } %>
-                                                        <% if (serviceRemaining > 0) { %>
-                                                            <span class="ml-4 text-red-600 font-semibold">
-                                                                <strong>Restante:</strong> R$ <%= serviceRemaining.toFixed(2) %>
-                                                            </span>
-                                                        <% } %>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div class="flex flex-wrap gap-2">
-                                                    <form action="/appointment/<%= a.id %>/pay-service/<%= service.id %>" method="POST" onsubmit="return pagarValor(this)" data-remaining="<%= serviceRemaining %>" class="inline">
-                                                        <button class="flex items-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-opacity">
-                                                            <i class="fas fa-credit-card"></i> Pagar
-                                                        </button>
-                                                    </form>
-                                                    
-                                                    <form action="/appointment/<%= a.id %>/edit-service/<%= service.id %>" method="POST" onsubmit="return editItem(this, '<%= service.name %>', '<%= service.price %>')" class="inline">
-                                                        <button class="flex items-center space-x-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
-                                                            <i class="fas fa-edit"></i> Editar
-                                                        </button>
-                                                    </form>
-                                                    <form action="/appointment/<%= a.id %>/remove-service/<%= service.id %>" method="POST" onsubmit="return confirm('Excluir serviço?')" class="inline">
-                                                        <button class="flex items-center space-x-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
-                                                            <i class="fas fa-trash"></i> Excluir
-                                                        </button>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                            
-                                            <% if (service.AppointmentPayments && service.AppointmentPayments.length) { %>
-                                            <div class="mt-3 pt-3 border-t border-gray-200">
-                                                <div class="space-y-2">
-                                                    <% service.AppointmentPayments.forEach(function(payment) { %>
-                                                    <div class="flex items-center justify-between text-sm bg-gray-50 p-2 rounded border border-gray-200">
-                                                        <div class="flex items-center space-x-2">
-                                                            <i class="fas fa-check-circle text-green-600"></i>
-                                                            <span class="text-gray-700">
-                                                                <%= new Date(payment.paidAt).toLocaleDateString('pt-BR') %> – 
-                                                                R$ <%= parseFloat(payment.amount).toFixed(2) %> (<%= payment.method %>)
-                                                            </span>
-                                                        </div>
-                                                        <form action="/appointment/<%= a.id %>/remove-payment/service/<%= service.id %>/<%= payment.id %>" method="POST" onsubmit="return confirm('Excluir este pagamento?')" class="inline">
-                                                            <button class="text-red-600 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors">
-                                                                <i class="fas fa-trash text-xs"></i>
-                                                            </button>
-                                                        </form>
-                                                    </div>
-                                                    <% }); %>
-                                                </div>
-                                            </div>
-                                            <% } %>
-                                        </div>
-                                        <% }); %>
-                                    </div>
-                                </div>
-                                <% } %>
-                            </div>
+                        <% if (service.AppointmentPayments && service.AppointmentPayments.length) { %>
+                          <div class="mt-2">
+                            <% service.AppointmentPayments.forEach(function(payment) { %>
+                              <div class="flex items-center justify-between text-xs" style="padding: 3px 0;">
+                                <span><i class="fas fa-check-circle text-success"></i> <%= new Date(payment.paidAt).toLocaleDateString('pt-BR') %> - R$ <%= parseFloat(payment.amount).toFixed(2) %> (<%= payment.method %>)</span>
+                                <form action="/appointment/<%= a.id %>/remove-payment/service/<%= service.id %>/<%= payment.id %>" method="POST" onsubmit="return confirm('Excluir?')" style="margin:0;">
+                                  <button class="btn btn-ghost" style="color:var(--danger); padding:1px 4px; font-size:0.65rem;"><i class="fas fa-trash"></i></button>
+                                </form>
+                              </div>
                             <% }); %>
-                        </div>
+                          </div>
                         <% } %>
-                    </div>
+                      </div>
+                    <% }); %>
+                  <% } %>
                 </div>
+              </div>
+            <% }); %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
 
-            </div>
-
-            <div class="space-y-6">
-                <% if (typeof isHistory === 'undefined' || !isHistory) { %>
-                <div class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover animate-fade-in border border-gray-200">
-                    <div class="bg-gold p-6 bg-shine-gold">
-                        <h3 class="text-xl font-bold text-white flex items-center">
-                            <i class="fas fa-chart-line mr-3"></i>
-                            Resumo Financeiro
-                        </h3>
-                    </div>
-                    <div class="p-6 space-y-4">
-                        <div class="bg-green-50 p-4 rounded-xl border border-green-200">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                                        <i class="fas fa-concierge-bell text-green-600"></i>
-                                    </div>
-                                    <span class="font-medium text-green-800">Total Serviços</span>
-                                </div>
-                                <span class="text-xl font-bold text-green-600">R$ <%= totalService.toFixed(2) %></span>
-                            </div>
-                        </div>
-
-                        <div class="bg-blue-50 p-4 rounded-xl border border-blue-200">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                        <i class="fas fa-check-circle text-blue-600"></i>
-                                    </div>
-                                    <span class="font-medium text-blue-800">Pago (Serv.)</span>
-                                </div>
-                                <span class="text-xl font-bold text-blue-600">R$ <%= totalPaidService.toFixed(2) %></span>
-                            </div>
-                        </div>
-
-                        <div class="bg-purple-50 p-4 rounded-xl border border-purple-200">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                                        <i class="fas fa-box text-purple-600"></i>
-                                    </div>
-                                    <span class="font-medium text-purple-800">Total Produtos</span>
-                                </div>
-                                <span class="text-xl font-bold text-purple-600">R$ <%= totalProduct.toFixed(2) %></span>
-                            </div>
-                        </div>
-
-                        <div class="bg-red-50 p-4 rounded-xl border-2 border-red-200">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                                        <i class="fas fa-exclamation-triangle text-red-600"></i>
-                                    </div>
-                                    <span class="font-bold text-red-800">Restante</span>
-                                </div>
-                                <span class="text-2xl font-bold text-red-600">
-                                    R$ <%= (totalService + totalProduct - (totalPaidService + totalPaidProduct)).toFixed(2) %>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <% } %>
-
-                <div class="bg-white rounded-2xl shadow-lg overflow-hidden card-hover animate-fade-in border border-gray-200">
-                    <div class="bg-gray-700 p-6">
-                        <h3 class="text-xl font-bold text-white flex items-center">
-                            <i class="fas fa-bolt mr-3"></i>
-                            <% if (typeof isHistory !== 'undefined' && isHistory) { %>Navegação<% } else { %>Ações Rápidas<% } %>
-                        </h3>
-                    </div>
-                    <div class="p-6 space-y-3">
-                        <% if (typeof isHistory === 'undefined' || !isHistory) { %>
-                        <button onclick="scrollToElement('form[action=\'/appointment\']')" 
-                                class="w-full bg-gold text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity bg-shine-gold">
-                            <i class="fas fa-calendar-plus mr-2"></i>
-                            Novo Agendamento
-                        </button>
-                        <button onclick="scrollToElement('form[action*=\'/add-product\']')" 
-                                class="w-full bg-gold-light text-gold-dark py-3 rounded-lg font-semibold hover:bg-yellow-100 transition-colors">
-                            <i class="fas fa-plus mr-2"></i>
-                            Adicionar Produto
-                        </button>
-                        <a href="/client/<%= client.id %>/historico" 
-                           class="block w-full bg-blue-100 text-blue-700 py-3 rounded-lg font-semibold hover:bg-blue-200 transition-colors text-center">
-                            <i class="fas fa-history mr-2"></i>
-                            Ver Histórico Completo
-                        </a>
-                        <% } else { %>
-                        <a href="/client/<%= client.id %>" 
-                           class="block w-full bg-gold text-white py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity bg-shine-gold text-center">
-                            <i class="fas fa-arrow-left mr-2"></i>
-                            Voltar aos Detalhes
-                        </a>
-                        <% } %>
-                    </div>
-                </div>
-            </div>
+  <!-- Sidebar direita -->
+  <div class="col-span-4 flex flex-col gap-4">
+    <% if (typeof isHistory === 'undefined' || !isHistory) { %>
+    <!-- Resumo financeiro -->
+    <div class="card">
+      <div class="card-header"><h3><i class="fas fa-chart-line" style="color: var(--success); margin-right: 8px;"></i> Resumo</h3></div>
+      <div class="card-body">
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-secondary">Total Servicos</span>
+            <span class="font-bold amount-positive">R$ <%= totalService.toFixed(2) %></span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-secondary">Pago (Serv.)</span>
+            <span class="font-bold" style="color: var(--info);">R$ <%= totalPaidService.toFixed(2) %></span>
+          </div>
+          <div class="divider"></div>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-secondary">Total Produtos</span>
+            <span class="font-bold" style="color: var(--primary);">R$ <%= totalProduct.toFixed(2) %></span>
+          </div>
+          <div class="divider"></div>
+          <div class="flex items-center justify-between">
+            <span class="font-semibold text-danger">Restante Total</span>
+            <span class="font-bold text-danger" style="font-size: 1.2rem;">
+              R$ <%= (totalService + totalProduct - (totalPaidService + totalPaidProduct)).toFixed(2) %>
+            </span>
+          </div>
         </div>
+      </div>
+    </div>
+    <% } %>
 
-        <div class="mt-8 text-center">
-            <button onclick="history.back()" class="bg-gold text-white px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity bg-shine-gold">
-                <i class="fas fa-arrow-left mr-2"></i>
-                Voltar
+    <!-- Acoes rapidas -->
+    <div class="card">
+      <div class="card-header"><h3><i class="fas fa-bolt" style="color: var(--warning); margin-right: 8px;"></i> Acoes</h3></div>
+      <div class="card-body">
+        <div class="flex flex-col gap-2">
+          <% if (typeof isHistory === 'undefined' || !isHistory) { %>
+            <button onclick="scrollToElement('form[action=\'/appointment\']')" class="btn btn-primary btn-block">
+              <i class="fas fa-calendar-plus"></i> Novo Agendamento
             </button>
+            <button onclick="scrollToElement('form[action*=\'/add-product\']')" class="btn btn-outline btn-block">
+              <i class="fas fa-plus"></i> Adicionar Produto
+            </button>
+            <a href="/client/<%= clientData.id %>/historico" class="btn btn-outline btn-block">
+              <i class="fas fa-history"></i> Historico Completo
+            </a>
+          <% } else { %>
+            <a href="/client/<%= clientData.id %>" class="btn btn-primary btn-block">
+              <i class="fas fa-arrow-left"></i> Voltar aos Detalhes
+            </a>
+          <% } %>
+          <a href="/clients" class="btn btn-ghost btn-block"><i class="fas fa-users"></i> Todos os clientes</a>
         </div>
+      </div>
     </div>
+  </div>
+</div>
 
-    <div id="payment-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden animate-fade-in">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 m-4">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-2xl font-bold text-gray-900" id="payment-modal-title">Registrar Pagamento</h3>
-                <button onclick="closeModal('payment-modal')" class="text-gray-400 hover:text-gray-600">
-                    <i class="fas fa-times text-2xl"></i>
-                </button>
-            </div>
-            
-            <form id="payment-modal-form" method="POST" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Valor Pago</label>
-                    <input type="number" step="0.01" name="amount" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark bg-white text-gray-900">
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Forma de Pagamento</label>
-                    <select name="method" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark bg-white text-gray-900">
-                        <option value="Pix">Pix</option>
-                        <option value="Dinheiro">Dinheiro</option>
-                        <option value="Cartão">Cartão</option>
-                    </select>
-                </div>
-    
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Data do Pagamento</label>
-                    <input type="date" name="paidAt" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark bg-white text-gray-900">
-                </div>
-    
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Descrição (Opcional)</label>
-                    <input type="text" name="description" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark bg-white text-gray-900">
-                </div>
-                
-                <div class="flex justify-end space-x-3 pt-4">
-                    <button type="button" onclick="closeModal('payment-modal')" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                        Cancelar
-                    </button>
-                    <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-opacity">
-                        Salvar Pagamento
-                    </button>
-                </div>
-            </form>
+<!-- Modal de pagamento -->
+<div id="payment-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:100; align-items:center; justify-content:center; padding:16px;">
+  <div class="card" style="max-width: 420px; width: 100%;">
+    <div class="card-header">
+      <h3 id="payment-modal-title">Registrar Pagamento</h3>
+      <button onclick="closeModal('payment-modal')" class="btn btn-ghost btn-sm"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="card-body">
+      <form id="payment-modal-form" method="POST">
+        <div class="form-group">
+          <label class="form-label">Valor Pago</label>
+          <input type="number" step="0.01" name="amount" required class="form-control">
         </div>
+        <div class="form-group">
+          <label class="form-label">Forma de Pagamento</label>
+          <select name="method" required class="form-control">
+            <option value="Pix">Pix</option>
+            <option value="Dinheiro">Dinheiro</option>
+            <option value="Cartao">Cartao</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Data</label>
+          <input type="date" name="paidAt" required class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descricao (opcional)</label>
+          <input type="text" name="description" class="form-control">
+        </div>
+        <div class="flex gap-2 justify-end">
+          <button type="button" onclick="closeModal('payment-modal')" class="btn btn-outline">Cancelar</button>
+          <button type="submit" class="btn btn-success">Salvar Pagamento</button>
+        </div>
+      </form>
     </div>
+  </div>
+</div>
 
-    <script>
-        // =================================================
-        // === LÓGICA DE TEMA ===
-        // =================================================
-        const THEMES = ["light", "medium-dark", "deep-dark"];
-        const htmlEl = document.documentElement;
+<script>
+  function openModal(id) { var m = document.getElementById(id); if(m) m.style.display = 'flex'; }
+  function closeModal(id) { var m = document.getElementById(id); if(m) m.style.display = 'none'; }
+  function getTodayIso() { return new Date().toISOString().split('T')[0]; }
+  function scrollToElement(sel) { var el = document.querySelector(sel); if(el) el.scrollIntoView({behavior:'smooth'}); }
 
-        function getNextTheme(currentTheme) {
-            const currentIndex = THEMES.indexOf(currentTheme);
-            const nextIndex = (currentIndex + 1) % THEMES.length;
-            return THEMES[nextIndex];
+  // Carregar servicos ao selecionar profissional
+  (function() {
+    var staffSelect = document.querySelector('select[name="staffId"]');
+    var container = document.getElementById('serviceCheckboxes');
+    var durationInput = document.querySelector('input[name="duration"]');
+    if (!staffSelect || !container) return;
+
+    staffSelect.addEventListener('change', async function() {
+      container.innerHTML = '';
+      if (durationInput) durationInput.value = '';
+      if (!this.value) {
+        container.innerHTML = '<span class="text-sm text-secondary">Selecione um profissional para ver os servicos</span>';
+        return;
+      }
+      container.innerHTML = '<span class="text-sm text-secondary"><i class="fas fa-spinner spinner"></i> Carregando...</span>';
+      try {
+        var res = await fetch('/api/admin/services-by-staff/' + this.value);
+        var services = await res.json();
+        container.innerHTML = '';
+        if (!services.length) {
+          container.innerHTML = '<span class="text-sm text-secondary">Nenhum servico vinculado a este profissional</span>';
+          return;
         }
-
-        function updateIcons(theme) {
-            const sunDesktop = document.getElementById('theme-icon-sun');
-            const moonDesktop = document.getElementById('theme-icon-moon');
-            const sunMobile = document.getElementById('theme-icon-sun-mobile'); 
-            const moonMobile = document.getElementById('theme-icon-moon-mobile'); 
-            
-            const isLight = theme === 'light';
-
-            if (sunDesktop) sunDesktop.classList.toggle('hidden', !isLight);
-            if (moonDesktop) moonDesktop.classList.toggle('hidden', isLight);
-            
-            if (sunMobile) sunMobile.classList.toggle('hidden', !isLight);
-            if (moonMobile) moonMobile.classList.toggle('hidden', isLight);
-        }
-
-        function toggleTheme() {
-            const currentTheme = htmlEl.getAttribute('data-theme') || 'light';
-            const newTheme = getNextTheme(currentTheme);
-
-            htmlEl.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateIcons(newTheme);
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const initialTheme = htmlEl.getAttribute('data-theme') || 'light';
-            updateIcons(initialTheme);
-            
-            const toggleButtonDesktop = document.getElementById('theme-toggle-btn');
-            const toggleButtonMobile = document.getElementById('theme-toggle-btn-mobile'); 
-
-            if (toggleButtonDesktop) toggleButtonDesktop.addEventListener('click', toggleTheme);
-            if (toggleButtonMobile) toggleButtonMobile.addEventListener('click', toggleTheme);
+        services.forEach(function(s) {
+          var label = document.createElement('label');
+          label.className = 'flex items-center gap-2 cursor-pointer';
+          label.style.padding = '6px 8px';
+          label.style.borderRadius = 'var(--radius)';
+          label.style.background = 'var(--bg-body)';
+          label.style.marginBottom = '4px';
+          var cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.className = 'service-check';
+          cb.dataset.name = s.name;
+          cb.dataset.price = s.price;
+          cb.dataset.duration = s.duration;
+          cb.addEventListener('change', updateDuration);
+          label.appendChild(cb);
+          var text = document.createElement('span');
+          text.style.flex = '1';
+          text.innerHTML = '<strong>' + s.name + '</strong> <span class="text-secondary text-xs">R$ ' + parseFloat(s.price).toFixed(2) + ' | ' + s.duration + 'min</span>';
+          label.appendChild(text);
+          container.appendChild(label);
         });
-        // =================================================
+      } catch(e) {
+        container.innerHTML = '<span class="text-sm text-danger">Erro ao carregar servicos</span>';
+      }
+    });
 
-        // Mobile menu toggle
-        const menuButton = document.getElementById('menu-button');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const closeMenu = document.getElementById('close-menu');
-        if (menuButton && mobileMenu && closeMenu) {
-            menuButton.addEventListener('click', () => mobileMenu.classList.remove('hidden'));
-            closeMenu.addEventListener('click', () => mobileMenu.classList.add('hidden'));
-        }
+    function updateDuration() {
+      if (!durationInput) return;
+      var total = 0;
+      document.querySelectorAll('.service-check:checked').forEach(function(cb) {
+        total += parseInt(cb.dataset.duration) || 0;
+      });
+      durationInput.value = total || '';
+    }
+  })();
 
-        function openModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if(modal) modal.classList.remove('hidden');
-        }
-        function closeModal(modalId) {
-            const modal = document.getElementById(modalId);
-            if(modal) modal.classList.add('hidden');
-        }
-        function getTodayIso() {
-            return new Date().toISOString().split('T')[0];
-        }
-        function scrollToElement(selector) {
-            const element = document.querySelector(selector);
-            if (element) {
-                element.scrollIntoView({behavior: 'smooth'});
-            }
-        }
-        function addService() {
-            const container = document.getElementById('services');
-            if (!container) return;
-            const serviceDiv = document.createElement('div');
-            serviceDiv.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200';
-            serviceDiv.innerHTML = `
-                <div class="flex gap-3">
-                    <input type="text" placeholder="Nome do serviço" 
-                           class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all service-name bg-white text-gray-900">
-                    <input type="number" placeholder="Preço" step="0.01"
-                           class="w-32 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-dark focus:border-transparent transition-all service-price bg-white text-gray-900">
-                    <button type="button" onclick="this.parentElement.parentElement.remove()" 
-                            class="px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            `;
-            container.appendChild(serviceDiv);
-        }
-        function processForm() {
-            const services = [], products = [];
-            document.querySelectorAll('.service-name').forEach((el, i) => {
-                const name = el.value.trim();
-                const priceElement = document.querySelectorAll('.service-price')[i];
-                const price = priceElement ? parseFloat(priceElement.value) : 0;
-                if (name && !isNaN(price)) {
-                    services.push({name: name, price: price});
-                }
-            });
-            const servicesInput = document.getElementById('servicesInput');
-            const productsInput = document.getElementById('productsInput');
-            if (servicesInput) servicesInput.value = JSON.stringify(services);
-            if (productsInput) productsInput.value = JSON.stringify(products);
-            return true;
-        }
+  function processForm() {
+    var services = [];
+    document.querySelectorAll('.service-check:checked').forEach(function(cb) {
+      services.push({ name: cb.dataset.name, price: parseFloat(cb.dataset.price) });
+    });
+    if (services.length === 0) {
+      alert('Selecione pelo menos um servico.');
+      return false;
+    }
+    var si = document.getElementById('servicesInput');
+    var pi = document.getElementById('productsInput');
+    if (si) si.value = JSON.stringify(services);
+    if (pi) pi.value = JSON.stringify([]);
+    return true;
+  }
 
-        // --- NOVA FUNÇÃO DE ENVIO AUTOMÁTICO WHATSAPP ---
-        async function sendAutomaticReminder(button, clientName, clientPhone, apptDateTime) {
-            const originalContent = button.innerHTML;
-            button.disabled = true;
-            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+  function pagarValor(form) {
+    var modal = document.getElementById('payment-modal');
+    var modalForm = document.getElementById('payment-modal-form');
+    var remaining = parseFloat(form.dataset.remaining);
+    modalForm.action = form.action;
+    var title = 'Item';
+    var titleEl = form.closest('.card-body, .compact').querySelector('.font-semibold, .font-medium');
+    if (titleEl) title = titleEl.innerText;
+    modal.querySelector('#payment-modal-title').innerText = 'Pagar: ' + title;
+    var amountInput = modalForm.querySelector('input[name="amount"]');
+    amountInput.value = (!isNaN(remaining) && remaining > 0) ? remaining.toFixed(2) : '';
+    modalForm.querySelector('input[name="paidAt"]').value = getTodayIso();
+    modalForm.querySelector('input[name="description"]').value = '';
+    openModal('payment-modal');
+    return false;
+  }
 
-            // Pega os serviços
-            const card = button.closest('.p-4.rounded-xl');
-            let servicesText = '';
-            if(card) {
-                 const services = Array.from(card.querySelectorAll('h6.font-semibold'))
-                                  .map(h6 => h6.innerText.trim())
-                                  .join(', ');
-                 servicesText = services;
-            }
+  function editItem(form, oldName, oldPrice) {
+    var nome = prompt('Novo nome:', oldName);
+    if (nome === null) return false;
+    var preco = prompt('Novo preco:', oldPrice);
+    if (preco === null) return false;
+    var i1 = document.createElement('input'); i1.type='hidden'; i1.name='name'; i1.value=nome; form.appendChild(i1);
+    var i2 = document.createElement('input'); i2.type='hidden'; i2.name='price'; i2.value=preco; form.appendChild(i2);
+    return true;
+  }
 
-            // 👇 AQUI ESTÁ A MUDANÇA: Usamos a variável do EJS dentro da string JS
-            const orgName = "<%= typeof organization !== 'undefined' ? organization.name : 'AgendaPro' %>"; 
+  function editClient(form, oldName, oldPhone) {
+    var nome = prompt('Novo nome:', oldName);
+    if (nome === null) return false;
+    var tel = prompt('Novo telefone:', oldPhone);
+    if (tel === null) return false;
+    var i1 = document.createElement('input'); i1.type='hidden'; i1.name='name'; i1.value=nome; form.appendChild(i1);
+    var i2 = document.createElement('input'); i2.type='hidden'; i2.name='phone'; i2.value=tel; form.appendChild(i2);
+    return true;
+  }
 
-            let message = `Olá, ${clientName}! ✨\n\n`;
-            message += `Gostaríamos de lembrar do seu horário no *${orgName}*: ${apptDateTime}.\n\n`;
-            
-            if (servicesText) {
-                message += `Serviços: *${servicesText}*.\n\n`;
-            }
-            message += `Por favor, nos avise se precisar remarcar. Estamos te esperando! 😊`;
+  function editDateTime(form, oldDate, oldTime) {
+    var parts = oldDate.split('/');
+    var userDate = prompt('Nova data (DD/MM/YYYY):', oldDate);
+    if (userDate === null) return false;
+    var m = userDate.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!m) { alert('Data invalida. Use DD/MM/YYYY.'); return false; }
+    var isoDate = m[3] + '-' + m[2] + '-' + m[1];
+    var userTime = prompt('Novo horario (HH:MM):', oldTime);
+    if (userTime === null) return false;
+    if (!/^\d{2}:\d{2}$/.test(userTime)) { alert('Horario invalido.'); return false; }
+    var i1 = document.createElement('input'); i1.type='hidden'; i1.name='date'; i1.value=isoDate; form.appendChild(i1);
+    var i2 = document.createElement('input'); i2.type='hidden'; i2.name='time'; i2.value=userTime; form.appendChild(i2);
+    return true;
+  }
 
-            try {
-                const response = await fetch('/api/send-reminder', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        phone: clientPhone,
-                        message: message
-                    })
-                });
+  async function sendAutomaticReminder(button, clientName, clientPhone, apptDateTime) {
+    var orig = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner spinner"></i> Enviando...';
+    var orgName = "<%= typeof organization !== 'undefined' ? organization.name : 'AgendaPro' %>";
+    var msg = 'Ola, ' + clientName + '!\n\nLembramos do seu horario no *' + orgName + '*: ' + apptDateTime + '.\nEstamos te esperando!';
+    try {
+      var res = await fetch('/api/send-reminder', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({phone: clientPhone, message: msg})
+      });
+      var data = await res.json();
+      if (res.ok) {
+        button.className = 'btn btn-success btn-sm';
+        button.innerHTML = '<i class="fas fa-check"></i> Enviado';
+      } else {
+        alert('Erro: ' + (data.error || 'Falha'));
+        button.disabled = false; button.innerHTML = orig;
+      }
+    } catch(e) {
+      alert('Erro de conexao.');
+      button.disabled = false; button.innerHTML = orig;
+    }
+  }
+</script>
 
-                const data = await response.json();
-
-                if (response.ok) {
-                    button.className = "flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg transition-colors";
-                    button.innerHTML = '<i class="fas fa-check"></i> Enviado';
-                } else {
-                    alert('Erro: ' + (data.error || 'Falha ao enviar'));
-                    button.disabled = false;
-                    button.innerHTML = originalContent;
-                }
-            } catch (error) {
-                console.error(error);
-                alert('Erro de conexão.');
-                button.disabled = false;
-                button.innerHTML = originalContent;
-            }
-        }
-        // ------------------------------------------------
-
-        function pagarValor(form) { 
-            const modal = document.getElementById('payment-modal');
-            const modalForm = document.getElementById('payment-modal-form');
-            const remainingAmount = parseFloat(form.dataset.remaining);
-            modalForm.action = form.action; 
-            
-            // Tenta encontrar o titulo do serviço ou produto
-            let title = 'Item';
-            const titleEl = form.closest('.p-4, .bg-white').querySelector('h4, h6');
-            if(titleEl) title = titleEl.innerText;
-            
-            modal.querySelector('#payment-modal-title').innerText = `Pagar: ${title}`;
-            const amountInput = modalForm.querySelector('input[name="amount"]');
-            if (remainingAmount && !isNaN(remainingAmount)) {
-                amountInput.value = remainingAmount.toFixed(2);
-            } else {
-                amountInput.value = '';
-                amountInput.placeholder = '0.00';
-            }
-            modalForm.querySelector('input[name="paidAt"]').value = getTodayIso();
-            modalForm.querySelector('input[name="description"]').value = '';
-            openModal('payment-modal');
-            return false; 
-        }
-        function editItem(form, oldName, oldPrice) {
-            const nome = prompt('Novo nome:', oldName);
-            if (nome === null) return false;
-            const preco = prompt('Novo preço:', oldPrice);
-            if (preco === null) return false;
-            const i1 = document.createElement('input');
-            i1.type = 'hidden'; i1.name = 'name'; i1.value = nome;
-            form.appendChild(i1);
-            const i2 = document.createElement('input');
-            i2.type = 'hidden'; i2.name = 'price'; i2.value = preco;
-            form.appendChild(i2);
-            return true;
-        }
-        function editClient(form, oldName, oldPhone) {
-            const nome = prompt('Novo nome do cliente:', oldName);
-            if (nome === null) return false;
-            const telefone = prompt('Novo telefone:', oldPhone);
-            if (telefone === null) return false;
-            const i1 = document.createElement('input');
-            i1.type = 'hidden'; i1.name = 'name'; i1.value = nome;
-            form.appendChild(i1);
-            const i2 = document.createElement('input');
-            i2.type = 'hidden'; i2.name = 'phone'; i2.value = telefone;
-            form.appendChild(i2);
-            return true;
-        }
-        function editDateTime(form, oldDate, oldTime) {
-            const [day, month, year] = oldDate.split('/');
-            const formattedOld = `${day}/${month}/${year}`;
-            const userDate = prompt('Nova data (DD/MM/YYYY):', formattedOld);
-            if (userDate === null) return false;
-            const dateMatch = userDate.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-            if (!dateMatch) {
-                alert('Data inválida. Use DD/MM/YYYY.');
-                return false;
-            }
-            const [, d, m, y] = dateMatch;
-            const isoDate = `${y}-${m}-${d}`;
-            const userTime = prompt('Novo horário (HH:MM):', oldTime);
-            if (userTime === null) return false;
-            if (!/^\d{2}:\d{2}$/.test(userTime)) {
-                alert('Horário inválido. Use HH:MM.');
-                return false;
-            }
-            const i1 = document.createElement('input');
-            i1.type = 'hidden'; i1.name = 'date'; i1.value = isoDate;
-            form.appendChild(i1);
-            const i2 = document.createElement('input');
-            i2.type = 'hidden'; i2.name = 'time'; i2.value = userTime;
-            form.appendChild(i2);
-            return true;
-        }
-        function promptCancelReason(form) {
-            const reason = prompt("Por favor, insira o motivo do cancelamento (será visível para o cliente):");
-            if (reason === null) {
-                return false; 
-            }
-            if (reason.trim() === "") {
-                alert("O motivo do cancelamento é obrigatório.");
-                return false; 
-            }
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'cancellationReason';
-            input.value = reason.trim();
-            form.appendChild(input);
-            return true; 
-        }
-        document.addEventListener('DOMContentLoaded', function() {
-            const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -50px 0px' };
-            const observer = new IntersectionObserver(function(entries) {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.style.opacity = '1';
-                        entry.target.style.transform = 'translateY(0)';
-                    }
-                });
-            });
-            document.querySelectorAll('.animate-fade-in').forEach(el => {
-                el.style.opacity = '0';
-                el.style.transform = 'translateY(20px)';
-                el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-                observer.observe(el);
-            });
-
-            // Script para carregar profissionais se a lista estiver vazia
-            const staffSelect = document.getElementById('staffIdSelect');
-            
-            // Só busca se o select existir e tiver apenas 1 opção (a opção padrão "Selecione...")
-            if (staffSelect && staffSelect.options.length <= 1) {
-                // Tenta buscar de uma rota de API
-                fetch('/api/admin/equipe') // Ajuste conforme sua rota real
-                    .then(response => {
-                        if (response.ok) return response.json();
-                        throw new Error('Falha ao carregar equipe');
-                    })
-                    .then(staffList => {
-                        staffList.forEach(member => {
-                            const option = document.createElement('option');
-                            option.value = member.id;
-                            option.textContent = member.name;
-                            staffSelect.appendChild(option);
-                        });
-                    })
-                    .catch(error => {
-                        console.warn("Não foi possível carregar a lista de profissionais via API.", error);
-                    });
-            }
-        });
-    </script>
-</body>
-</html>
+<%- include('partials/footer') %>

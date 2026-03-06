@@ -1,0 +1,65 @@
+    </main>
+  </div>
+</div>
+
+<script>
+  // Sidebar mobile toggle
+  (function(){
+    var toggle = document.getElementById('menuToggle');
+    var sidebar = document.getElementById('sidebar');
+    var overlay = document.getElementById('sidebarOverlay');
+
+    function openMenu() {
+      sidebar.classList.add('open');
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeMenu() {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    if (toggle) toggle.addEventListener('click', openMenu);
+    if (overlay) overlay.addEventListener('click', closeMenu);
+
+    // Close on link click (mobile)
+    sidebar.querySelectorAll('.sidebar-link').forEach(function(link) {
+      link.addEventListener('click', function() {
+        if (window.innerWidth <= 768) closeMenu();
+      });
+    });
+  })();
+
+  // Theme toggle
+  (function(){
+    var btn = document.getElementById('themeToggle');
+    var icon = document.getElementById('themeIcon');
+    var label = document.getElementById('themeLabel');
+    var html = document.documentElement;
+
+    function update() {
+      var dark = html.getAttribute('data-theme') === 'dark';
+      if (icon) {
+        icon.className = dark ? 'fas fa-sun' : 'fas fa-moon';
+      }
+      if (label) {
+        label.textContent = dark ? 'Modo claro' : 'Modo escuro';
+      }
+    }
+
+    if (btn) {
+      btn.addEventListener('click', function() {
+        var isDark = html.getAttribute('data-theme') === 'dark';
+        var next = isDark ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+        update();
+      });
+    }
+
+    update();
+  })();
+</script>
+</body>
+</html>

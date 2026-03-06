@@ -1,5 +1,4 @@
 // routes/index.js
-require('dotenv').config();
 const express = require('express');
 const router = express.Router();
 
@@ -23,10 +22,14 @@ const serviceController = require('../controllers/serviceController');
 const staffController =require('../controllers/staffController');
 
 const whatsappController = require('../controllers/whatsappController');
+const botController = require('../controllers/botController');
+const webhookEvolutionController = require('../controllers/webhookEvolutionController');
 
 // --- Novos Controladores ---
 const settingsController = require('../controllers/settingsController');
 const masterController = require('../controllers/masterController');
+const billingController = require('../controllers/billingController');
+const checkSubscription = require('../middleware/subscriptionMiddleware');
 // const { isSuperAdmin } = require('../middleware/authMiddleware'); // Removido, já importado acima
 
 
@@ -36,6 +39,11 @@ const clientAuthController = require('../controllers/clientAuthController');
 const clientPortalController = require('../controllers/clientPortalController');
 const publicController = require('../controllers/publicController');
 
+
+// =========================================================================
+// === LANDING PAGE ========================================================
+// =========================================================================
+router.get('/landing', masterController.getLandingPage);
 
 // =========================================================================
 // === ROTA PÚBLICA DA VITRINE =============================================
@@ -75,10 +83,32 @@ router.get(
 );
 
 router.get(
+  '/api/admin/services-by-staff/:staffId',
+  isAuthenticated,
+  staffController.apiGetServicesByStaff
+);
+
+router.get(
   '/api/portal/available-times',
   clientAuthMiddleware,
   clientPortalController.getAvailableTimes
 );
+
+// =========================================================================
+/* === WEBHOOK EVOLUTION API (público - recebe mensagens WhatsApp) ======= */
+// =========================================================================
+router.post('/webhook/evolution', webhookEvolutionController.handleIncoming);
+
+// Debug: captura TUDO que chega no webhook
+router.post('/webhook/debug', (req, res) => {
+  console.log('[WEBHOOK DEBUG]', JSON.stringify(req.body).substring(0, 500));
+  res.json({ ok: true });
+});
+
+// =========================================================================
+/* === ROTA API DO BOT WHATSAPP (autenticada por API key) ================ */
+// =========================================================================
+router.post('/api/bot/process-message', botController.processMessage);
 
 // =========================================================================
 /* === ROTAS PAINEL ADMIN (PÚBLICAS) ===================================== */
@@ -96,7 +126,28 @@ router.post('/reset/:token', authController.postReset);
 // =========================================================================
 /* === ROTAS PAINEL ADMIN (PROTEGIDAS) =================================== */
 // =========================================================================
-router.get('/', isAuthenticated, authController.getRoot);
+router.get('/', (req, res, next) => {
+  if (req.session && req.session.loggedIn) {
+    return res.redirect('/dashboard');
+  }
+  return masterController.getLandingPage(req, res);
+});
+
+// --- Rotas de Assinatura (acessiveis mesmo bloqueado) ---
+router.get('/admin/assinatura', isAuthenticated, billingController.getAssinatura);
+router.post('/admin/assinatura/escolher', isAuthenticated, billingController.postEscolherPlano);
+router.post('/admin/assinatura/cancelar', isAuthenticated, billingController.postCancelar);
+
+// --- Middleware de assinatura: verifica se org tem plano valido ---
+// Roda antes de todas as rotas admin abaixo, exceto /admin/assinatura
+router.use((req, res, next) => {
+  // So verifica se usuario esta logado e nao e superadmin
+  if (!req.session || !req.session.loggedIn) return next();
+  if (req.session.role === 'superadmin') return next();
+  if (req.path === '/admin/assinatura' || req.path.startsWith('/admin/assinatura/')) return next();
+  return checkSubscription(req, res, next);
+});
+
 router.get('/dashboard', isAuthenticated, dashboardController.getDashboard);
 
 // --- Rotas Cliente (Admin) ---
@@ -114,11 +165,12 @@ router.post('/client/:id/product/:pi/pay', isAuthenticated, clientController.pay
 router.post('/client/:id/product/:pi/remove-payment/:pj', isAuthenticated, clientController.removeClientProductPayment);
 
 router.get('/admin/whatsapp', isAuthenticated, whatsappController.renderSettingsPage);
-
-// API para o Frontend controlar a sessão
+router.post('/api/whatsapp/create-instance', isAuthenticated, whatsappController.createInstance);
+router.get('/api/whatsapp/qrcode', isAuthenticated, whatsappController.getQrCode);
 router.get('/api/whatsapp/status', isAuthenticated, whatsappController.getStatus);
-router.post('/api/whatsapp/connect', isAuthenticated, whatsappController.connect);
-router.post('/api/whatsapp/logout', isAuthenticated, whatsappController.logout);
+router.post('/api/whatsapp/disconnect', isAuthenticated, whatsappController.disconnect);
+router.post('/api/whatsapp/toggle-bot', isAuthenticated, whatsappController.toggleBot);
+router.post('/api/whatsapp/test', isAuthenticated, whatsappController.testConnection);
 
 router.post('/api/send-reminder', isAuthenticated, whatsappController.sendReminder);
 
@@ -199,20 +251,25 @@ router.get(
   masterController.stopImpersonation
 );
 
-// --- MUDANÇA AQUI: Rotas de Bloqueio Corrigidas ---
-router.post(
-  '/master/user/:userId/block', // Caminho corrigido
-  isAuthenticated,             // Middleware adicionado
-  isSuperAdmin,                // Apenas o superadmin pode bloquear
-  masterController.blockUser
-);
+// --- Novas Rotas Master ---
+router.get('/master/organizacoes', isAuthenticated, isSuperAdmin, masterController.getOrganizacoes);
+router.get('/master/organizacoes/:id', isAuthenticated, isSuperAdmin, masterController.getOrganizacaoDetalhes);
+router.get('/master/assinaturas', isAuthenticated, isSuperAdmin, masterController.getAssinaturas);
+router.get('/master/planos', isAuthenticated, isSuperAdmin, masterController.getPlanos);
+router.get('/master/planos/novo', isAuthenticated, isSuperAdmin, masterController.getNewPlan);
+router.post('/master/planos/novo', isAuthenticated, isSuperAdmin, masterController.postNewPlan);
+router.get('/master/planos/:id/editar', isAuthenticated, isSuperAdmin, masterController.getEditPlan);
+router.post('/master/planos/:id/editar', isAuthenticated, isSuperAdmin, masterController.postEditPlan);
+router.get('/master/financeiro', isAuthenticated, isSuperAdmin, masterController.getFinanceiro);
+router.get('/master/usuarios', isAuthenticated, isSuperAdmin, masterController.getUsuarios);
+router.get('/master/configuracoes', isAuthenticated, isSuperAdmin, masterController.getConfiguracoes);
+router.post('/master/subscription', isAuthenticated, isSuperAdmin, masterController.postChangeSubscription);
 
-router.post(
-  '/master/user/:userId/unblock', // Caminho corrigido
-  isAuthenticated,              // Middleware adicionado
-  isSuperAdmin,                 // Apenas o superadmin pode desbloquear
-  masterController.unblockUser
-);
-// --- FIM DA MUDANÇA ---
+// --- Bloqueio/Desbloqueio ---
+router.post('/master/user/:userId/block', isAuthenticated, isSuperAdmin, masterController.blockUser);
+router.post('/master/user/:userId/unblock', isAuthenticated, isSuperAdmin, masterController.unblockUser);
+
+// --- Webhook de pagamento (público - recebe callbacks do gateway) ---
+router.post('/webhook/payment/:gateway', masterController.handlePaymentWebhook);
 
 module.exports = router;

@@ -1,501 +1,123 @@
-<!DOCTYPE html>
-<html lang="pt-BR" class="h-full" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <title><%= pageTitle %> – AgendaPro</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<%- include('../partials/head', { pageTitle: (typeof editing !== 'undefined' && editing) ? 'Editar Membro' : 'Novo Membro' }) %>
+<%- include('../partials/sidebar', { activePage: 'equipe' }) %>
 
-    <script>
-        (function() {
-            const THEMES = ["light", "medium-dark", "deep-dark"];
-            const savedTheme = localStorage.getItem('theme');
-            let initialTheme = 'light';
+<div style="max-width: 700px;">
+  <div class="flex items-center gap-3 mb-6">
+    <a href="/admin/equipe" class="btn btn-ghost btn-sm"><i class="fas fa-arrow-left"></i></a>
+    <h1><%= (typeof editing !== 'undefined' && editing) ? 'Editar Membro' : 'Novo Membro' %></h1>
+  </div>
 
-            if (savedTheme && THEMES.includes(savedTheme)) {
-                initialTheme = savedTheme;
-            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                initialTheme = 'deep-dark';
-            }
-            document.documentElement.setAttribute('data-theme', initialTheme);
-        })();
-    </script>
+  <div class="card">
+    <div class="card-body">
+      <form action="<%= (typeof editing !== 'undefined' && editing) ? '/admin/equipe/' + staffMember.id + '/editar' : '/admin/equipe/novo' %>" method="POST" enctype="multipart/form-data">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Nome</label>
+            <input type="text" name="name" required value="<%= (typeof staffMember !== 'undefined' && staffMember) ? staffMember.name : '' %>" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Telefone / WhatsApp</label>
+            <input type="text" name="phone" placeholder="(32) 99999-9999" value="<%= (typeof staffMember !== 'undefined' && staffMember && staffMember.phone) ? staffMember.phone : '' %>" class="form-control">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Foto</label>
+            <input type="file" name="staffPhoto" accept="image/*" class="form-control">
+            <% if (typeof staffMember !== 'undefined' && staffMember && staffMember.imageUrl) { %>
+              <input type="hidden" name="oldImageUrl" value="<%= staffMember.imageUrl %>">
+              <img src="<%= staffMember.imageUrl %>" style="width:48px; height:48px; border-radius:50%; object-fit:cover; margin-top:8px;">
+            <% } %>
+          </div>
+        </div>
 
-    <style>
-        /* ================================================= */
-        /* === 1. DEFINIÇÃO DAS CORES PARA TRÊS TEMAS === */
-        /* ================================================= */
+        <div class="form-group">
+          <label class="form-label">Servicos que realiza</label>
+          <div class="flex gap-3" style="flex-wrap: wrap;">
+            <% if (typeof availableServices !== 'undefined' && availableServices) { %>
+              <% availableServices.forEach(function(svc) { %>
+                <%
+                  var isChecked = false;
+                  if (typeof staffMember !== 'undefined' && staffMember && staffMember.Services) {
+                    isChecked = staffMember.Services.some(function(s) { return s.id === svc.id; });
+                  }
+                %>
+                <label class="flex items-center gap-2 cursor-pointer text-sm">
+                  <input type="checkbox" name="services" value="<%= svc.id %>" <%= isChecked ? 'checked' : '' %>>
+                  <%= svc.name %>
+                </label>
+              <% }); %>
+            <% } %>
+          </div>
+        </div>
 
-        /* --- TEMA 1: LIGHT --- */
-        :root, [data-theme="light"] {
-            --color-gold-light: #FFD700;
-            --color-gold-dark: #B8860B;
-            --color-gold-accent: #DAA520;
-            --color-bg-primary: #f3f4f6;
-            --color-bg-secondary: #ffffff;
-            --color-bg-muted: #f9fafb;     
-            --color-bg-accent-light: #FFFBEB;
-            --color-bg-accent-dark: #fefce8;
-            --color-text-primary: #1f2937;
-            --color-text-secondary: #4b5563;
-            --color-text-accent: #B8860B;
-            --color-text-accent-muted: #b45309;
-            --color-border: #e5e7eb;
-        }
+        <div class="divider"></div>
+        <h3 class="mb-4">Horarios de Trabalho</h3>
 
-        /* --- TEMA 2: MEDIUM DARK --- */
-        [data-theme="medium-dark"] {
-            --color-gold-light: #FFD700;
-            --color-gold-dark: #e0aa1f;
-            --color-gold-accent: #DAA520;
-            --color-bg-primary: #1f2937;
-            --color-bg-secondary: #374151;
-            --color-bg-muted: #4b5563;     
-            --color-bg-accent-light: #422c01;
-            --color-bg-accent-dark: #423001;
-            --color-text-primary: #f9fafb;
-            --color-text-secondary: #d1d5db;
-            --color-text-accent: #e0aa1f;
-            --color-text-accent-muted: #fde047;
-            --color-border: #4b5563;
-        }
+        <%
+          var dayNames = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+          var dayLabels = {Monday:'Segunda',Tuesday:'Terca',Wednesday:'Quarta',Thursday:'Quinta',Friday:'Sexta',Saturday:'Sabado',Sunday:'Domingo'};
+          var wh = (typeof staffMember !== 'undefined' && staffMember && staffMember.workingHours) ? staffMember.workingHours : {};
+        %>
 
-        /* --- TEMA 3: DEEP DARK --- */
-        [data-theme="deep-dark"] {
-            --color-gold-light: #FFD700;
-            --color-gold-dark: #e0aa1f;
-            --color-gold-accent: #DAA520;
-            --color-bg-primary: #0a0e14;
-            --color-bg-secondary: #1f2937;
-            --color-bg-muted: #374151;
-            --color-bg-accent-light: #422c01;
-            --color-bg-accent-dark: #423001;
-            --color-text-primary: #f9fafb;
-            --color-text-secondary: #d1d5db;
-            --color-text-accent: #e0aa1f;
-            --color-text-accent-muted: #fde047;
-            --color-border: #4b5563;
-        }
-
-        /* ================================================= */
-        /* === 2. ESTILOS BASE (Mapeamento) === */
-        /* ================================================= */
-        
-        body { 
-            height: 100%; 
-            overflow: hidden; 
-            display: flex; 
-            flex-direction: column; 
-            background-color: var(--color-bg-primary); 
-            color: var(--color-text-primary);
-        } 
-        
-        /* Mapeamento */
-        .bg-white, .bg-gray-800 { background-color: var(--color-bg-secondary); }
-        .bg-gray-50, .bg-gray-700\/50, .bg-gray-100 { background-color: var(--color-bg-muted); }
-        .bg-gold-light { background-color: var(--color-bg-accent-light); }
-        .bg-gold { background-color: var(--color-gold-accent); }
-
-        .border-gray-200, .border-gray-300 { border-color: var(--color-border); }
-        
-        .text-gray-900, .text-gray-800 { color: var(--color-text-primary); }
-        .text-gray-700, .text-gray-600, .text-gray-500 { color: var(--color-text-secondary); }
-        .text-gold { color: var(--color-text-accent); }
-        
-        /* Link Mobile */
-        .mobile-nav-link { 
-            color: var(--color-text-primary);
-            transition: color 0.2s ease;
-        }
-
-        /* Inputs */
-        .form-input, .form-checkbox { 
-            background-color: var(--color-bg-secondary);
-            color: var(--color-text-primary);
-            border-color: var(--color-border);
-        }
-        .form-input:focus, .form-checkbox:focus {
-            border-color: var(--color-gold-accent);
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(218, 165, 32, 0.2);
-        }
-
-        /* Scroll */
-        .custom-scroll::-webkit-scrollbar { width: 6px; }
-        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-        .custom-scroll::-webkit-scrollbar-thumb { background-color: var(--color-border); border-radius: 20px; }
-        .custom-scroll:hover::-webkit-scrollbar-thumb { background-color: var(--color-gold-accent); }
-
-        .compact-body { flex-grow: 1; overflow-y: auto; min-height: 0; }
-
-        /* Efeito Shine */
-        .bg-shine-gold { position: relative; overflow: hidden; background-color: var(--color-gold-accent); }
-        .bg-shine-gold::after {
-            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            animation: bg-shine 5s infinite linear;
-        }
-        @keyframes bg-shine { 0% { left: -100%; } 100% { left: 125%; } }
-        
-        .text-gradient-gold {
-             background: linear-gradient(90deg, #B8860B, #FFD700, #DAA520, #FFD700, #B8860B);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            background-size: 200% auto;
-            animation: text-shine 4s linear infinite;
-        }
-         @keyframes text-shine { from { background-position: 200% center; } to { background-position: 0% center; } }
-
-    </style>
-</head>
-<body class="font-sans antialiased">
-
-    <%
-      // Helpers
-      const toNumber = (v) => {
-        if (v === null || v === undefined) return null;
-        if (typeof v === "number") return Number.isFinite(v) ? v : null;
-        if (typeof v === "string") {
-          let s = v.trim().replace(/\s+/g, "").replace(/R\$/g, "");
-          const hasComma = s.includes(',');
-          if (hasComma) { s = s.replace(/\./g, "").replace(/,/g, "."); } 
-          const parsed = parseFloat(s);
-          return Number.isNaN(parsed) ? null : parsed;
-        }
-        return null;
-      };
-
-      const formatPriceBRL = (v) => {
-        const n = toNumber(v);
-        const safe = n === null ? 0 : n;
-        return safe.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      };
-
-      const available = Array.isArray(availableServices) ? availableServices : [];
-      const selectedServiceObjects = staffMember && Array.isArray(staffMember.Services) ? staffMember.Services : [];
-      const selectedIds = new Set(selectedServiceObjects.map((s) => String(s.id)));
-    %>
-
-    <header class="bg-white shadow-md border-b border-gray-200 shrink-0 h-16 flex items-center z-50">
-        <div class="w-full max-w-full px-4 flex items-center justify-between">
-            
-            <div class="flex items-center shrink-0 mr-4">
-                <h1 class="flex items-center text-gray-800 text-lg font-bold">
-                   <img src="/images/kadosh.jpg" alt="Logo" class="h-8 w-auto mr-2 rounded-full">
-                   Agenda Pro
-                </h1>
-                <div class="h-6 w-px bg-gray-200 hidden sm:block ml-4"></div>
-                <span class="text-lg font-semibold text-gray-700 flex items-center ml-4">
-                    <i class="fas fa-users-cog mr-2 text-gold"></i>
-                    <%= pageTitle %>
-                </span>
+        <% dayNames.forEach(function(day) {
+          var dayLower = day.toLowerCase();
+          var dayData = wh[dayLower] || wh[day] || {startTime1:'08:00', endTime1:'12:00', startTime2:'13:00', endTime2:'18:00', isOff:false};
+          if (day === 'Saturday' && !wh[dayLower] && !wh[day]) { dayData = {startTime1:'08:00', endTime1:'14:00', startTime2:'', endTime2:'', isOff:false}; }
+          if (day === 'Sunday' && !wh[dayLower] && !wh[day]) { dayData = {startTime1:'', endTime1:'', startTime2:'', endTime2:'', isOff:true}; }
+        %>
+          <div class="card mb-3" style="padding: 12px 16px;">
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-semibold text-sm"><%= dayLabels[day] %></span>
+              <label class="flex items-center gap-2 cursor-pointer text-sm">
+                <input type="checkbox" name="workingHours[<%= dayLower %>][isOff]" class="day-off-toggle" data-day="<%= day %>" <%= dayData.isOff ? 'checked' : '' %>>
+                Folga
+              </label>
             </div>
+            <div class="form-row" id="hours-<%= day %>" style="<%= dayData.isOff ? 'opacity:0.3; pointer-events:none;' : '' %>">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Inicio 1</label>
+                <input type="time" name="workingHours[<%= dayLower %>][startTime1]" value="<%= dayData.startTime1 || '' %>" class="form-control">
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Fim 1</label>
+                <input type="time" name="workingHours[<%= dayLower %>][endTime1]" value="<%= dayData.endTime1 || '' %>" class="form-control">
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Inicio 2</label>
+                <input type="time" name="workingHours[<%= dayLower %>][startTime2]" value="<%= dayData.startTime2 || '' %>" class="form-control">
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Fim 2</label>
+                <input type="time" name="workingHours[<%= dayLower %>][endTime2]" value="<%= dayData.endTime2 || '' %>" class="form-control">
+              </div>
+            </div>
+          </div>
+        <% }); %>
 
-            <nav class="hidden xl:flex items-center space-x-4 text-sm whitespace-nowrap overflow-x-auto custom-scroll pb-1 lg:pb-0">
-                <a href="/dashboard" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-home mr-1"></i>Dash
-                </a>
-                <a href="/agendamentos-por-dia" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-calendar-alt mr-1"></i>Agenda
-                </a>
-                <a href="/clients" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-users mr-1"></i>Clientes
-                </a>
-                <a href="/admin/servicos" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-cut mr-1"></i>Serviços
-                </a>
-                <a href="/admin/equipe" class="text-gradient-gold font-semibold">
-                    <i class="fas fa-users-cog mr-1"></i>Equipe
-                </a>
-                <a href="/financeiro" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-dollar-sign mr-1"></i>Financeiro
-                </a>
-                <a href="/balanco" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-balance-scale mr-1"></i>Balanço
-                </a>
-                <a href="/expenses" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-receipt mr-1"></i>Despesas
-                </a>
-                
-                <div class="h-4 w-px bg-gray-300 mx-2"></div>
-
-                <button id="theme-toggle-btn" class="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600">
-                    <i id="theme-icon-sun" class="fas fa-sun"></i> <i id="theme-icon-moon" class="fas fa-moon hidden"></i> 
-                </button>
-                
-                <a href="/logout" class="text-red-600 hover:text-red-700 transition-colors font-semibold">
-                    <i class="fas fa-sign-out-alt mr-1"></i>Sair
-                </a>
-            </nav>
-
-            <button id="menu-button" class="xl:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                <i class="fas fa-bars text-gold"></i>
-            </button>
+        <div class="form-group mt-4">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" name="isActive" <%= (typeof staffMember !== 'undefined' && staffMember && staffMember.isActive) || (typeof editing === 'undefined' || !editing) ? 'checked' : '' %>>
+            <span class="form-label" style="margin:0;">Ativo</span>
+          </label>
         </div>
-    </header>
 
-    <div id="mobile-menu" class="hidden fixed inset-0 z-50 flex flex-col p-6 space-y-4 overflow-y-auto xl:hidden" style="background-color: var(--color-bg-primary);">
-        <div class="flex justify-end">
-            <button id="close-menu" class="text-white text-2xl"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="flex flex-col space-y-3 text-center">
-            <a href="/dashboard" class="mobile-nav-link text-lg py-2 hover:text-gold">Dashboard</a>
-            <a href="/agendamentos-por-dia" class="mobile-nav-link text-lg py-2 hover:text-gold">Agendamentos</a>
-            <a href="/clients" class="mobile-nav-link text-lg py-2 hover:text-gold">Clientes</a>
-            <a href="/admin/servicos" class="mobile-nav-link text-lg py-2 hover:text-gold">Serviços</a>
-            <a href="/admin/equipe" class="mobile-nav-link text-gold text-lg font-bold py-2 border-b border-gray-700">Equipe</a>
-            <a href="/financeiro" class="mobile-nav-link text-lg py-2 hover:text-gold">Financeiro</a>
-            <a href="/balanco" class="mobile-nav-link text-lg py-2 hover:text-gold">Balanço</a>
-            <a href="/expenses" class="mobile-nav-link text-lg py-2 hover:text-gold">Despesas</a>
-            
-            <button id="theme-toggle-btn-mobile" class="w-full flex items-center justify-center space-x-3 p-3 rounded-lg mobile-nav-link hover:bg-gray-700 hover:text-gold border border-gray-500 mt-4">
-                <i id="theme-icon-sun-mobile" class="fas fa-sun w-5 text-center"></i>
-                <i id="theme-icon-moon-mobile" class="fas fa-moon w-5 text-center hidden"></i>
-                <span>Alternar Tema</span>
-            </button>
-
-            <a href="/logout" class="mobile-nav-link text-red-400 text-lg py-2 font-bold mt-4">Sair do Sistema</a>
-        </div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg"><i class="fas fa-save"></i> Salvar</button>
+      </form>
     </div>
+  </div>
+</div>
 
+<script>
+  document.querySelectorAll('.day-off-toggle').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      var hours = document.getElementById('hours-' + this.dataset.day);
+      if (hours) {
+        hours.style.opacity = this.checked ? '0.3' : '1';
+        hours.style.pointerEvents = this.checked ? 'none' : '';
+      }
+    });
+  });
+</script>
 
-    <main class="flex-1 p-3 overflow-hidden flex flex-col gap-3 max-w-full mx-auto w-full">
-        
-        <div class="flex justify-center h-full min-h-0">
-            <div class="w-full max-w-3xl bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col h-full min-h-0">
-                
-                <div class="bg-gray-50 p-4 border-b border-gray-200 flex justify-between items-center shrink-0">
-                    <h1 class="text-xl font-bold text-gray-900 flex items-center">
-                        <i class="fas fa-user-edit mr-2 text-gold"></i>
-                        <%= pageTitle %>
-                    </h1>
-                    <a href="/admin/equipe" class="text-sm text-gray-600 hover:text-gold transition-colors font-medium">
-                        <i class="fas fa-arrow-left mr-1"></i> Voltar
-                    </a>
-                </div>
-
-                <div class="compact-body custom-scroll p-6">
-                    <form action="<%= editing ? '/admin/equipe/' + staffMember.id + '/editar' : '/admin/equipe/novo' %>"
-                          method="POST"
-                          class="space-y-6"
-                          enctype="multipart/form-data">
-                          
-                        <% if (typeof error !== 'undefined' && error) { %>
-                            <div class="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center">
-                                <i class="fas fa-exclamation-triangle text-red-600 mr-2"></i>
-                                <span class="text-red-800 text-sm"><%= error %></span>
-                            </div>
-                        <% } %>
-
-                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                            <h3 class="text-sm font-bold text-gray-700 mb-3 uppercase border-b border-gray-300 pb-1">Dados Básicos</h3>
-                            <div class="space-y-4">
-                                <div>
-                                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nome do Profissional *</label>
-                                    <input type="text" id="name" name="name" required value="<%= staffMember.name || '' %>"
-                                           class="form-input w-full p-2 rounded-md border border-gray-300 text-sm">
-                                </div>
-
-                                <div>
-                                    <label for="staffPhoto" class="block text-sm font-medium text-gray-700 mb-1">Foto (Opcional)</label>
-                                    <% if (editing && staffMember.imageUrl) { %>
-                                        <div class="flex items-center gap-3 mb-2">
-                                            <img src="<%= staffMember.imageUrl %>" alt="<%= staffMember.name %>" class="w-12 h-12 rounded-full object-cover border border-gray-200">
-                                            <span class="text-xs text-gray-500">Foto atual</span>
-                                        </div>
-                                    <% } %>
-                                    <input type="file" id="staffPhoto" name="staffPhoto" accept="image/*"
-                                           class="form-input w-full p-1 text-sm border border-gray-300 rounded-md
-                                                  file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0
-                                                  file:text-xs file:font-semibold file:bg-gold file:text-white
-                                                  hover:file:bg-opacity-90 file:cursor-pointer">
-                                    <input type="hidden" name="oldImageUrl" value="<%= staffMember.imageUrl || '' %>">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                            <h3 class="text-sm font-bold text-gray-700 mb-3 uppercase border-b border-gray-300 pb-1">Serviços Realizados</h3>
-                            <div class="max-h-40 overflow-y-auto custom-scroll space-y-2 pr-2">
-                                <% if (!Array.isArray(available) || available.length === 0) { %>
-                                    <p class="text-sm text-gray-500 italic">Nenhum serviço cadastrado.</p>
-                                <% } else { %>
-                                    <% available.forEach((service) => { const sid = String(service.id); %>
-                                    <div class="flex items-center">
-                                        <input id="service_<%= sid %>" name="services" type="checkbox" value="<%= sid %>"
-                                               class="form-checkbox h-4 w-4 text-gold rounded border-gray-300 focus:ring-gold"
-                                               <%= selectedIds.has(sid) ? "checked" : "" %>>
-                                        <label for="service_<%= sid %>" class="ml-2 text-sm text-gray-700 cursor-pointer select-none">
-                                            <%= service.name %> (R$ <%= formatPriceBRL(service.price) %>)
-                                        </label>
-                                    </div>
-                                    <% }); %>
-                                <% } %>
-                            </div>
-                        </div>
-
-                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                            <h3 class="text-sm font-bold text-gray-700 mb-3 uppercase border-b border-gray-300 pb-1">Horários de Trabalho</h3>
-                            <div class="space-y-3">
-                                <%
-                                  const daysOfWeek = [
-                                    { key: "monday", label: "Segunda" }, { key: "tuesday", label: "Terça" },
-                                    { key: "wednesday", label: "Quarta" }, { key: "thursday", label: "Quinta" },
-                                    { key: "friday", label: "Sexta" }, { key: "saturday", label: "Sábado" },
-                                    { key: "sunday", label: "Domingo" }
-                                  ];
-                                  const currentHours = staffMember.workingHours || {};
-                                %>
-                                <% daysOfWeek.forEach((day) => {
-                                    const hours = currentHours[day.key] || { startTime1: "", endTime1: "", startTime2: "", endTime2: "", isOff: false };
-                                %>
-                                <div class="grid grid-cols-12 gap-2 items-center py-2 border-b border-gray-200 last:border-0 text-sm">
-                                    <div class="col-span-12 sm:col-span-2 font-medium text-gray-700"><%= day.label %></div>
-                                    
-                                    <div class="col-span-5 sm:col-span-4 grid grid-cols-2 gap-1">
-                                        <input type="time" name="workingHours[<%= day.key %>][startTime1]" value="<%= hours.startTime1 %>" class="form-input p-1 rounded border border-gray-300 text-xs">
-                                        <input type="time" name="workingHours[<%= day.key %>][endTime1]" value="<%= hours.endTime1 %>" class="form-input p-1 rounded border border-gray-300 text-xs">
-                                    </div>
-
-                                    <div class="col-span-5 sm:col-span-4 grid grid-cols-2 gap-1">
-                                        <input type="time" name="workingHours[<%= day.key %>][startTime2]" value="<%= hours.startTime2 %>" class="form-input p-1 rounded border border-gray-300 text-xs">
-                                        <input type="time" name="workingHours[<%= day.key %>][endTime2]" value="<%= hours.endTime2 %>" class="form-input p-1 rounded border border-gray-300 text-xs">
-                                    </div>
-
-                                    <div class="col-span-2 flex items-center justify-end">
-                                        <label class="inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" name="workingHours[<%= day.key %>][isOff]" value="true" class="form-checkbox h-4 w-4 text-red-500 border-gray-300 rounded" <%= hours.isOff ? "checked" : "" %>>
-                                            <span class="ml-1 text-xs text-gray-500">Folga</span>
-                                        </label>
-                                    </div>
-                                </div>
-                                <% }); %>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
-                            <input id="isActive" name="isActive" type="checkbox" class="form-checkbox h-5 w-5 text-green-600 rounded border-gray-300 focus:ring-green-500"
-                                   <%= (typeof staffMember.isActive === "undefined" || staffMember.isActive) ? "checked" : "" %>>
-                            <label for="isActive" class="ml-3 block text-sm font-medium text-gray-700">
-                                Membro Ativo <span class="text-xs text-gray-500 font-normal">(disponível para agendamento)</span>
-                            </label>
-                        </div>
-
-                        <div class="pt-2">
-                            <button type="submit" class="w-full bg-gold text-white py-3 rounded-lg font-bold text-lg hover:opacity-90 transition-opacity shadow-lg bg-shine-gold flex items-center justify-center">
-                                <i class="fas fa-save mr-2"></i>
-                                <%= editing ? "Salvar Alterações" : "Cadastrar Membro" %>
-                            </button>
-                        </div>
-
-                    </form>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <footer class="bg-white border-t border-gray-200 mt-12 shrink-0">
-        <div class="max-w-7xl mx-auto px-4 py-6">
-            <div class="text-center text-gray-600">
-                <p class="flex items-center justify-center">
-                    <i class="fas fa-crown mr-2 text-gold"></i>
-                    Agenda Pro © <%= new Date().getFullYear() %>
-                </p>
-            </div>
-        </div>
-    </footer>
-
-    <script>
-        // =================================================
-        // === LÓGICA DE TEMA ===
-        // =================================================
-        const THEMES = ["light", "medium-dark", "deep-dark"];
-        const htmlEl = document.documentElement;
-
-        function getNextTheme(currentTheme) {
-            const currentIndex = THEMES.indexOf(currentTheme);
-            const nextIndex = (currentIndex + 1) % THEMES.length;
-            return THEMES[nextIndex];
-        }
-
-        function updateIcons(theme) {
-            const sunDesktop = document.getElementById('theme-icon-sun');
-            const moonDesktop = document.getElementById('theme-icon-moon');
-            const sunMobile = document.getElementById('theme-icon-sun-mobile'); 
-            const moonMobile = document.getElementById('theme-icon-moon-mobile'); 
-            
-            const isLight = theme === 'light';
-
-            if (sunDesktop) sunDesktop.classList.toggle('hidden', !isLight);
-            if (moonDesktop) moonDesktop.classList.toggle('hidden', isLight);
-            
-            if (sunMobile) sunMobile.classList.toggle('hidden', !isLight);
-            if (moonMobile) moonMobile.classList.toggle('hidden', isLight);
-        }
-
-        function toggleTheme() {
-            const currentTheme = htmlEl.getAttribute('data-theme') || 'light';
-            const newTheme = getNextTheme(currentTheme);
-
-            htmlEl.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateIcons(newTheme);
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const initialTheme = htmlEl.getAttribute('data-theme') || 'light';
-            updateIcons(initialTheme);
-            
-            const toggleButtonDesktop = document.getElementById('theme-toggle-btn');
-            const toggleButtonMobile = document.getElementById('theme-toggle-btn-mobile'); 
-
-            if (toggleButtonDesktop) toggleButtonDesktop.addEventListener('click', toggleTheme);
-            if (toggleButtonMobile) toggleButtonMobile.addEventListener('click', toggleTheme);
-        });
-        // =================================================
-
-        // Mobile menu toggle
-        const menuButton = document.getElementById('menu-button');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const closeMenu = document.getElementById('close-menu');
-
-        if (menuButton && mobileMenu) {
-            menuButton.addEventListener('click', () => {
-                mobileMenu.classList.remove('hidden');
-            });
-        }
-        if (closeMenu && mobileMenu) {
-            closeMenu.addEventListener('click', () => {
-                mobileMenu.classList.add('hidden');
-            });
-        }
-
-        // Lógica para desabilitar inputs de hora quando "Folga" é marcado
-        document.addEventListener('DOMContentLoaded', function() {
-            const checkboxes = document.querySelectorAll('input[name$="[isOff]"]');
-            
-            checkboxes.forEach(cb => {
-                const row = cb.closest('.grid');
-                const inputs = row.querySelectorAll('input[type="time"]');
-                
-                function toggleInputs() {
-                    inputs.forEach(input => {
-                        input.disabled = cb.checked;
-                        if(cb.checked) input.classList.add('opacity-50', 'cursor-not-allowed');
-                        else input.classList.remove('opacity-50', 'cursor-not-allowed');
-                    });
-                }
-                
-                // Estado inicial
-                toggleInputs();
-                
-                // Ao mudar
-                cb.addEventListener('change', toggleInputs);
-            });
-        });
-    </script>
-</body>
-</html>
+<%- include('../partials/footer') %>

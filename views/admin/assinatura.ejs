@@ -1,0 +1,662 @@
+<%- include('../partials/head', { pageTitle: 'Minha Assinatura' }) %>
+<%- include('../partials/sidebar', { activePage: 'assinatura' }) %>
+
+<% if (blocked) { %>
+  <div class="alert alert-danger mb-4" style="margin: 0 0 24px;">
+    <i class="fas fa-lock"></i>
+    <span><strong>Acesso bloqueado!</strong> Sua assinatura esta inativa. Pague o boleto abaixo ou escolha um plano para continuar usando o AgendaPro.</span>
+  </div>
+<% } %>
+
+<% if (expired === 'trial') { %>
+  <div class="alert alert-warning mb-4" style="margin: 0 0 24px;">
+    <i class="fas fa-clock"></i>
+    <span><strong>Periodo de teste encerrado!</strong> Seu trial de 14 dias expirou. Assine um plano para continuar.</span>
+  </div>
+<% } %>
+
+<% if (typeof daysAlert !== 'undefined' && daysAlert) { %>
+  <% if (daysAlert.type === 'trial') { %>
+    <div class="alert <%= daysAlert.days <= 1 ? 'alert-danger' : 'alert-warning' %> mb-4" style="margin: 0 0 24px;">
+      <i class="fas fa-<%= daysAlert.days <= 1 ? 'exclamation-triangle' : 'clock' %>"></i>
+      <span>
+        <% if (daysAlert.days === 0) { %>
+          <strong>Seu periodo de teste expira HOJE!</strong> Assine um plano agora para nao perder o acesso.
+        <% } else if (daysAlert.days === 1) { %>
+          <strong>Seu periodo de teste expira AMANHA!</strong> Assine um plano para continuar usando o AgendaPro.
+        <% } else { %>
+          <strong>Seu periodo de teste expira em <%= daysAlert.days %> dias.</strong> Escolha um plano para nao perder o acesso.
+        <% } %>
+      </span>
+    </div>
+  <% } else if (daysAlert.type === 'invoice') { %>
+    <div class="alert <%= daysAlert.days <= 1 ? 'alert-danger' : 'alert-warning' %> mb-4" style="margin: 0 0 24px;">
+      <i class="fas fa-<%= daysAlert.days <= 1 ? 'exclamation-triangle' : 'file-invoice-dollar' %>"></i>
+      <span>
+        <% if (daysAlert.days === 0) { %>
+          <strong>Sua fatura vence HOJE!</strong> Pague agora para evitar o bloqueio do sistema.
+        <% } else if (daysAlert.days === 1) { %>
+          <strong>Sua fatura vence AMANHA!</strong> Realize o pagamento para evitar o bloqueio.
+        <% } else { %>
+          <strong>Sua fatura vence em <%= daysAlert.days %> dias.</strong> Fique atento ao pagamento.
+        <% } %>
+      </span>
+      <% if (pendingPayment) { %>
+        <button class="btn btn-sm btn-primary" onclick="showSection('pagamento')" style="margin-left: auto;">
+          <i class="fas fa-credit-card"></i> Pagar agora
+        </button>
+      <% } %>
+    </div>
+  <% } %>
+<% } %>
+
+<!-- ================================================================ -->
+<!-- TABS DE NAVEGACAO                                                -->
+<!-- ================================================================ -->
+<div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+  <h1 style="margin: 0;">Minha Assinatura</h1>
+  <div class="page-tabs">
+    <button class="page-tab active" onclick="showSection('plano')" id="ptab-plano">
+      <i class="fas fa-crown"></i> Meu Plano
+    </button>
+    <button class="page-tab <%= pendingPayment ? 'has-alert' : '' %>" onclick="showSection('pagamento')" id="ptab-pagamento">
+      <i class="fas fa-file-invoice-dollar"></i> Pagamento
+      <% if (pendingPayment) { %><span class="tab-dot"></span><% } %>
+    </button>
+    <button class="page-tab" onclick="showSection('historico')" id="ptab-historico">
+      <i class="fas fa-history"></i> Historico
+    </button>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- SECAO 1: MEU PLANO                                               -->
+<!-- ================================================================ -->
+<div id="section-plano" class="page-section">
+
+  <!-- Status Atual -->
+  <div class="card mb-6">
+    <div class="card-body">
+      <div class="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <div class="text-sm text-secondary mb-1">Plano atual</div>
+          <div class="flex items-center gap-3">
+            <h2 style="margin: 0; color: var(--primary);"><%= currentPlan ? currentPlan.name : 'Sem plano' %></h2>
+            <% if (subscription) { %>
+              <% if (subscription.status === 'active') { %>
+                <span class="badge badge-success"><i class="fas fa-check"></i> Ativo</span>
+              <% } else if (subscription.status === 'trial') { %>
+                <span class="badge badge-info"><i class="fas fa-flask"></i> Trial</span>
+              <% } else if (subscription.status === 'past_due') { %>
+                <span class="badge badge-warning"><i class="fas fa-exclamation-triangle"></i> Pagamento pendente</span>
+              <% } else if (subscription.status === 'canceled') { %>
+                <span class="badge badge-danger"><i class="fas fa-times"></i> Cancelado</span>
+              <% } else if (subscription.status === 'expired') { %>
+                <span class="badge badge-danger"><i class="fas fa-clock"></i> Expirado</span>
+              <% } %>
+              <% if (isSandbox) { %><span class="badge badge-info">Sandbox</span><% } %>
+            <% } %>
+          </div>
+        </div>
+        <div class="flex items-center gap-4">
+          <% if (subscription && currentPlan) { %>
+            <div class="text-right">
+              <div class="text-sm text-secondary">Valor</div>
+              <div class="font-semibold" style="font-size: 1.3rem;">
+                R$ <%= parseFloat(currentPlan.price).toFixed(2).replace('.', ',') %>
+                <span class="text-sm text-secondary">/<%= subscription.billingCycle === 'yearly' ? 'ano' : 'mes' %></span>
+              </div>
+            </div>
+          <% } %>
+        </div>
+      </div>
+
+      <% if (subscription) { %>
+        <div style="border-top: 1px solid var(--border-light); margin-top: 16px; padding-top: 16px;">
+          <div class="flex gap-6 flex-wrap">
+            <% if (subscription.status === 'trial' && subscription.trialEndsAt) { %>
+              <div>
+                <span class="text-sm text-secondary">Trial expira em</span>
+                <div class="font-medium"><%= new Date(subscription.trialEndsAt).toLocaleDateString('pt-BR') %></div>
+              </div>
+            <% } %>
+            <% if (subscription.currentPeriodEnd) { %>
+              <div>
+                <span class="text-sm text-secondary">Proximo vencimento</span>
+                <div class="font-medium"><%= new Date(subscription.currentPeriodEnd).toLocaleDateString('pt-BR') %></div>
+              </div>
+            <% } %>
+            <% if (subscription.paymentGateway) { %>
+              <div>
+                <span class="text-sm text-secondary">Cobranca via</span>
+                <div class="font-medium"><%= subscription.paymentGateway === 'asaas' ? 'Asaas' : subscription.paymentGateway %></div>
+              </div>
+            <% } %>
+          </div>
+        </div>
+        <% if (pendingPayment) { %>
+          <div style="border-top: 1px solid var(--border-light); margin-top: 16px; padding-top: 16px;">
+            <button class="btn btn-primary" onclick="showSection('pagamento')">
+              <i class="fas fa-file-invoice-dollar"></i> Ver pagamento pendente
+            </button>
+          </div>
+        <% } %>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Planos Disponiveis -->
+  <h2 class="mb-4">Escolha seu plano</h2>
+
+  <div class="grid grid-3 mb-6" style="gap: 20px;">
+    <% plans.forEach(function(plan) {
+      var isCurrentPlan = currentPlan && currentPlan.id === plan.id;
+      var isPaid = parseFloat(plan.price) > 0;
+    %>
+      <div class="card" style="display: flex; flex-direction: column; border: 2px solid <%= isCurrentPlan ? 'var(--primary)' : (plan.isFeatured ? 'var(--warning)' : 'var(--border-light)') %>; position: relative;">
+        <% if (plan.isFeatured) { %>
+          <div style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--warning); color: #fff; font-size: 0.7rem; font-weight: 700; padding: 4px 16px; border-radius: 100px; text-transform: uppercase;">Mais popular</div>
+        <% } %>
+        <% if (isCurrentPlan) { %>
+          <div style="position: absolute; top: -12px; right: 16px; background: var(--primary); color: #fff; font-size: 0.7rem; font-weight: 700; padding: 4px 12px; border-radius: 100px;">Atual</div>
+        <% } %>
+
+        <div class="card-body" style="flex: 1; padding-top: 24px;">
+          <h3 style="margin: 0 0 4px;"><%= plan.name %></h3>
+          <p class="text-sm text-secondary mb-3"><%= plan.description || '' %></p>
+          <div class="mb-4">
+            <span style="font-size: 2rem; font-weight: 700; color: var(--primary);">R$ <%= parseFloat(plan.price).toFixed(2).replace('.', ',') %></span>
+            <span class="text-sm text-secondary">/mes</span>
+            <% if (parseFloat(plan.yearlyPrice) > 0) { %>
+              <div class="text-xs text-secondary">ou R$ <%= parseFloat(plan.yearlyPrice).toFixed(2).replace('.', ',') %>/ano</div>
+            <% } %>
+          </div>
+          <% if (plan.features && plan.features.length > 0) { %>
+            <div class="flex flex-col gap-2 mb-4">
+              <% plan.features.forEach(function(feature) { %>
+                <div class="flex items-center gap-2 text-sm">
+                  <i class="fas fa-check" style="color: var(--success); font-size: 0.75rem;"></i>
+                  <span><%= feature %></span>
+                </div>
+              <% }); %>
+            </div>
+          <% } %>
+        </div>
+
+        <div style="padding: 16px 20px; border-top: 1px solid var(--border-light);">
+          <% if (isCurrentPlan && subscription && subscription.status === 'active') { %>
+            <button class="btn btn-outline btn-block" disabled><i class="fas fa-check"></i> Plano atual</button>
+          <% } else if (!isPaid) { %>
+            <form action="/admin/assinatura/escolher" method="POST">
+              <input type="hidden" name="planId" value="<%= plan.id %>">
+              <input type="hidden" name="billingCycle" value="monthly">
+              <input type="hidden" name="billingType" value="BOLETO">
+              <button type="submit" class="btn btn-outline btn-block"><i class="fas fa-check"></i> Usar gratis</button>
+            </form>
+          <% } else if (asaasConfigured) { %>
+            <div class="flex gap-2">
+              <form action="/admin/assinatura/escolher" method="POST" style="flex: 1;">
+                <input type="hidden" name="planId" value="<%= plan.id %>">
+                <input type="hidden" name="billingCycle" value="monthly">
+                <input type="hidden" name="billingType" value="BOLETO">
+                <button type="submit" class="btn <%= plan.isFeatured ? 'btn-primary' : 'btn-outline' %> btn-block" title="Boleto bancario com PIX">
+                  <i class="fas fa-barcode"></i> Boleto/PIX
+                </button>
+              </form>
+              <button type="button" class="btn btn-outline" title="Cartao de credito recorrente" onclick="openCardModal('<%= plan.id %>', '<%= plan.name %>', '<%= parseFloat(plan.price).toFixed(2).replace('.', ',') %>')">
+                <i class="fas fa-credit-card"></i>
+              </button>
+            </div>
+          <% } else { %>
+            <form action="/admin/assinatura/escolher" method="POST">
+              <input type="hidden" name="planId" value="<%= plan.id %>">
+              <input type="hidden" name="billingCycle" value="monthly">
+              <input type="hidden" name="billingType" value="BOLETO">
+              <button type="submit" class="btn btn-outline btn-block"><i class="fas fa-tag"></i> Escolher plano</button>
+            </form>
+          <% } %>
+        </div>
+      </div>
+    <% }); %>
+  </div>
+
+  <!-- Cancelar -->
+  <% if (subscription && subscription.status !== 'canceled' && currentPlan && parseFloat(currentPlan.price) > 0) { %>
+    <div class="card" style="border: 1px solid var(--danger);">
+      <div class="card-body">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h3 style="margin: 0; color: var(--danger);"><i class="fas fa-exclamation-triangle"></i> Cancelar assinatura</h3>
+            <p class="text-sm text-secondary mt-1">Ao cancelar, voce perdera acesso aos recursos do plano atual ao final do periodo.</p>
+          </div>
+          <form action="/admin/assinatura/cancelar" method="POST" onsubmit="return confirm('Tem certeza que deseja cancelar sua assinatura?')">
+            <input type="hidden" name="reason" value="Cancelado pelo usuario">
+            <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-times"></i> Cancelar</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  <% } %>
+</div>
+
+<!-- ================================================================ -->
+<!-- SECAO 2: PAGAMENTO                                               -->
+<!-- ================================================================ -->
+<div id="section-pagamento" class="page-section" style="display: none;">
+
+  <% if (pendingPayment) { %>
+    <div class="card mb-6" style="border: 2px solid var(--warning);">
+      <div class="card-body">
+        <h2 style="margin: 0 0 16px; color: var(--warning);"><i class="fas fa-file-invoice-dollar"></i> Pagamento Pendente</h2>
+
+        <div class="flex gap-4 flex-wrap mb-4">
+          <div>
+            <span class="text-sm text-secondary">Valor</span>
+            <div class="font-semibold" style="font-size: 1.5rem;">R$ <%= parseFloat(pendingPayment.value).toFixed(2).replace('.', ',') %></div>
+          </div>
+          <div>
+            <span class="text-sm text-secondary">Vencimento</span>
+            <div class="font-medium"><%= pendingPayment.dueDate ? new Date(pendingPayment.dueDate + 'T12:00:00').toLocaleDateString('pt-BR') : '-' %></div>
+          </div>
+          <div>
+            <span class="text-sm text-secondary">Status</span>
+            <div>
+              <% if (pendingPayment.status === 'PENDING') { %>
+                <span class="badge badge-warning">Aguardando pagamento</span>
+              <% } else if (pendingPayment.status === 'OVERDUE') { %>
+                <span class="badge badge-danger">Vencido</span>
+              <% } %>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs PIX / Boleto -->
+        <div class="payment-tabs mb-4">
+          <button class="payment-tab active" onclick="showPaymentTab('pix')" id="tab-pix">
+            <i class="fas fa-qrcode"></i> PIX
+          </button>
+          <button class="payment-tab" onclick="showPaymentTab('boleto')" id="tab-boleto">
+            <i class="fas fa-barcode"></i> Boleto
+          </button>
+        </div>
+
+        <!-- Tab PIX -->
+        <div id="panel-pix" class="payment-panel">
+          <% if (pixData && pixData.encodedImage) { %>
+            <div style="text-align: center;">
+              <p class="text-sm text-secondary mb-3">Escaneie o QR Code com o app do seu banco</p>
+              <img src="data:image/png;base64,<%= pixData.encodedImage %>" alt="QR Code PIX" style="max-width: 250px; border-radius: 8px; border: 1px solid var(--border-light); padding: 8px; background: #fff;" />
+            </div>
+            <% if (pixData.payload) { %>
+              <div style="margin-top: 16px;">
+                <label class="text-sm text-secondary">PIX Copia e Cola:</label>
+                <div class="flex gap-2 mt-1">
+                  <input type="text" value="<%= pixData.payload %>" id="pixPayload" readonly class="form-input" style="flex: 1; font-size: 0.8rem;" />
+                  <button class="btn btn-primary btn-sm" onclick="copyField('pixPayload', 'Codigo PIX copiado!')">
+                    <i class="fas fa-copy"></i> Copiar
+                  </button>
+                </div>
+              </div>
+            <% } %>
+          <% } else { %>
+            <p class="text-sm text-secondary">QR Code PIX nao disponivel para esta cobranca.</p>
+            <% if (invoiceUrl) { %>
+              <a href="<%= invoiceUrl %>" target="_blank" class="btn btn-primary mt-3">
+                <i class="fas fa-external-link-alt"></i> Acessar pagamento online
+              </a>
+            <% } %>
+          <% } %>
+        </div>
+
+        <!-- Tab Boleto -->
+        <div id="panel-boleto" class="payment-panel" style="display: none;">
+          <% if (boletoData && boletoData.identificationField) { %>
+            <div>
+              <label class="text-sm text-secondary">Linha digitavel (codigo de barras):</label>
+              <div class="flex gap-2 mt-1">
+                <input type="text" value="<%= boletoData.identificationField %>" id="boletoCode" readonly class="form-input" style="flex: 1; font-family: monospace; font-size: 0.85rem;" />
+                <button class="btn btn-primary btn-sm" onclick="copyField('boletoCode', 'Codigo do boleto copiado!')">
+                  <i class="fas fa-copy"></i> Copiar
+                </button>
+              </div>
+            </div>
+          <% } %>
+          <% if (paymentUrl) { %>
+            <div style="margin-top: 16px;">
+              <a href="<%= paymentUrl %>" target="_blank" class="btn btn-outline">
+                <i class="fas fa-file-pdf"></i> Visualizar boleto completo
+              </a>
+            </div>
+          <% } %>
+          <% if (!boletoData && !paymentUrl && invoiceUrl) { %>
+            <a href="<%= invoiceUrl %>" target="_blank" class="btn btn-primary">
+              <i class="fas fa-external-link-alt"></i> Acessar pagamento online
+            </a>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  <% } else { %>
+    <div class="card mb-6">
+      <div class="card-body" style="text-align: center; padding: 48px 24px;">
+        <i class="fas fa-check-circle" style="font-size: 3rem; color: var(--success); margin-bottom: 16px;"></i>
+        <h3>Nenhum pagamento pendente</h3>
+        <p class="text-sm text-secondary">Sua assinatura esta em dia. Quando houver uma cobranca, ela aparecera aqui.</p>
+      </div>
+    </div>
+  <% } %>
+
+  <!-- Link direto para a fatura do Asaas -->
+  <% if (invoiceUrl && !pendingPayment) { %>
+    <div class="card mb-6">
+      <div class="card-body">
+        <a href="<%= invoiceUrl %>" target="_blank" class="btn btn-primary">
+          <i class="fas fa-external-link-alt"></i> Acessar fatura
+        </a>
+      </div>
+    </div>
+  <% } %>
+</div>
+
+<!-- ================================================================ -->
+<!-- SECAO 3: HISTORICO DE PAGAMENTOS                                 -->
+<!-- ================================================================ -->
+<div id="section-historico" class="page-section" style="display: none;">
+
+  <% if (paymentHistory && paymentHistory.length > 0) { %>
+    <div class="card">
+      <div class="card-body" style="padding: 0;">
+        <table class="data-table" style="width: 100%;">
+          <thead>
+            <tr>
+              <th>Vencimento</th>
+              <th>Valor</th>
+              <th>Tipo</th>
+              <th>Status</th>
+              <th>Pago em</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% paymentHistory.forEach(function(p) { %>
+              <tr>
+                <td><%= p.dueDate ? new Date(p.dueDate + 'T12:00:00').toLocaleDateString('pt-BR') : '-' %></td>
+                <td class="font-medium">R$ <%= parseFloat(p.value).toFixed(2).replace('.', ',') %></td>
+                <td>
+                  <% if (p.billingType === 'BOLETO') { %>
+                    <span class="text-sm"><i class="fas fa-barcode"></i> Boleto</span>
+                  <% } else if (p.billingType === 'CREDIT_CARD') { %>
+                    <span class="text-sm"><i class="fas fa-credit-card"></i> Cartao</span>
+                  <% } else if (p.billingType === 'PIX') { %>
+                    <span class="text-sm"><i class="fas fa-qrcode"></i> PIX</span>
+                  <% } else { %>
+                    <span class="text-sm"><%= p.billingType %></span>
+                  <% } %>
+                </td>
+                <td>
+                  <% if (p.status === 'CONFIRMED' || p.status === 'RECEIVED') { %>
+                    <span class="badge badge-success">Pago</span>
+                  <% } else if (p.status === 'PENDING') { %>
+                    <span class="badge badge-warning">Pendente</span>
+                  <% } else if (p.status === 'OVERDUE') { %>
+                    <span class="badge badge-danger">Vencido</span>
+                  <% } else if (p.status === 'REFUNDED') { %>
+                    <span class="badge badge-info">Estornado</span>
+                  <% } else if (p.status === 'CANCELLED' || p.status === 'DELETED') { %>
+                    <span class="badge" style="background: var(--bg-tertiary); color: var(--text-secondary);">Cancelado</span>
+                  <% } else { %>
+                    <span class="badge"><%= p.status %></span>
+                  <% } %>
+                </td>
+                <td class="text-sm"><%= p.paymentDate ? new Date(p.paymentDate + 'T12:00:00').toLocaleDateString('pt-BR') : '-' %></td>
+                <td>
+                  <% if (p.invoiceUrl && (p.status === 'PENDING' || p.status === 'OVERDUE')) { %>
+                    <a href="<%= p.invoiceUrl %>" target="_blank" class="btn btn-sm btn-outline" title="Pagar">
+                      <i class="fas fa-external-link-alt"></i>
+                    </a>
+                  <% } else if (p.invoiceUrl && (p.status === 'CONFIRMED' || p.status === 'RECEIVED')) { %>
+                    <a href="<%= p.invoiceUrl %>" target="_blank" class="btn btn-sm btn-ghost" title="Ver comprovante">
+                      <i class="fas fa-receipt"></i>
+                    </a>
+                  <% } %>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% } else { %>
+    <div class="card">
+      <div class="card-body" style="text-align: center; padding: 48px 24px;">
+        <i class="fas fa-history" style="font-size: 3rem; color: var(--text-tertiary); margin-bottom: 16px;"></i>
+        <h3>Nenhum pagamento registrado</h3>
+        <p class="text-sm text-secondary">Seu historico de pagamentos aparecera aqui.</p>
+      </div>
+    </div>
+  <% } %>
+</div>
+
+<!-- ================================================================ -->
+<!-- MODAL CARTAO DE CREDITO                                          -->
+<!-- ================================================================ -->
+<div class="modal-overlay" id="cardModal" style="display: none;">
+  <div class="card" style="max-width: 480px; width: 100%; margin: auto;">
+    <div class="card-body">
+      <div class="flex items-center justify-between mb-4">
+        <h3 style="margin: 0;"><i class="fas fa-credit-card"></i> Pagamento com Cartao</h3>
+        <button class="btn btn-ghost btn-sm" onclick="closeCardModal()">&times;</button>
+      </div>
+      <div class="mb-3" id="cardPlanInfo"></div>
+      <form action="/admin/assinatura/escolher" method="POST" id="cardForm">
+        <input type="hidden" name="planId" id="cardPlanId">
+        <input type="hidden" name="billingCycle" value="monthly">
+        <input type="hidden" name="billingType" value="CREDIT_CARD">
+        <div class="mb-3">
+          <label class="form-label">Nome no cartao</label>
+          <input type="text" name="cardHolderName" class="form-input" required placeholder="Nome como esta no cartao">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Numero do cartao</label>
+          <input type="text" name="cardNumber" class="form-input" required placeholder="0000 0000 0000 0000" maxlength="19" oninput="formatCardNumber(this)">
+        </div>
+        <div class="flex gap-3 mb-3">
+          <div style="flex: 1;">
+            <label class="form-label">Mes</label>
+            <input type="text" name="cardExpiryMonth" class="form-input" required placeholder="MM" maxlength="2">
+          </div>
+          <div style="flex: 1;">
+            <label class="form-label">Ano</label>
+            <input type="text" name="cardExpiryYear" class="form-input" required placeholder="AAAA" maxlength="4">
+          </div>
+          <div style="flex: 1;">
+            <label class="form-label">CVV</label>
+            <input type="text" name="cardCcv" class="form-input" required placeholder="000" maxlength="4">
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">CPF do titular</label>
+          <input type="text" name="holderCpf" class="form-input" required placeholder="000.000.000-00" maxlength="14" oninput="formatCpf(this)">
+        </div>
+        <div class="flex gap-3 mb-3">
+          <div style="flex: 1;">
+            <label class="form-label">CEP</label>
+            <input type="text" name="holderPostalCode" class="form-input" required placeholder="00000-000" maxlength="9">
+          </div>
+          <div style="flex: 1;">
+            <label class="form-label">Numero</label>
+            <input type="text" name="holderAddressNumber" class="form-input" required placeholder="123">
+          </div>
+        </div>
+        <div class="mb-4">
+          <label class="form-label">Telefone</label>
+          <input type="text" name="holderPhone" class="form-input" placeholder="(00) 00000-0000">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">
+          <i class="fas fa-lock"></i> Assinar com cartao
+        </button>
+        <p class="text-xs text-secondary mt-2" style="text-align: center;">Cobranca recorrente mensal. Cancele quando quiser.</p>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- ESTILOS                                                          -->
+<!-- ================================================================ -->
+<style>
+  @media (max-width: 768px) {
+    .grid-3 { grid-template-columns: 1fr !important; }
+    .page-tabs { width: 100%; }
+  }
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .grid-3 { grid-template-columns: 1fr 1fr !important; }
+  }
+
+  .page-tabs {
+    display: flex;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .page-tab {
+    padding: 8px 16px;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    position: relative;
+    white-space: nowrap;
+  }
+  .page-tab:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+  .page-tab.active { color: var(--primary); background: var(--bg-primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .tab-dot {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+    background: var(--danger);
+    border-radius: 50%;
+  }
+
+  .payment-tabs {
+    display: flex;
+    border-bottom: 2px solid var(--border-light);
+    gap: 0;
+  }
+  .payment-tab {
+    padding: 10px 24px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    font-size: 0.95rem;
+  }
+  .payment-tab:hover { color: var(--primary); }
+  .payment-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .payment-panel { padding: 20px 0; }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay > .card { max-height: 90vh; overflow-y: auto; }
+
+  .data-table {
+    border-collapse: collapse;
+  }
+  .data-table th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-light);
+    white-space: nowrap;
+  }
+  .data-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 0.9rem;
+    vertical-align: middle;
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: var(--bg-secondary); }
+</style>
+
+<!-- ================================================================ -->
+<!-- SCRIPTS                                                          -->
+<!-- ================================================================ -->
+<script>
+// Navegacao entre secoes
+function showSection(name) {
+  ['plano', 'pagamento', 'historico'].forEach(function(s) {
+    document.getElementById('section-' + s).style.display = s === name ? 'block' : 'none';
+    document.getElementById('ptab-' + s).classList.toggle('active', s === name);
+  });
+}
+
+// Auto-abrir pagamento se bloqueado
+<% if (blocked && pendingPayment) { %>
+  document.addEventListener('DOMContentLoaded', function() { showSection('pagamento'); });
+<% } %>
+
+// Tabs de pagamento PIX/Boleto
+function showPaymentTab(tab) {
+  document.getElementById('panel-pix').style.display = tab === 'pix' ? 'block' : 'none';
+  document.getElementById('panel-boleto').style.display = tab === 'boleto' ? 'block' : 'none';
+  document.getElementById('tab-pix').classList.toggle('active', tab === 'pix');
+  document.getElementById('tab-boleto').classList.toggle('active', tab === 'boleto');
+}
+
+function copyField(id, msg) {
+  var el = document.getElementById(id);
+  if (el) {
+    el.select();
+    el.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(el.value).then(function() { alert(msg); });
+  }
+}
+
+function openCardModal(planId, planName, planPrice) {
+  document.getElementById('cardPlanId').value = planId;
+  document.getElementById('cardPlanInfo').innerHTML = '<span class="text-sm text-secondary">Plano:</span> <strong>' + planName + '</strong> - R$ ' + planPrice + '/mes';
+  document.getElementById('cardModal').style.display = 'flex';
+}
+function closeCardModal() { document.getElementById('cardModal').style.display = 'none'; }
+
+function formatCardNumber(el) {
+  var v = el.value.replace(/\D/g, '').substring(0, 16);
+  el.value = v.replace(/(\d{4})(?=\d)/g, '$1 ');
+}
+function formatCpf(el) {
+  var v = el.value.replace(/\D/g, '').substring(0, 11);
+  if (v.length > 9) v = v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+  else if (v.length > 6) v = v.replace(/(\d{3})(\d{3})(\d{1,3})/, '$1.$2.$3');
+  else if (v.length > 3) v = v.replace(/(\d{3})(\d{1,3})/, '$1.$2');
+  el.value = v;
+}
+
+document.getElementById('cardModal')?.addEventListener('click', function(e) {
+  if (e.target === this) closeCardModal();
+});
+</script>
+
+<%- include('../partials/footer') %>

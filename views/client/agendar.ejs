@@ -1,499 +1,127 @@
-<!DOCTYPE html>
-<html lang="pt-BR" class="h-full" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <title>Novo Agendamento – <%= (typeof orgName !== 'undefined') ? orgName : 'AgendaPro' %></title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<%- include('../partials/head', { pageTitle: 'Novo Agendamento - ' + (typeof orgName !== 'undefined' ? orgName : '') }) %>
+<body style="background: var(--bg-body); color: var(--text-primary);">
+  <header style="background: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 0 20px; height: 56px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:30;">
+    <div class="flex items-center gap-3">
+      <a href="/portal/minha-area" class="btn btn-ghost btn-sm"><i class="fas fa-arrow-left"></i></a>
+      <span class="font-bold">Novo Agendamento</span>
+    </div>
+  </header>
 
-    <script>
-        (function() {
-            const THEMES = ["light", "medium-dark", "deep-dark"];
-            const savedTheme = localStorage.getItem('theme');
-            let initialTheme = 'light';
+  <main style="max-width: 500px; margin: 0 auto; padding: 24px 16px;">
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> <%= error %></div>
+    <% } %>
+    <% if (typeof success !== 'undefined' && success) { %>
+      <div class="alert alert-success"><i class="fas fa-check-circle"></i> <%= success %></div>
+    <% } %>
 
-            if (savedTheme && THEMES.includes(savedTheme)) {
-                initialTheme = savedTheme;
-            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                initialTheme = 'deep-dark';
-            }
-            document.documentElement.setAttribute('data-theme', initialTheme);
-        })();
-    </script>
+    <div class="card">
+      <div class="card-header" style="background: var(--primary); color: #fff; border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
+        <h3 style="color:#fff;"><i class="fas fa-calendar-plus" style="margin-right:8px;"></i> Agendar</h3>
+      </div>
+      <div class="card-body">
+        <form action="/portal/agendar" method="POST" id="bookingForm">
+          <!-- Step 1: Servico -->
+          <div class="form-group">
+            <label class="form-label">1. Escolha o servico</label>
+            <select id="serviceSelect" name="serviceId" required class="form-control">
+              <option value="">Selecione...</option>
+              <% if (typeof services !== 'undefined' && services) { %>
+                <% services.forEach(function(s) { %>
+                  <option value="<%= s.id %>" data-price="<%= s.price %>" data-duration="<%= s.duration %>">
+                    <%= s.name %> - R$ <%= parseFloat(s.price).toFixed(2) %> (<%= s.duration %>min)
+                  </option>
+                <% }); %>
+              <% } %>
+            </select>
+          </div>
 
-    <style>
-        /* ================================================= */
-        /* === 1. DEFINIÇÃO DAS CORES PARA TRÊS TEMAS === */
-        /* ================================================= */
+          <!-- Step 2: Profissional -->
+          <div class="form-group">
+            <label class="form-label">2. Escolha o profissional</label>
+            <select id="staffSelect" name="staffId" required class="form-control" disabled>
+              <option value="">Selecione o servico primeiro</option>
+            </select>
+          </div>
 
-        /* --- TEMA 1: LIGHT --- */
-        :root, [data-theme="light"] {
-            --color-gold-light: #FFD700;
-            --color-gold-dark: #B8860B;
-            --color-gold-accent: #DAA520;
-            --color-bg-primary: #f3f4f6;
-            --color-bg-secondary: #ffffff;
-            --color-bg-muted: #f9fafb;     
-            --color-bg-accent-light: #FFFBEB;
-            --color-bg-accent-dark: #fefce8;
-            --color-text-primary: #1f2937;
-            --color-text-secondary: #4b5563;
-            --color-text-accent: #B8860B;
-            --color-text-accent-muted: #b45309;
-            --color-border: #e5e7eb;
-            --color-input-bg: #ffffff;
-            --color-input-border: #e5e7eb;
+          <!-- Step 3: Data -->
+          <div class="form-group">
+            <label class="form-label">3. Data</label>
+            <input type="date" id="dateInput" name="date" required class="form-control" disabled>
+          </div>
+
+          <!-- Step 4: Horario -->
+          <div class="form-group">
+            <label class="form-label">4. Horario disponivel</label>
+            <select id="timeSelect" name="time" required class="form-control" disabled>
+              <option value="">Selecione a data primeiro</option>
+            </select>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block btn-lg mt-4" id="submitBtn" disabled>
+            <i class="fas fa-calendar-check"></i> Confirmar Agendamento
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="alert alert-info mt-4">
+      <i class="fas fa-info-circle"></i>
+      <span>Agendamentos ficam como <strong>pendentes</strong> ate serem confirmados pelo salao.</span>
+    </div>
+  </main>
+
+  <script>
+    var svcSel = document.getElementById('serviceSelect');
+    var staffSel = document.getElementById('staffSelect');
+    var dateIn = document.getElementById('dateInput');
+    var timeSel = document.getElementById('timeSelect');
+    var submitBtn = document.getElementById('submitBtn');
+
+    svcSel.addEventListener('change', async function() {
+      staffSel.disabled = true; staffSel.innerHTML = '<option>Carregando...</option>';
+      dateIn.disabled = true; dateIn.value = '';
+      timeSel.disabled = true; timeSel.innerHTML = '<option value="">-</option>';
+      submitBtn.disabled = true;
+      if (!this.value) return;
+
+      try {
+        var res = await fetch('/api/portal/staff-by-service/' + this.value);
+        var staff = await res.json();
+        staffSel.innerHTML = '<option value="">Selecione...</option>';
+        staff.forEach(function(s) { var o = document.createElement('option'); o.value = s.id; o.textContent = s.name; staffSel.appendChild(o); });
+        staffSel.disabled = false;
+      } catch(e) { staffSel.innerHTML = '<option>Erro</option>'; }
+    });
+
+    staffSel.addEventListener('change', function() {
+      dateIn.disabled = !this.value;
+      timeSel.disabled = true; timeSel.innerHTML = '<option value="">Selecione a data</option>';
+      submitBtn.disabled = true;
+      if (this.value) dateIn.min = new Date().toISOString().split('T')[0];
+    });
+
+    dateIn.addEventListener('change', async function() {
+      timeSel.disabled = true; timeSel.innerHTML = '<option>Carregando...</option>';
+      submitBtn.disabled = true;
+      if (!this.value) return;
+
+      try {
+        var res = await fetch('/api/portal/available-times?staffId=' + staffSel.value + '&date=' + this.value + '&serviceId=' + svcSel.value);
+        var times = await res.json();
+        timeSel.innerHTML = '<option value="">Selecione...</option>';
+        if (times.length === 0) {
+          timeSel.innerHTML = '<option value="">Sem horarios disponiveis</option>';
+        } else {
+          times.forEach(function(t) { var o = document.createElement('option'); o.value = t; o.textContent = t; timeSel.appendChild(o); });
+          timeSel.disabled = false;
         }
+      } catch(e) { timeSel.innerHTML = '<option>Erro</option>'; }
+    });
 
-        /* --- TEMA 2: MEDIUM DARK --- */
-        [data-theme="medium-dark"] {
-            --color-gold-light: #FFD700;
-            --color-gold-dark: #e0aa1f;
-            --color-gold-accent: #DAA520;
-            --color-bg-primary: #1f2937;
-            --color-bg-secondary: #374151;
-            --color-bg-muted: #4b5563;     
-            --color-bg-accent-light: #422c01;
-            --color-bg-accent-dark: #423001;
-            --color-text-primary: #f9fafb;
-            --color-text-secondary: #d1d5db;
-            --color-text-accent: #e0aa1f;
-            --color-text-accent-muted: #fde047;
-            --color-border: #4b5563;
-            --color-input-bg: #4b5563;
-            --color-input-border: #6b7280;
-        }
-
-        /* --- TEMA 3: DEEP DARK --- */
-        [data-theme="deep-dark"] {
-            --color-gold-light: #FFD700;
-            --color-gold-dark: #e0aa1f;
-            --color-gold-accent: #DAA520;
-            --color-bg-primary: #0a0e14;
-            --color-bg-secondary: #1f2937;
-            --color-bg-muted: #374151;
-            --color-bg-accent-light: #422c01;
-            --color-bg-accent-dark: #423001;
-            --color-text-primary: #f9fafb;
-            --color-text-secondary: #d1d5db;
-            --color-text-accent: #e0aa1f;
-            --color-text-accent-muted: #fde047;
-            --color-border: #4b5563;
-            --color-input-bg: #111827;
-            --color-input-border: #374151;
-        }
-
-        /* ================================================= */
-        /* === 2. ESTILOS BASE (Mapeamento) === */
-        /* ================================================= */
-        
-        body { 
-            height: 100%; 
-            overflow-y: auto; 
-            display: flex; 
-            flex-direction: column; 
-            background-color: var(--color-bg-primary); 
-            color: var(--color-text-primary);
-            /* SVG pattern apenas no light mode */
-            background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiIHZpZXdCb3g9IjAgMCA0IDQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9InRyYW5zcGFyZW50Ij48L3JlY3Q+PHJlY3Qgd2lkdGg9IjEiIGhlaWdodD0iMSIgZmlsbD0icmdiYSgwLDAsMCwwLjAzKSI+PC9yZWN0Pjwvc3ZnPg==");
-        }
-        [data-theme^="dark"] body {
-            background-image: none;
-        }
-        
-        /* Mapeamento */
-        .bg-white { background-color: var(--color-bg-secondary); }
-        .bg-gray-100 { background-color: var(--color-bg-primary); }
-        .bg-gray-50 { background-color: var(--color-bg-muted); }
-        .bg-gold { background-color: var(--color-gold-accent); }
-        
-        .border-gray-100, .border-gray-200 { border-color: var(--color-border); }
-        
-        .text-gray-800, .text-gray-900 { color: var(--color-text-primary); }
-        .text-gray-600, .text-gray-700 { color: var(--color-text-secondary); }
-        .text-gold { color: var(--color-text-accent); }
-        
-        /* Inputs Customizados */
-        .form-select, .form-input {
-            background-color: var(--color-input-bg);
-            color: var(--color-text-primary);
-            border-color: var(--color-input-border);
-            transition: all 0.2s ease-in-out;
-        }
-        .form-select:focus, .form-input:focus {
-            border-color: var(--color-gold-dark);
-            box-shadow: 0 0 0 2px var(--color-gold-light);
-            outline: none;
-        }
-        
-        .input-group:focus-within .input-icon { color: var(--color-gold-dark); }
-        .input-icon { color: var(--color-text-secondary); }
-
-        /* Disabled states */
-        select:disabled, input:disabled { 
-            opacity: 0.6; 
-            cursor: not-allowed; 
-            background-color: var(--color-bg-muted);
-        }
-
-        /* Date Picker Inversion for Dark Mode */
-        [data-theme^="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
-            filter: invert(1);
-        }
-
-        /* Animações */
-        .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Efeito Shine */
-        .bg-shine-gold { position: relative; overflow: hidden; background-color: var(--color-gold-accent); }
-        .bg-shine-gold::after {
-            content: ''; position: absolute; top: -10%; left: -75%; width: 50%; height: 120%;
-            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
-            transform: skewX(-25deg); animation: bg-shine 5s infinite linear;
-        }
-        @keyframes bg-shine { 0% { left: -75%; } 100% { left: 125%; } }
-        
-        .text-gradient-gold {
-             background: linear-gradient(90deg, #B8860B, #FFD700, #DAA520, #FFD700, #B8860B);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            background-size: 200% auto;
-            animation: text-shine 4s linear infinite;
-        }
-        @keyframes text-shine { from { background-position: 200% center; } to { background-position: 0% center; } }
-
-        .ring-gold-dark { --tw-ring-color: var(--color-gold-dark); }
-
-    </style>
-</head>
-<body class="font-sans antialiased">
-
-    <% /* ===== Helpers ===== */ %>
-    <%
-      const toNumber = (v) => {
-        if (v === null || v === undefined) return null;
-        if (typeof v === 'number') return Number.isFinite(v) ? v : null;
-        if (typeof v === 'string') {
-          let s = v.trim().replace(/\s+/g, '').replace(/R\$/g, '');
-          // Se tem vírgula, é formato BR
-          if (s.includes(',')) {
-             s = s.replace(/\./g, '').replace(',', '.');
-          } 
-          const parsed = parseFloat(s);
-          return Number.isNaN(parsed) ? null : parsed;
-        }
-        return null;
-      };
-      const formatPriceBRL = (v) => {
-        const n = toNumber(v);
-        const safe = (n === null) ? 0 : n;
-        return safe.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      };
-      const safeId = (obj) => {
-        if (!obj) return '';
-        if (typeof obj === 'string') return obj;
-        if (typeof obj === 'object') {
-          if (obj._id) return String(obj._id);
-          if (obj.id)  return String(obj.id);
-        }
-        try { return String(obj); } catch(e){ return ''; }
-      };
-      const list = Array.isArray(services) ? services : [];
-    %>
-
-    <header class="bg-white shadow-sm border-b border-gray-200 shrink-0 z-50">
-        <nav class="container mx-auto max-w-2xl px-4 py-4 flex justify-between items-center">
-            <div>
-                <h1 class="text-xl font-bold text-gradient-gold"><%= (typeof orgName !== 'undefined') ? orgName : 'AgendaPro' %></h1>
-                <p class="text-xs text-gray-600">Novo Agendamento</p>
-            </div>
-            
-            <div class="flex items-center gap-3">
-                <button id="theme-toggle-btn" class="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-600">
-                    <i id="theme-icon-sun" class="fas fa-sun"></i> 
-                    <i id="theme-icon-moon" class="fas fa-moon hidden"></i> 
-                </button>
-
-                <a href="/portal/minha-area" 
-                   class="flex items-center space-x-2 text-sm text-gray-600 hover:text-gold transition-colors px-3 py-2 rounded-lg hover:bg-gray-100"
-                   title="Voltar para Minha Área">
-                    <i class="fas fa-arrow-left"></i>
-                    <span class="font-medium hidden sm:inline">Voltar</span>
-                </a>
-            </div>
-        </nav>
-    </header>
-
-    <main class="flex-1 flex flex-col items-center p-4 mt-4 mb-8 w-full max-w-full">
-
-        <div class="w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden animate-fade-in border border-gray-200">
-            
-            <div class="p-6 border-b border-gray-200 bg-gray-50">
-                <h2 class="text-2xl font-bold text-gray-800 flex items-center">
-                    <i class="fas fa-calendar-plus text-gold mr-3"></i>
-                    Escolha seu Horário
-                </h2>
-                <p class="text-sm text-gray-600 mt-1">Siga os 4 passos para solicitar seu agendamento.</p>
-            </div>
-            
-            <div class="p-6 sm:p-8">
-                
-                <% if (typeof error !== 'undefined' && error) { %>
-                <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-                    <p class="text-sm text-red-800 font-medium"><i class="fas fa-exclamation-triangle mr-2"></i><%= error %></p>
-                </div>
-                <% } %>
-                
-                <% if (typeof success !== 'undefined' && success) { %>
-                <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl">
-                    <p class="text-sm text-green-800 font-medium"><i class="fas fa-check-circle mr-2"></i><%= success %></p>
-                </div>
-                <% } %>
-
-                <form action="/portal/agendar" method="POST" class="space-y-6">
-
-                    <div>
-                        <label for="serviceId" class="block text-sm font-semibold text-gray-700 mb-1">
-                            1. Serviço Desejado
-                        </label>
-                        <div class="relative input-group">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
-                                <i class="fas fa-cut input-icon"></i>
-                            </span>
-                            <select id="serviceId" name="serviceId" required
-                                    class="form-select w-full pl-10 pr-10 py-3 rounded-xl border appearance-none">
-                                <option value="" disabled selected>-- Selecione um serviço --</option>
-                                <% list.forEach(service => { 
-                                     const sid = safeId(service && (service._id || service.id || service));
-                                     const name = service && service.name ? service.name : '—';
-                                     const duration = (service && service.duration != null) ? service.duration : 60;
-                                %>
-                                    <option value="<%= sid %>" data-duration="<%= duration %>">
-                                        <%= name %> (R$ <%= formatPriceBRL(service && service.price) %>) - <%= duration %> min
-                                    </option>
-                                <% }); %>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="staffId" class="block text-sm font-semibold text-gray-700 mb-1">
-                            2. Profissional
-                        </label>
-                        <div class="relative input-group">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
-                                <i class="fas fa-user-tie input-icon"></i>
-                            </span>
-                            <select id="staffId" name="staffId" required disabled
-                                    class="form-select w-full pl-10 pr-10 py-3 rounded-xl border appearance-none">
-                                <option value="" disabled selected>-- Selecione um serviço primeiro --</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="date" class="block text-sm font-semibold text-gray-700 mb-1">
-                            3. Data
-                        </label>
-                        <div class="relative input-group">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
-                                <i class="fas fa-calendar-alt input-icon"></i>
-                            </span>
-                            <input id="date" name="date" type="date" required disabled
-                                   min="<%= new Date().toISOString().split('T')[0] %>" 
-                                   class="form-input w-full pl-10 px-4 py-3 rounded-xl border">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="time" class="block text-sm font-semibold text-gray-700 mb-1">
-                            4. Horário
-                        </label>
-                        <div class="relative input-group">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
-                                <i class="fas fa-clock input-icon"></i>
-                            </span>
-                            <select id="time" name="time" required disabled
-                                    class="form-select w-full pl-10 pr-10 py-3 rounded-xl border appearance-none">
-                                <option value="" disabled selected>-- Selecione o profissional e a data --</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <input type="hidden" id="duration" name="duration">
-
-                    <div class="pt-4">
-                        <button type="submit" id="submitButton" disabled
-                                class="w-full bg-gold text-white py-4 px-6 rounded-xl font-bold text-lg transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 bg-shine-gold shadow-lg">
-                            <i class="fas fa-calendar-check mr-3"></i>
-                            <span>Solicitar Agendamento</span>
-                        </button>
-                        <p class="text-xs text-gray-500 mt-3 text-center">
-                            <i class="fas fa-info-circle mr-1"></i>
-                            Seu agendamento ficará pendente até ser confirmado.
-                        </p>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </main>
-
-    <footer class="text-center py-6 shrink-0">
-        <div class="container mx-auto max-w-2xl px-4">
-            <p class="text-xs text-gray-600">
-                <i class="fas fa-crown mr-1.5 text-gold"></i>
-                <%= (typeof orgName !== 'undefined') ? orgName : 'AgendaPro' %> © <%= new Date().getFullYear() %>
-            </p>
-        </div>
-    </footer>
-
-    <script>
-        // =================================================
-        // === LÓGICA DE TEMA ===
-        // =================================================
-        const THEMES = ["light", "medium-dark", "deep-dark"];
-        const htmlEl = document.documentElement;
-
-        function getNextTheme(currentTheme) {
-            const currentIndex = THEMES.indexOf(currentTheme);
-            const nextIndex = (currentIndex + 1) % THEMES.length;
-            return THEMES[nextIndex];
-        }
-
-        function updateIcons(theme) {
-            const sun = document.getElementById('theme-icon-sun');
-            const moon = document.getElementById('theme-icon-moon');
-            
-            if (!sun || !moon) return;
-
-            const isLight = theme === 'light';
-            if (isLight) {
-                sun.classList.remove('hidden');
-                moon.classList.add('hidden');
-            } else {
-                sun.classList.add('hidden');
-                moon.classList.remove('hidden');
-            }
-        }
-
-        function toggleTheme() {
-            const currentTheme = htmlEl.getAttribute('data-theme') || 'light';
-            const newTheme = getNextTheme(currentTheme);
-
-            htmlEl.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateIcons(newTheme);
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const initialTheme = htmlEl.getAttribute('data-theme') || 'light';
-            updateIcons(initialTheme);
-            
-            const toggleButton = document.getElementById('theme-toggle-btn');
-            if (toggleButton) toggleButton.addEventListener('click', toggleTheme);
-
-            // =================================================
-            // === LÓGICA DO FORMULÁRIO ===
-            // =================================================
-            const serviceSelect = document.getElementById('serviceId');
-            const staffSelect = document.getElementById('staffId');
-            const dateInput = document.getElementById('date');
-            const timeSelect = document.getElementById('time');
-            const durationInput = document.getElementById('duration');
-            const submitButton = document.getElementById('submitButton');
-
-            if(serviceSelect) {
-                serviceSelect.addEventListener('change', handleServiceChange);
-                staffSelect.addEventListener('change', handleStaffOrDateChange);
-                dateInput.addEventListener('change', handleStaffOrDateChange);
-                timeSelect.addEventListener('change', handleTimeChange);
-            }
-
-            async function handleServiceChange() {
-                const serviceId = serviceSelect.value;
-                const selectedOption = serviceSelect.options[serviceSelect.selectedIndex];
-                durationInput.value = (selectedOption && selectedOption.getAttribute('data-duration')) || '60';
-
-                resetSelect(staffSelect, '-- Carregando profissionais... --');
-                resetSelect(timeSelect, '-- Selecione profissional e data --');
-                dateInput.disabled = true;
-                dateInput.value = '';
-
-                if (!serviceId) {
-                    resetSelect(staffSelect, '-- Selecione um serviço primeiro --');
-                    return;
-                }
-
-                try {
-                    const response = await fetch(`/api/admin/staff-by-service/${serviceId}`);
-                    if (!response.ok) throw new Error('Erro ao buscar profissionais.');
-                    const staffList = await response.json();
-
-                    resetSelect(staffSelect, '-- Escolha um profissional --');
-                    staffList.forEach(staff => {
-                        const opt = new Option(staff.name, staff.id);
-                        staffSelect.add(opt);
-                    });
-                    staffSelect.disabled = false;
-                } catch (error) {
-                    console.error('Erro em handleServiceChange:', error);
-                    resetSelect(staffSelect, '-- Erro ao carregar --');
-                }
-            }
-
-            async function handleStaffOrDateChange() {
-                const serviceId = serviceSelect.value;
-                const staffId = staffSelect.value;
-                const date = dateInput.value;
-
-                if (staffId) { dateInput.disabled = false; }
-                resetSelect(timeSelect, '-- Selecione profissional e data --');
-
-                if (!serviceId || !staffId || !date) return;
-
-                resetSelect(timeSelect, '-- Carregando horários... --');
-                try {
-                    const params = new URLSearchParams({ serviceId, staffId, date });
-                    // Dica para debug do erro 500: olhar a resposta completa no console
-                    const response = await fetch(`/api/portal/available-times?${params}`);
-                    
-                    if (!response.ok) {
-                        const errText = await response.text();
-                        console.error('Erro do servidor (500):', errText);
-                        throw new Error('Erro no servidor ao buscar horários.');
-                    }
-
-                    const availableSlots = await response.json();
-                    if (Array.isArray(availableSlots) && availableSlots.length > 0) {
-                        resetSelect(timeSelect, '-- Escolha um horário --');
-                        availableSlots.forEach(slot => timeSelect.add(new Option(slot, slot)));
-                        timeSelect.disabled = false;
-                    } else {
-                        resetSelect(timeSelect, '-- Nenhum horário disponível --');
-                    }
-                } catch (error) {
-                    console.error('Erro em handleStaffOrDateChange:', error);
-                    resetSelect(timeSelect, '-- Erro ao carregar horários --');
-                }
-            }
-            
-            function handleTimeChange() {
-                submitButton.disabled = !timeSelect.value;
-            }
-
-            function resetSelect(selectElement, defaultText) {
-                selectElement.innerHTML = '';
-                const defaultOption = new Option(defaultText, '');
-                defaultOption.disabled = true;
-                defaultOption.selected = true;
-                selectElement.add(defaultOption);
-                selectElement.disabled = true;
-                submitButton.disabled = true;
-            }
-        });
-    </script>
+    timeSel.addEventListener('change', function() {
+      submitBtn.disabled = !this.value;
+    });
+  </script>
 </body>
 </html>

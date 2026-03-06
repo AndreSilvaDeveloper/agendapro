@@ -1,0 +1,108 @@
+<body>
+<div class="app-layout">
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <i class="fas fa-calendar-check"></i>
+      <span>Agenda</span>Pro
+      <span class="badge badge-danger" style="margin-left: 4px; font-size: 0.6rem;">Master</span>
+    </div>
+
+    <% const currentPath = typeof path !== 'undefined' ? path : ''; %>
+
+    <nav class="sidebar-nav custom-scroll">
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Painel Master</div>
+        <a href="/master" class="sidebar-link <%= currentPath === 'dashboard' ? 'active' : '' %>">
+          <i class="fas fa-chart-line"></i> Dashboard
+        </a>
+        <a href="/master/organizacoes" class="sidebar-link <%= currentPath === 'organizacoes' ? 'active' : '' %>">
+          <i class="fas fa-building"></i> Organizacoes
+        </a>
+        <a href="/master/assinaturas" class="sidebar-link <%= currentPath === 'assinaturas' ? 'active' : '' %>">
+          <i class="fas fa-credit-card"></i> Assinaturas
+        </a>
+        <a href="/master/planos" class="sidebar-link <%= currentPath === 'planos' ? 'active' : '' %>">
+          <i class="fas fa-tags"></i> Planos
+        </a>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Financeiro</div>
+        <a href="/master/financeiro" class="sidebar-link <%= currentPath === 'financeiro' ? 'active' : '' %>">
+          <i class="fas fa-dollar-sign"></i> Financeiro
+        </a>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Sistema</div>
+        <a href="/master/usuarios" class="sidebar-link <%= currentPath === 'usuarios' ? 'active' : '' %>">
+          <i class="fas fa-users"></i> Usuarios
+        </a>
+        <a href="/master/configuracoes" class="sidebar-link <%= currentPath === 'configuracoes' ? 'active' : '' %>">
+          <i class="fas fa-cog"></i> Configuracoes
+        </a>
+      </div>
+
+      <div class="sidebar-section" style="border-top: 1px solid var(--border-color); padding-top: 12px;">
+        <a href="/" class="sidebar-link">
+          <i class="fas fa-arrow-left"></i> Voltar ao Site
+        </a>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button id="themeToggle" class="btn btn-ghost btn-block" style="justify-content: flex-start;">
+        <i class="fas fa-moon" id="themeIcon"></i>
+        <span id="themeLabel">Modo escuro</span>
+      </button>
+      <a href="/logout" class="btn btn-ghost btn-block text-danger" style="justify-content: flex-start; color: var(--danger);">
+        <i class="fas fa-sign-out-alt"></i> Sair
+      </a>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="main-header">
+      <div class="flex items-center gap-3">
+        <button class="mobile-toggle" id="menuToggle">
+          <i class="fas fa-bars"></i>
+        </button>
+        <span class="main-header-title"><%= typeof pageTitle !== 'undefined' ? pageTitle : 'Master Admin' %></span>
+      </div>
+      <div class="main-header-actions">
+        <span class="badge badge-danger">Super Admin</span>
+      </div>
+    </header>
+
+    <% if (typeof success_msg !== 'undefined' && success_msg && success_msg.length > 0) { %>
+      <div class="alert alert-success" style="margin: 16px 24px 0;">
+        <i class="fas fa-check-circle"></i>
+        <span><%= success_msg %></span>
+        <button class="alert-close" onclick="this.parentElement.remove()">&times;</button>
+      </div>
+    <% } %>
+    <% if (typeof success !== 'undefined' && success) { %>
+      <div class="alert alert-success" style="margin: 16px 24px 0;">
+        <i class="fas fa-check-circle"></i>
+        <span><%= success %></span>
+        <button class="alert-close" onclick="this.parentElement.remove()">&times;</button>
+      </div>
+    <% } %>
+    <% if (typeof error_msg !== 'undefined' && error_msg && error_msg.length > 0) { %>
+      <div class="alert alert-danger" style="margin: 16px 24px 0;">
+        <i class="fas fa-exclamation-circle"></i>
+        <span><%= error_msg %></span>
+        <button class="alert-close" onclick="this.parentElement.remove()">&times;</button>
+      </div>
+    <% } %>
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="alert alert-danger" style="margin: 16px 24px 0;">
+        <i class="fas fa-exclamation-circle"></i>
+        <span><%= error %></span>
+        <button class="alert-close" onclick="this.parentElement.remove()">&times;</button>
+      </div>
+    <% } %>
+
+    <main class="page-content animate-fade-in">

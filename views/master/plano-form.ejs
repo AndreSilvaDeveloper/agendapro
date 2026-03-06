@@ -1,0 +1,70 @@
+<%- include('../partials/head', { pageTitle: (isEdit ? 'Editar' : 'Novo') + ' Plano - Master' }) %>
+<%- include('../partials/master-sidebar', { path: 'planos' }) %>
+
+<div class="flex items-center gap-3 mb-6">
+  <a href="/master/planos" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i></a>
+  <h1 style="margin: 0;"><%= isEdit ? 'Editar Plano' : 'Novo Plano' %></h1>
+</div>
+
+<div class="card" style="max-width: 700px;">
+  <div class="card-body">
+    <form action="<%= isEdit ? '/master/planos/' + plan.id + '/editar' : '/master/planos/novo' %>" method="POST">
+
+      <div class="form-group">
+        <label class="form-label">Nome do Plano</label>
+        <input type="text" name="name" class="form-control" required value="<%= plan ? plan.name : '' %>" placeholder="Ex: Profissional">
+      </div>
+
+      <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div class="form-group">
+          <label class="form-label">Preco Mensal (R$)</label>
+          <input type="number" name="price" class="form-control" step="0.01" min="0" required value="<%= plan ? parseFloat(plan.price).toFixed(2) : '0.00' %>">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Preco Anual (R$)</label>
+          <input type="number" name="yearlyPrice" class="form-control" step="0.01" min="0" required value="<%= plan ? parseFloat(plan.yearlyPrice).toFixed(2) : '0.00' %>">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Descricao</label>
+        <textarea name="description" class="form-control" rows="2" placeholder="Descricao curta do plano"><%= plan ? plan.description : '' %></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Features (uma por linha)</label>
+        <textarea name="features" class="form-control" rows="6" placeholder="1 profissional&#10;Ate 50 clientes&#10;Portal do cliente"><%= plan && plan.features ? plan.features.join('\n') : '' %></textarea>
+      </div>
+
+      <div class="grid" style="grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+        <div class="form-group">
+          <label class="form-label">Ordem</label>
+          <input type="number" name="sortOrder" class="form-control" value="<%= plan ? plan.sortOrder : 0 %>">
+        </div>
+        <div class="form-group">
+          <label class="form-label">&nbsp;</label>
+          <label class="flex items-center gap-2" style="cursor: pointer; padding: 8px 0;">
+            <input type="checkbox" name="isActive" <%= (!plan || plan.isActive) ? 'checked' : '' %>>
+            <span>Ativo</span>
+          </label>
+        </div>
+        <div class="form-group">
+          <label class="form-label">&nbsp;</label>
+          <label class="flex items-center gap-2" style="cursor: pointer; padding: 8px 0;">
+            <input type="checkbox" name="isFeatured" <%= (plan && plan.isFeatured) ? 'checked' : '' %>>
+            <span>Destaque</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="flex gap-2 mt-4">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save"></i> <%= isEdit ? 'Salvar Alteracoes' : 'Criar Plano' %>
+        </button>
+        <a href="/master/planos" class="btn btn-outline">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

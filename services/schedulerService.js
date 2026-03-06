@@ -1,38 +1,22 @@
-// services/schedulerService.js
 const cron = require('node-cron');
 const { Op } = require('sequelize');
+const sequelize = require('../db');
 const { Appointment, Client, Organization } = require('../models');
 const whatsappService = require('./whatsappService');
 
-// Função auxiliar para criar objeto Date a partir de string "YYYY-MM-DD" e "HH:MM"
-const createDateObj = (dateStr, timeStr) => {
-    const [year, month, day] = dateStr.split('-');
-    const [hours, minutes] = timeStr.split(':');
-    // Importante: O mês no JS começa em 0 (janeiro é 0)
-    return new Date(year, month - 1, day, hours, minutes);
-};
-
 const checkAndSendReminders = async () => {
-    console.log('⏰ [Cron] Verificando agendamentos (24h e 3h)...');
+    console.log('[Cron] Verificando agendamentos para lembretes...');
 
     try {
-        // Pega data de hoje e amanhã (para cobrir o intervalo de 24h)
-        const today = new Date();
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        const now = new Date();
+        const future = new Date(now.getTime() + 25 * 60 * 60 * 1000);
 
-        const todayStr = today.toISOString().split('T')[0];
-        const tomorrowStr = tomorrow.toISOString().split('T')[0];
-
-        // Busca agendamentos de HOJE e AMANHÃ que não estejam cancelados
-        // E que a organização tenha ativado os lembretes
         const appointments = await Appointment.findAll({
             where: {
-                date: { [Op.in]: [todayStr, tomorrowStr] },
-               status: { 
-                    [Op.notIn]: ['cancelado_pelo_cliente', 'cancelado_pelo_salao', 'concluido'] 
+                date: { [Op.between]: [now, future] },
+                status: {
+                    [Op.notIn]: ['cancelado_pelo_cliente', 'cancelado_pelo_salao', 'concluido']
                 },
-                
                 [Op.or]: [
                     { reminder24hSent: false },
                     { reminder3hSent: false }
@@ -40,112 +24,219 @@ const checkAndSendReminders = async () => {
             },
             include: [
                 { model: Client },
-                { 
+                {
                     model: Organization,
-                    where: { 'settings.automaticReminders': true } 
+                    where: sequelize.where(
+                        sequelize.cast(sequelize.fn('coalesce', sequelize.literal("\"Organization\".\"settings\"->>'automaticReminders'"), 'true'), 'text'),
+                        'true'
+                    )
                 }
             ]
         });
 
-        const now = new Date();
-
         for (const appt of appointments) {
             const org = appt.Organization;
-            
-            // Verifica conexão do WhatsApp
-            const status = whatsappService.getStatus(org.id);
-            if (status !== 'CONNECTED') continue;
 
-            const wpClient = await whatsappService.getClient(org.id);
-            
-            // Calcula o tempo até o agendamento
-            const apptDateTime = createDateObj(appt.date, appt.time);
-            const diffMs = apptDateTime - now; // Diferença em milissegundos
-            const diffHours = diffMs / (1000 * 60 * 60); // Diferença em horas
+            // Verificar se org tem WhatsApp configurado e conectado
+            if (!org.settings || !org.settings.whatsappInstanceName || !org.settings.whatsappConnected) {
+                continue;
+            }
+
+            const apptDateTime = new Date(appt.date);
+            const diffMs = apptDateTime - now;
+            const diffHours = diffMs / (1000 * 60 * 60);
 
             let messageType = null;
 
-            // --- LÓGICA DO LEMBRETE DE 24 HORAS ---
-            // Envia se faltar entre 23h e 25h, e ainda não foi enviado
             if (!appt.reminder24hSent && diffHours > 23 && diffHours <= 25) {
                 messageType = '24h';
             }
 
-            // --- LÓGICA DO LEMBRETE DE 3 HORAS ---
-            // Envia se faltar entre 2h e 4h, e ainda não foi enviado
-            // (Damos uma margem porque o cron roda de hora em hora)
             if (!appt.reminder3hSent && diffHours > 1.5 && diffHours <= 4) {
                 messageType = '3h';
             }
 
             if (messageType) {
-                await sendWhatsApp(wpClient, appt, org, messageType);
+                await sendReminder(appt, org, messageType);
             }
         }
 
     } catch (error) {
-        console.error('🔥 [Cron] Erro no processamento:', error);
+        console.error('[Cron] Erro no processamento:', error.message);
     }
 };
 
-const sendWhatsApp = async (client, appt, org, type) => {
+const sendReminder = async (appt, org, type) => {
     try {
         const clientName = appt.Client ? appt.Client.name : 'Cliente';
-        let template = org.settings.whatsappTemplate;
+        let template = (org.settings && org.settings.whatsappTemplate) || null;
 
-        // Se não tiver template personalizado, usa um padrão dependendo do tipo
         if (!template) {
             if (type === '24h') {
-                template = "Olá *{cliente}*! Passando para lembrar do seu agendamento amanhã no *{empresa}* às {hora}.";
+                template = 'Ola *{cliente}*! Passando para lembrar do seu agendamento amanha no *{empresa}* as {hora}.';
             } else {
-                template = "Olá *{cliente}*! Seu horário no *{empresa}* é daqui a pouco, às {hora}. Estamos te esperando!";
+                template = 'Ola *{cliente}*! Seu horario no *{empresa}* e daqui a pouco, as {hora}. Estamos te esperando!';
             }
         }
 
-        // Formata a data para PT-BR
-        const dateFormatted = appt.date.split('-').reverse().join('/');
+        const apptDate = new Date(appt.date);
+        const dateFormatted = apptDate.toLocaleDateString('pt-BR');
+        const timeFormatted = apptDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
         let message = template
             .replace(/{cliente}/g, clientName)
             .replace(/{empresa}/g, org.name)
             .replace(/{data}/g, dateFormatted)
-            .replace(/{hora}/g, appt.time)
-            .replace(/{servico}/g, 'seus serviços');
+            .replace(/{hora}/g, timeFormatted)
+            .replace(/{servico}/g, 'seus servicos');
 
-        // Formata telefone
-        let phone = appt.Client.phone.replace(/\D/g, '');
-        if (phone.length >= 10 && phone.length <= 11) phone = '55' + phone;
+        if (!appt.Client || !appt.Client.phone) return;
 
-        const contact = await client.getNumberId(phone);
-        if (contact) {
-            await client.sendMessage(contact._serialized, message);
-            console.log(`✅ [Cron] Lembrete ${type} enviado para ${clientName}`);
+        await whatsappService.sendMessage(appt.Client.phone, message, org.id);
+        console.log(`[Cron] Lembrete ${type} enviado para ${clientName}`);
 
-            // Atualiza o banco para não enviar de novo
-            if (type === '24h') appt.reminder24hSent = true;
-            if (type === '3h') appt.reminder3hSent = true;
-            await appt.save();
-        }
-        
+        if (type === '24h') appt.reminder24hSent = true;
+        if (type === '3h') appt.reminder3hSent = true;
+        await appt.save();
+
         // Pausa anti-ban
-        await new Promise(r => setTimeout(r, 3000));
+        await new Promise(r => setTimeout(r, 2000));
 
     } catch (err) {
-        console.error(`❌ [Cron] Erro ao enviar:`, err.message);
+        console.error(`[Cron] Erro ao enviar:`, err.message);
+    }
+};
+
+// ========================================
+// ALERTAS DE VENCIMENTO DE ASSINATURA
+// ========================================
+const checkSubscriptionAlerts = async () => {
+    console.log('[Cron] Verificando assinaturas proximas do vencimento...');
+
+    try {
+        const { Subscription, Plan, User } = require('../models');
+        const now = new Date();
+
+        // Busca assinaturas ativas/trial com vencimento proximo
+        const subscriptions = await Subscription.findAll({
+            where: {
+                status: { [Op.in]: ['active', 'trial'] },
+                currentPeriodEnd: { [Op.ne]: null }
+            },
+            include: [
+                { model: Organization, attributes: ['id', 'name', 'settings'] },
+                { model: Plan, attributes: ['name', 'price'] }
+            ]
+        });
+
+        for (const sub of subscriptions) {
+            if (!sub.Organization || !sub.Plan) continue;
+            if (parseFloat(sub.Plan.price) === 0) continue; // Plano gratuito
+
+            const endDate = new Date(sub.currentPeriodEnd);
+            const diffMs = endDate - now;
+            const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+            // Alertas em 7, 3, 1 e 0 (no dia) dias antes
+            const alertDays = [7, 3, 1, 0];
+            if (!alertDays.includes(diffDays)) continue;
+
+            const org = sub.Organization;
+            if (!org.settings || !org.settings.whatsappInstanceName || !org.settings.whatsappConnected) continue;
+
+            // Busca owner da org (com telefone)
+            const owner = await User.findOne({
+                where: { organizationId: org.id, role: 'owner' },
+                attributes: ['id', 'username', 'email', 'phone']
+            });
+            if (!owner) continue;
+
+            // Tenta enviar pelo whatsapp da org
+            let msg = '';
+            if (diffDays === 7) {
+                msg = `*AgendaPro - Aviso de Vencimento*\n\n` +
+                    `Ola! Sua assinatura do plano *${sub.Plan.name}* vence em *7 dias* (${endDate.toLocaleDateString('pt-BR')}).\n\n` +
+                    `Para evitar o bloqueio do sistema, realize o pagamento antes do vencimento.\n\n` +
+                    `Acesse: /admin/assinatura`;
+            } else if (diffDays === 3) {
+                msg = `*AgendaPro - Assinatura Vencendo*\n\n` +
+                    `Atencao! Faltam apenas *3 dias* para o vencimento do seu plano *${sub.Plan.name}* (${endDate.toLocaleDateString('pt-BR')}).\n\n` +
+                    `Seu acesso sera bloqueado automaticamente apos o vencimento.\n\n` +
+                    `Pague agora: /admin/assinatura`;
+            } else if (diffDays === 1) {
+                msg = `*AgendaPro - URGENTE*\n\n` +
+                    `Sua assinatura *${sub.Plan.name}* vence *AMANHA* (${endDate.toLocaleDateString('pt-BR')})!\n\n` +
+                    `Se nao pagar, seu acesso ao sistema sera bloqueado automaticamente.\n\n` +
+                    `Pague agora: /admin/assinatura`;
+            } else if (diffDays === 0) {
+                msg = `*AgendaPro - ULTIMO AVISO*\n\n` +
+                    `Sua fatura do plano *${sub.Plan.name}* vence *HOJE* (${endDate.toLocaleDateString('pt-BR')})!\n\n` +
+                    `Se nao pagar, seu acesso ao sistema sera bloqueado automaticamente.\n\n` +
+                    `Pague agora: /admin/assinatura`;
+            }
+
+            const ownerPhone = owner.phone || null;
+            if (msg && ownerPhone) {
+                try {
+                    await whatsappService.sendMessage(ownerPhone, msg, org.id);
+                    console.log(`[Cron] Alerta ${diffDays}d enviado para ${owner.username} (${ownerPhone})`);
+                } catch (e) {
+                    console.error(`[Cron] Erro ao enviar alerta para ${org.name}:`, e.message);
+                }
+            }
+
+            // Tambem envia por email se tiver mailer configurado
+            try {
+                const mailer = require('../utils/mailer');
+                if (owner.email && mailer.sendGenericEmail) {
+                    await mailer.sendGenericEmail(
+                        owner.email,
+                        `AgendaPro - Sua assinatura vence em ${diffDays} dia(s)`,
+                        msg.replace(/\*/g, '').replace(/\n/g, '<br>')
+                    );
+                }
+            } catch (e) {
+                // mailer pode nao ter sendGenericEmail, ignora
+            }
+        }
+
+        // Verifica trials expirados e bloqueia
+        const expiredTrials = await Subscription.findAll({
+            where: {
+                status: 'trial',
+                trialEndsAt: { [Op.lt]: now }
+            },
+            include: [{ model: Plan, attributes: ['price'] }]
+        });
+
+        for (const sub of expiredTrials) {
+            if (sub.Plan && parseFloat(sub.Plan.price) === 0) continue;
+            await sub.update({ status: 'expired' });
+            await User.update(
+                { isBlocked: true },
+                { where: { organizationId: sub.organizationId } }
+            );
+            console.log(`[Cron] Trial expirado -> org ${sub.organizationId} bloqueada`);
+        }
+
+    } catch (error) {
+        console.error('[Cron] Erro ao verificar assinaturas:', error.message);
     }
 };
 
 const init = () => {
-    // Roda a cada 60 minutos (No minuto 0 de cada hora)
-    // Ex: 08:00, 09:00, 10:00...
+    // Lembretes de agendamento - a cada hora
     cron.schedule('0 * * * *', () => {
         checkAndSendReminders();
     });
-    
-    console.log('🚀 Robô de Lembretes (24h e 3h) Iniciado.');
-    
-    // (Opcional) Executar imediatamente ao ligar o servidor para testar
-    // checkAndSendReminders(); 
+
+    // Alertas de vencimento de assinatura - todo dia as 9h
+    cron.schedule('0 9 * * *', () => {
+        checkSubscriptionAlerts();
+    });
+
+    console.log('[Cron] Robo de Lembretes (24h e 3h) Iniciado.');
+    console.log('[Cron] Verificacao de assinaturas (diaria 9h) Iniciada.');
 };
 
-module.exports = { init };
+module.exports = { init, checkSubscriptionAlerts };

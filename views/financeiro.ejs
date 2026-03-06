@@ -1,481 +1,106 @@
-<!DOCTYPE html>
-<html lang="pt-BR" class="h-full" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <title>Financeiro <%= (typeof org !== 'undefined') ? org.name : 'AgendaPro' %></title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    
-    <script>
-        (function() {
-            const THEMES = ["light", "medium-dark", "deep-dark"];
-            const savedTheme = localStorage.getItem('theme');
-            let initialTheme = 'light';
+<%- include('partials/head', { pageTitle: 'Financeiro' }) %>
+<%- include('partials/sidebar', { activePage: 'financeiro' }) %>
 
-            if (savedTheme && THEMES.includes(savedTheme)) {
-                initialTheme = savedTheme;
-            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                initialTheme = 'deep-dark';
-            }
-            document.documentElement.setAttribute('data-theme', initialTheme);
-        })();
-    </script>
+<!-- Filtro -->
+<div class="card mb-4">
+  <div class="card-body compact">
+    <form method="GET" action="/financeiro" class="flex items-center gap-3" style="flex-wrap: wrap;">
+      <label class="form-label" style="margin:0;">Filtrar por:</label>
+      <input type="date" name="day" value="<%= typeof dayValue !== 'undefined' ? dayValue : '' %>" class="form-control" style="max-width: 170px;">
+      <input type="week" name="week" value="<%= typeof weekValue !== 'undefined' ? weekValue : '' %>" class="form-control" style="max-width: 170px;">
+      <input type="month" name="month" value="<%= typeof monthValue !== 'undefined' ? monthValue : '' %>" class="form-control" style="max-width: 170px;">
+      <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Aplicar</button>
+    </form>
+  </div>
+</div>
 
-    <style>
-        /* ================================================= */
-        /* === 1. DEFINIÇÃO DAS CORES PARA TRÊS TEMAS === */
-        /* ================================================= */
+<% if (typeof label !== 'undefined' && label) { %>
+  <div class="mb-4 text-sm text-secondary"><i class="fas fa-calendar"></i> <%= label %></div>
+<% } %>
 
-        /* --- TEMA 1: LIGHT --- */
-        :root, [data-theme="light"] {
-            --color-gold-light: #FFD700; 
-            --color-gold-dark: #B8860B; 
-            --color-gold-accent: #DAA520;
-            --color-bg-primary: #f3f4f6;
-            --color-bg-secondary: #ffffff;
-            --color-bg-muted: #f9fafb;     
-            --color-bg-accent-light: #FFFBEB;
-            --color-bg-accent-dark: #fefce8;
-            --color-text-primary: #1f2937;
-            --color-text-secondary: #4b5563;
-            --color-text-accent: #B8860B;
-            --color-text-accent-muted: #b45309;
-            --color-border: #e5e7eb;
-        }
-
-        /* --- TEMA 2: MEDIUM DARK --- */
-        [data-theme="medium-dark"] {
-            --color-gold-light: #FFD700;
-            --color-gold-dark: #e0aa1f;
-            --color-gold-accent: #DAA520;
-            --color-bg-primary: #1f2937;
-            --color-bg-secondary: #374151;
-            --color-bg-muted: #4b5563;     
-            --color-bg-accent-light: #422c01;
-            --color-bg-accent-dark: #423001;
-            --color-text-primary: #f9fafb;
-            --color-text-secondary: #d1d5db;
-            --color-text-accent: #e0aa1f;
-            --color-text-accent-muted: #fde047;
-            --color-border: #4b5563;
-        }
-
-        /* --- TEMA 3: DEEP DARK --- */
-        [data-theme="deep-dark"] {
-            --color-gold-light: #FFD700;
-            --color-gold-dark: #e0aa1f;
-            --color-gold-accent: #DAA520;
-            --color-bg-primary: #0a0e14;
-            --color-bg-secondary: #1f2937;
-            --color-bg-muted: #374151;
-            --color-bg-accent-light: #422c01;
-            --color-bg-accent-dark: #423001;
-            --color-text-primary: #f9fafb;
-            --color-text-secondary: #d1d5db;
-            --color-text-accent: #e0aa1f;
-            --color-text-accent-muted: #fde047;
-            --color-border: #4b5563;
-        }
-
-        /* ================================================= */
-        /* === 2. ESTILOS BASE (Mapeamento) === */
-        /* ================================================= */
-        
-        body { 
-            height: 100%; 
-            overflow: hidden; 
-            display: flex; 
-            flex-direction: column; 
-            background-color: var(--color-bg-primary); 
-            color: var(--color-text-primary);
-        } 
-        
-        /* Mapeamento de Classes Tailwind */
-        .bg-white, .bg-gray-800 { background-color: var(--color-bg-secondary); }
-        .bg-gray-50, .bg-gray-700\/50, .bg-gray-100 { background-color: var(--color-bg-muted); }
-        .bg-gold-light { background-color: var(--color-bg-accent-light); }
-        
-        .border-gray-200, .border-gray-300 { border-color: var(--color-border); }
-        
-        .text-gray-900, .text-gray-800 { color: var(--color-text-primary); }
-        .text-gray-700, .text-gray-600, .text-gray-500 { color: var(--color-text-secondary); }
-        .text-gold { color: var(--color-text-accent); }
-        
-        /* Link Mobile */
-        .mobile-nav-link { 
-            color: var(--color-text-primary);
-            transition: color 0.2s ease;
-        }
-
-        /* Utilitários Específicos de Financeiro */
-        .payment-card { transition: all 0.2s ease; border-left: 3px solid transparent; }
-        .payment-card:hover { 
-            border-left-color: var(--color-gold-dark); 
-            background-color: var(--color-bg-muted); 
-        }
-        
-        /* Inputs */
-        .filter-input { 
-            background-color: var(--color-bg-secondary);
-            color: var(--color-text-primary);
-            border-color: var(--color-border);
-            transition: all 0.2s ease;
-        }
-        .filter-input:focus {
-            border-color: var(--color-gold-accent);
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(218, 165, 32, 0.2);
-        }
-
-        /* Scroll */
-        .custom-scroll::-webkit-scrollbar { width: 6px; }
-        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-        .custom-scroll::-webkit-scrollbar-thumb { background-color: var(--color-border); border-radius: 20px; }
-        .custom-scroll:hover::-webkit-scrollbar-thumb { background-color: var(--color-gold-accent); }
-
-        .compact-body { flex-grow: 1; overflow-y: auto; min-height: 0; }
-
-        /* Cores específicas de pagamento (adaptadas para dark mode) */
-        .pix-gradient { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
-        .cash-gradient { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
-        .card-gradient { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
-
-        /* Efeito Shine */
-        .bg-shine-gold { position: relative; overflow: hidden; background-color: var(--color-gold-accent); }
-        .bg-shine-gold::after {
-            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            animation: bg-shine 5s infinite linear;
-        }
-        @keyframes bg-shine { 0% { left: -100%; } 100% { left: 125%; } }
-        
-        .text-gradient-gold {
-             background: linear-gradient(90deg, #B8860B, #FFD700, #DAA520, #FFD700, #B8860B);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            background-size: 200% auto;
-            animation: text-shine 4s linear infinite;
-        }
-         @keyframes text-shine { from { background-position: 200% center; } to { background-position: 0% center; } }
-
-    </style>
-</head>
-<body class="font-sans antialiased">
-    
-    <%
-      function toNumber(v) {
-        if (v == null) return 0;
-        if (typeof v === 'number') return v;
-        if (typeof v === 'string') {
-          const normalized = v.replace(/\./g, '').replace(',', '.');
-          const n = parseFloat(normalized);
-          if (!isNaN(n)) return n;
-          const n2 = Number(v.replace(/[^\d.-]/g, ''));
-          return isFinite(n2) ? n2 : 0;
-        }
-        const n3 = Number(v);
-        return isFinite(n3) ? n3 : 0;
-      }
-      function money(v) {
-        const n = toNumber(v);
-        return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      }
-    %>
-
-    <header class="bg-white shadow-md border-b border-gray-200 shrink-0 h-16 flex items-center z-50">
-        <div class="w-full max-w-full px-4 flex items-center justify-between">
-            
-            <div class="flex items-center shrink-0 mr-4">
-                <h1 class="flex items-center text-gray-800 text-lg font-bold">
-                   Agenda Pro
-                </h1>
-                <div class="h-6 w-px bg-gray-200 hidden sm:block ml-4"></div>
-                <span class="text-lg font-semibold text-gray-700 flex items-center ml-4">
-                    <i class="fas fa-dollar-sign mr-2 text-gold"></i>
-                    Financeiro
-                </span>
-            </div>
-
-            <nav class="hidden xl:flex items-center space-x-4 text-sm whitespace-nowrap overflow-x-auto custom-scroll pb-1 lg:pb-0">
-                <a href="/dashboard" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-home mr-1"></i>Dash
-                </a>
-                <a href="/agendamentos-por-dia" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-calendar-alt mr-1"></i>Agenda
-                </a>
-                <a href="/clients" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-users mr-1"></i>Clientes
-                </a>
-                <a href="/admin/servicos" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-cut mr-1"></i>Serviços
-                </a>
-                <a href="/admin/equipe" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-users-cog mr-1"></i>Equipe
-                </a>
-                <a href="/financeiro" class="text-gradient-gold font-semibold">
-                    <i class="fas fa-dollar-sign mr-1"></i>Financeiro
-                </a>
-                <a href="/balanco" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-balance-scale mr-1"></i>Balanço
-                </a>
-                <a href="/expenses" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-receipt mr-1"></i>Despesas
-                </a>
-                
-                <div class="h-4 w-px bg-gray-300 mx-2"></div>
-
-                <button id="theme-toggle-btn" class="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600">
-                    <i id="theme-icon-sun" class="fas fa-sun"></i> <i id="theme-icon-moon" class="fas fa-moon hidden"></i> 
-                </button>
-                
-                <a href="/logout" class="text-red-600 hover:text-red-700 transition-colors font-semibold">
-                    <i class="fas fa-sign-out-alt mr-1"></i>Sair
-                </a>
-            </nav>
-
-            <button id="menu-button" class="xl:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                <i class="fas fa-bars text-gold"></i>
-            </button>
-        </div>
-    </header>
-
-    <div id="mobile-menu" class="hidden fixed inset-0 z-50 flex flex-col p-6 space-y-4 overflow-y-auto xl:hidden" style="background-color: var(--color-bg-primary);">
-        <div class="flex justify-end">
-            <button id="close-menu" class="text-2xl" style="color: var(--color-text-primary);"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="flex flex-col space-y-3 text-center">
-            <a href="/dashboard" class="mobile-nav-link text-lg py-2 hover:text-gold">Dashboard</a>
-            <a href="/agendamentos-por-dia" class="mobile-nav-link text-lg py-2 hover:text-gold">Agendamentos</a>
-            <a href="/clients" class="mobile-nav-link text-lg py-2 hover:text-gold">Clientes</a>
-            <a href="/admin/servicos" class="mobile-nav-link text-lg py-2 hover:text-gold">Serviços</a>
-            <a href="/admin/equipe" class="mobile-nav-link text-lg py-2 hover:text-gold">Equipe</a>
-            <a href="/financeiro" class="mobile-nav-link text-gold text-lg font-bold py-2 border-b border-gray-700">Financeiro</a>
-            <a href="/balanco" class="mobile-nav-link text-lg py-2 hover:text-gold">Balanço</a>
-            <a href="/expenses" class="mobile-nav-link text-lg py-2 hover:text-gold">Despesas</a>
-            
-            <button id="theme-toggle-btn-mobile" class="w-full flex items-center justify-center space-x-3 p-3 rounded-lg mobile-nav-link hover:bg-gray-700 hover:text-gold border border-gray-500 mt-4">
-                <i id="theme-icon-sun-mobile" class="fas fa-sun w-5 text-center"></i>
-                <i id="theme-icon-moon-mobile" class="fas fa-moon w-5 text-center hidden"></i>
-                <span>Alternar Tema</span>
-            </button>
-
-            <a href="/logout" class="mobile-nav-link text-red-400 text-lg py-2 font-bold mt-4">Sair do Sistema</a>
-        </div>
+<!-- Stats -->
+<div class="grid grid-3 mb-6">
+  <div class="stat-card">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="stat-label">Total recebido</div>
+        <div class="stat-value text-success">R$ <%= (overallTotal || 0).toFixed(2).replace('.', ',') %></div>
+      </div>
+      <div class="stat-icon green"><i class="fas fa-dollar-sign"></i></div>
     </div>
+  </div>
+  <div class="stat-card">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="stat-label">Servicos</div>
+        <div class="stat-value" style="color: var(--info);">R$ <%= (totalServicos || 0).toFixed(2).replace('.', ',') %></div>
+      </div>
+      <div class="stat-icon blue"><i class="fas fa-cut"></i></div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="flex items-center justify-between">
+      <div>
+        <div class="stat-label">Produtos</div>
+        <div class="stat-value" style="color: var(--primary);">R$ <%= (totalProdutos || 0).toFixed(2).replace('.', ',') %></div>
+      </div>
+      <div class="stat-icon purple"><i class="fas fa-box"></i></div>
+    </div>
+  </div>
+</div>
 
-
-    <main class="flex-1 p-3 overflow-hidden flex flex-col gap-3 max-w-full mx-auto w-full">
-        
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 min-h-0">
-
-            <div class="lg:col-span-4 flex flex-col gap-3 overflow-y-auto custom-scroll p-1">
-                
-                <div class="bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden shrink-0">
-                    <div class="bg-shine-gold p-3">
-                        <h2 class="text-md font-bold text-white flex items-center">
-                            <i class="fas fa-filter mr-2"></i>Filtros (<%= label %>)
-                        </h2>
-                    </div>
-                    <div class="p-4">
-                        <form method="GET" action="/financeiro" class="space-y-3">
-                            <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Dia</label>
-                                <input type="date" name="day" value="<%= dayValue %>" class="filter-input w-full p-2 text-sm rounded-lg border border-gray-300">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Mês</label>
-                                <input type="month" name="month" value="<%= monthValue %>" class="filter-input w-full p-2 text-sm rounded-lg border border-gray-300">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Semana</label>
-                                <input type="week" name="week" value="<%= weekValue %>" class="filter-input w-full p-2 text-sm rounded-lg border border-gray-300">
-                            </div>
-                            <div class="flex gap-2 pt-2">
-                                <button type="submit" class="flex-1 bg-gold text-white py-2 rounded-lg font-semibold text-sm hover:opacity-90 transition-opacity">
-                                    <i class="fas fa-search mr-1"></i> Aplicar
-                                </button>
-                                <a href="/financeiro" class="px-3 py-2 bg-gray-200 text-gray-600 rounded-lg hover:bg-gray-300 transition-colors" title="Limpar">
-                                    <i class="fas fa-times"></i>
-                                </a>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow-xl border border-gray-200 p-4 shrink-0 text-center">
-                    <div class="inline-flex items-center justify-center w-12 h-12 bg-green-600 rounded-full mb-2">
-                        <i class="fas fa-coins text-xl text-white"></i>
-                    </div>
-                    <h3 class="text-sm font-bold text-gray-500 uppercase mb-1">Total Recebido</h3>
-                    <p class="text-3xl font-bold text-green-600">R$ <%= money(overallTotal) %></p>
-                </div>
-
-                <div class="grid grid-cols-2 gap-2 shrink-0">
-                    <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                        <div class="flex items-center justify-between mb-1">
-                            <i class="fas fa-tools text-blue-600"></i>
-                            <span class="text-[10px] font-bold text-blue-700">SERVIÇOS</span>
-                        </div>
-                        <p class="text-lg font-bold text-blue-800">R$ <%= money(totalServicos) %></p>
-                    </div>
-                    <div class="bg-purple-50 p-3 rounded-lg border border-purple-200">
-                        <div class="flex items-center justify-between mb-1">
-                            <i class="fas fa-box text-purple-600"></i>
-                            <span class="text-[10px] font-bold text-purple-700">PRODUTOS</span>
-                        </div>
-                        <p class="text-lg font-bold text-purple-800">R$ <%= money(totalProdutos) %></p>
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="lg:col-span-8 flex flex-col gap-3 min-h-0 overflow-hidden">
-                
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 shrink-0">
-                    <% 
-                    const paymentMethods = [
-                        { name: 'Pix', icon: 'fas fa-qrcode', gradient: 'pix-gradient', text: 'text-green-600' },
-                        { name: 'Dinheiro', icon: 'fas fa-money-bill-wave', gradient: 'cash-gradient', text: 'text-yellow-600' },
-                        { name: 'Cartão', icon: 'fas fa-credit-card', gradient: 'card-gradient', text: 'text-blue-600' }
-                    ];
-                    
-                    paymentMethods.forEach(method => {
-                        const total = totals[method.name.toLowerCase()] || 0;
-                    %>
-                    <div class="bg-white p-3 rounded-lg shadow-md border border-gray-200 flex items-center justify-between">
-                        <div>
-                            <span class="text-xs font-bold text-gray-500 uppercase"><%= method.name %></span>
-                            <p class="text-lg font-bold <%= method.text %>">R$ <%= money(total) %></p>
-                        </div>
-                        <div class="w-8 h-8 <%= method.gradient %> rounded-full flex items-center justify-center text-white">
-                            <i class="<%= method.icon %> text-xs"></i>
-                        </div>
-                    </div>
-                    <% }); %>
-                </div>
-
-                <div class="bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col flex-1 min-h-0">
-                    <div class="p-3 border-b border-gray-200 bg-gray-50 shrink-0">
-                        <h2 class="text-md font-bold text-gray-800 flex items-center">
-                            <i class="fas fa-list mr-2 text-gold"></i>
-                            Detalhamento das Transações
-                        </h2>
-                    </div>
-                    
-                    <div class="compact-body custom-scroll p-3 space-y-4">
-                        <% paymentMethods.forEach(method => { 
-                            const list = details[method.name.toLowerCase()] || [];
-                        %>
-                            <% if (list.length > 0) { %>
-                            <div>
-                                <h3 class="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center">
-                                    <i class="<%= method.icon %> mr-1"></i> <%= method.name %>
-                                    <span class="ml-2 bg-gray-100 px-2 py-0.5 rounded-full text-[10px]"><%= list.length %></span>
-                                </h3>
-                                <div class="space-y-2">
-                                    <% list.forEach((d) => { %>
-                                    <div class="payment-card bg-white p-2 rounded border border-gray-200 flex justify-between items-center group hover:bg-gray-50">
-                                        <div class="flex-1 min-w-0 mr-2">
-                                            <div class="flex items-center justify-between">
-                                                <span class="font-semibold text-sm text-gray-900 truncate"><%= d.client %></span>
-                                                <span class="text-xs text-gray-500"><%= d.date %></span>
-                                            </div>
-                                            <div class="text-xs text-gray-600 truncate">
-                                                <%= d.item %>
-                                                <% if (d.description) { %> <span class="text-gray-400">• <%= d.description %></span> <% } %>
-                                            </div>
-                                        </div>
-                                        <div class="font-bold text-sm <%= method.text %> whitespace-nowrap">
-                                            R$ <%= money(d.amount) %>
-                                        </div>
-                                    </div>
-                                    <% }); %>
-                                </div>
-                            </div>
-                            <div class="border-b border-gray-100 my-2"></div>
-                            <% } %>
-                        <% }); %>
-                        
-                        <% if (overallTotal === 0) { %>
-                            <div class="h-full flex flex-col items-center justify-center text-gray-400 py-10">
-                                <i class="fas fa-search-dollar text-3xl mb-2 opacity-50"></i>
-                                <p class="text-sm">Nenhuma transação encontrada.</p>
-                            </div>
-                        <% } %>
-                    </div>
-                </div>
-
-            </div>
-
+<!-- Por metodo -->
+<div class="grid grid-3 mb-6">
+  <% var methods = [{key:'pix', icon:'fa-qrcode', label:'Pix', color:'green'}, {key:'dinheiro', icon:'fa-money-bill', label:'Dinheiro', color:'yellow'}, {key:'cartao', icon:'fa-credit-card', label:'Cartao', color:'blue'}]; %>
+  <% methods.forEach(function(m) { %>
+    <div class="stat-card">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="stat-label"><%= m.label %></div>
+          <div class="stat-value">R$ <%= (typeof totals !== 'undefined' && totals[m.key] ? totals[m.key] : 0).toFixed(2).replace('.', ',') %></div>
         </div>
-    </main>
+        <div class="stat-icon <%= m.color %>"><i class="fas <%= m.icon %>"></i></div>
+      </div>
+    </div>
+  <% }); %>
+</div>
 
-    <script>
-        // =================================================
-        // === LÓGICA DE TEMA ===
-        // =================================================
-        const THEMES = ["light", "medium-dark", "deep-dark"];
-        const htmlEl = document.documentElement;
+<!-- Detalhes -->
+<% if (typeof details !== 'undefined' && details) { %>
+  <% ['pix','dinheiro','cartao'].forEach(function(method) { %>
+    <% if (details[method] && details[method].length > 0) { %>
+      <div class="card mb-4">
+        <div class="card-header">
+          <h3><i class="fas fa-list" style="margin-right: 8px; color: var(--primary);"></i> <%= method.charAt(0).toUpperCase() + method.slice(1) %></h3>
+          <span class="badge badge-neutral"><%= details[method].length %></span>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Data</th>
+                <th>Item</th>
+                <th>Descricao</th>
+                <th class="text-right">Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% details[method].forEach(function(d) { %>
+                <tr>
+                  <td class="font-medium"><%= d.clientName || '-' %></td>
+                  <td class="text-sm text-secondary"><%= d.date || '-' %></td>
+                  <td><%= d.itemName || '-' %></td>
+                  <td class="text-sm text-secondary"><%= d.description || '-' %></td>
+                  <td class="text-right amount-positive">R$ <%= parseFloat(d.amount || 0).toFixed(2).replace('.', ',') %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% } %>
+  <% }); %>
+<% } %>
 
-        function getNextTheme(currentTheme) {
-            const currentIndex = THEMES.indexOf(currentTheme);
-            const nextIndex = (currentIndex + 1) % THEMES.length;
-            return THEMES[nextIndex];
-        }
-
-        function updateIcons(theme) {
-            const sunDesktop = document.getElementById('theme-icon-sun');
-            const moonDesktop = document.getElementById('theme-icon-moon');
-            const sunMobile = document.getElementById('theme-icon-sun-mobile'); 
-            const moonMobile = document.getElementById('theme-icon-moon-mobile'); 
-            
-            const isLight = theme === 'light';
-
-            if (sunDesktop) sunDesktop.classList.toggle('hidden', !isLight);
-            if (moonDesktop) moonDesktop.classList.toggle('hidden', isLight);
-            
-            if (sunMobile) sunMobile.classList.toggle('hidden', !isLight);
-            if (moonMobile) moonMobile.classList.toggle('hidden', isLight);
-        }
-
-        function toggleTheme() {
-            const currentTheme = htmlEl.getAttribute('data-theme') || 'light';
-            const newTheme = getNextTheme(currentTheme);
-
-            htmlEl.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateIcons(newTheme);
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const initialTheme = htmlEl.getAttribute('data-theme') || 'light';
-            updateIcons(initialTheme);
-            
-            const toggleButtonDesktop = document.getElementById('theme-toggle-btn');
-            const toggleButtonMobile = document.getElementById('theme-toggle-btn-mobile'); 
-
-            if (toggleButtonDesktop) toggleButtonDesktop.addEventListener('click', toggleTheme);
-            if (toggleButtonMobile) toggleButtonMobile.addEventListener('click', toggleTheme);
-        });
-        // =================================================
-
-        // Mobile menu toggle
-        const menuButton = document.getElementById('menu-button');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const closeMenu = document.getElementById('close-menu');
-
-        if (menuButton && mobileMenu) {
-            menuButton.addEventListener('click', () => {
-                mobileMenu.classList.remove('hidden');
-            });
-        }
-        if (closeMenu && mobileMenu) {
-            closeMenu.addEventListener('click', () => {
-                mobileMenu.classList.add('hidden');
-            });
-        }
-    </script>
-</body>
-</html>
+<%- include('partials/footer') %>

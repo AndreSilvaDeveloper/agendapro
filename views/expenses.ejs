@@ -1,474 +1,116 @@
-<!DOCTYPE html>
-<html lang="pt-BR" class="h-full" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <title>Despesas <%= (typeof org !== 'undefined') ? org.name : 'AgendaPro' %></title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<%- include('partials/head', { pageTitle: 'Despesas' }) %>
+<%- include('partials/sidebar', { activePage: 'despesas' }) %>
 
-    <script>
-        (function() {
-            const THEMES = ["light", "medium-dark", "deep-dark"];
-            const savedTheme = localStorage.getItem('theme');
-            let initialTheme = 'light';
+<div class="grid" style="grid-template-columns: 380px 1fr; gap: 24px;">
 
-            if (savedTheme && THEMES.includes(savedTheme)) {
-                initialTheme = savedTheme;
-            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                initialTheme = 'deep-dark';
-            }
-            document.documentElement.setAttribute('data-theme', initialTheme);
-        })();
-    </script>
-
-    <style>
-        /* ================================================= */
-        /* === 1. DEFINIÇÃO DAS CORES PARA TRÊS TEMAS === */
-        /* ================================================= */
-
-        /* --- TEMA 1: LIGHT --- */
-        :root, [data-theme="light"] {
-            --color-gold-light: #FFD700; 
-            --color-gold-dark: #B8860B; 
-            --color-gold-accent: #DAA520;
-            --color-bg-primary: #f3f4f6;
-            --color-bg-secondary: #ffffff;
-            --color-bg-muted: #f9fafb;     
-            --color-bg-accent-light: #FFFBEB;
-            --color-bg-accent-dark: #fefce8;
-            --color-text-primary: #1f2937;
-            --color-text-secondary: #4b5563;
-            --color-text-accent: #B8860B;
-            --color-text-accent-muted: #b45309;
-            --color-border: #e5e7eb;
-        }
-
-        /* --- TEMA 2: MEDIUM DARK --- */
-        [data-theme="medium-dark"] {
-            --color-gold-light: #FFD700;
-            --color-gold-dark: #e0aa1f;
-            --color-gold-accent: #DAA520;
-            --color-bg-primary: #1f2937;
-            --color-bg-secondary: #374151;
-            --color-bg-muted: #4b5563;     
-            --color-bg-accent-light: #422c01;
-            --color-bg-accent-dark: #423001;
-            --color-text-primary: #f9fafb;
-            --color-text-secondary: #d1d5db;
-            --color-text-accent: #e0aa1f;
-            --color-text-accent-muted: #fde047;
-            --color-border: #4b5563;
-        }
-
-        /* --- TEMA 3: DEEP DARK --- */
-        [data-theme="deep-dark"] {
-            --color-gold-light: #FFD700;
-            --color-gold-dark: #e0aa1f;
-            --color-gold-accent: #DAA520;
-            --color-bg-primary: #0a0e14;
-            --color-bg-secondary: #1f2937;
-            --color-bg-muted: #374151;
-            --color-bg-accent-light: #422c01;
-            --color-bg-accent-dark: #423001;
-            --color-text-primary: #f9fafb;
-            --color-text-secondary: #d1d5db;
-            --color-text-accent: #e0aa1f;
-            --color-text-accent-muted: #fde047;
-            --color-border: #4b5563;
-        }
-
-        /* ================================================= */
-        /* === 2. ESTILOS BASE (Mapeamento) === */
-        /* ================================================= */
-        
-        body { 
-            height: 100%; 
-            overflow: hidden; 
-            display: flex; 
-            flex-direction: column; 
-            background-color: var(--color-bg-primary); 
-            color: var(--color-text-primary);
-        } 
-        
-        /* Mapeamento */
-        .bg-white, .bg-gray-800 { background-color: var(--color-bg-secondary); }
-        .bg-gray-50, .bg-gray-700\/50, .bg-gray-100 { background-color: var(--color-bg-muted); }
-        .bg-gold-light { background-color: var(--color-bg-accent-light); }
-        
-        .border-gray-200, .border-gray-300 { border-color: var(--color-border); }
-        
-        .text-gray-900, .text-gray-800 { color: var(--color-text-primary); }
-        .text-gray-700, .text-gray-600, .text-gray-500 { color: var(--color-text-secondary); }
-        .text-gold { color: var(--color-text-accent); }
-        
-        /* Link Mobile */
-        .mobile-nav-link { 
-            color: var(--color-text-primary);
-            transition: color 0.2s ease;
-        }
-
-        /* Utilitários Específicos de Despesa */
-        .expense-card { transition: all 0.2s ease; border-left: 3px solid transparent; }
-        .expense-card:hover { 
-            border-left-color: #ef4444; 
-            background-color: var(--color-bg-muted); 
-        }
-        
-        /* Input Styles para Dark Mode */
-        .form-input { 
-            background-color: var(--color-bg-secondary);
-            color: var(--color-text-primary);
-            border-color: var(--color-border);
-        }
-        .form-input:focus {
-            border-color: var(--color-gold-accent);
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(218, 165, 32, 0.2);
-        }
-        
-        /* Scroll */
-        .custom-scroll::-webkit-scrollbar { width: 6px; }
-        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-        .custom-scroll::-webkit-scrollbar-thumb { background-color: var(--color-border); border-radius: 20px; }
-        .custom-scroll:hover::-webkit-scrollbar-thumb { background-color: var(--color-gold-accent); }
-
-        .compact-body { flex-grow: 1; overflow-y: auto; min-height: 0; }
-
-        /* Efeito Shine */
-        .bg-shine-gold { position: relative; overflow: hidden; background-color: var(--color-gold-accent); }
-        .bg-shine-gold::after {
-            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            animation: bg-shine 5s infinite linear;
-        }
-        @keyframes bg-shine { 0% { left: -100%; } 100% { left: 125%; } }
-        
-        .text-gradient-gold {
-             background: linear-gradient(90deg, #B8860B, #FFD700, #DAA520, #FFD700, #B8860B);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            background-size: 200% auto;
-            animation: text-shine 4s linear infinite;
-        }
-         @keyframes text-shine { from { background-position: 200% center; } to { background-position: 0% center; } }
-
-    </style>
-</head>
-<body class="font-sans antialiased">
-
-    <%
-      function toNumber(v) {
-        if (v == null) return 0;
-        if (typeof v === 'number') return v;
-        if (typeof v === 'string') {
-          const normalized = v.replace(/\./g, '').replace(',', '.');
-          const n = parseFloat(normalized);
-          if (!isNaN(n)) return n;
-          const n2 = Number(v.replace(/[^\d.-]/g, ''));
-          return isFinite(n2) ? n2 : 0;
-        }
-        const n3 = Number(v);
-        return isFinite(n3) ? n3 : 0;
-      }
-      function money(v) {
-        const n = toNumber(v);
-        return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      }
-      function formatDateBR(d) {
-        try { return new Date(d).toLocaleDateString('pt-BR'); } catch (e) { return ''; }
-      }
-    %>
-
-    <header class="bg-white shadow-md border-b border-gray-200 shrink-0 h-16 flex items-center z-50">
-        <div class="w-full max-w-full px-4 flex items-center justify-between">
-            
-            <div class="flex items-center shrink-0 mr-4">
-                <h1 class="flex items-center text-gray-800 text-lg font-bold">
-                   Agenda Pro
-                </h1>
-                <div class="h-6 w-px bg-gray-200 hidden sm:block ml-4"></div>
-                <span class="text-lg font-semibold text-gray-700 flex items-center ml-4">
-                    <i class="fas fa-receipt mr-2 text-gold"></i>
-                    Despesas
-                </span>
-            </div>
-
-            <nav class="hidden xl:flex items-center space-x-4 text-sm whitespace-nowrap overflow-x-auto custom-scroll pb-1 lg:pb-0">
-                <a href="/dashboard" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-home mr-1"></i>Dash
-                </a>
-                <a href="/agendamentos-por-dia" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-calendar-alt mr-1"></i>Agenda
-                </a>
-                <a href="/clients" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-users mr-1"></i>Clientes
-                </a>
-                <a href="/admin/servicos" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-cut mr-1"></i>Serviços
-                </a>
-                <a href="/admin/equipe" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-users-cog mr-1"></i>Equipe
-                </a>
-                <a href="/financeiro" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-dollar-sign mr-1"></i>Financeiro
-                </a>
-                <a href="/balanco" class="text-gray-600 hover:text-gold transition-colors">
-                    <i class="fas fa-balance-scale mr-1"></i>Balanço
-                </a>
-                <a href="/expenses" class="text-gradient-gold font-semibold">
-                    <i class="fas fa-receipt mr-1"></i>Despesas
-                </a>
-                
-                <div class="h-4 w-px bg-gray-300 mx-2"></div>
-
-                <button id="theme-toggle-btn" class="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600">
-                    <i id="theme-icon-sun" class="fas fa-sun"></i> <i id="theme-icon-moon" class="fas fa-moon hidden"></i> 
-                </button>
-                
-                <a href="/logout" class="text-red-600 hover:text-red-700 transition-colors font-semibold">
-                    <i class="fas fa-sign-out-alt mr-1"></i>Sair
-                </a>
-            </nav>
-
-            <button id="menu-button" class="xl:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                <i class="fas fa-bars text-gold"></i>
-            </button>
-        </div>
-    </header>
-
-    <div id="mobile-menu" class="hidden fixed inset-0 z-50 flex flex-col p-6 space-y-4 overflow-y-auto xl:hidden" style="background-color: var(--color-bg-primary);">
-        <div class="flex justify-end">
-            <button id="close-menu" class="text-2xl" style="color: var(--color-text-primary);"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="flex flex-col space-y-3 text-center">
-            <a href="/dashboard" class="mobile-nav-link text-lg py-2 hover:text-gold">Dashboard</a>
-            <a href="/agendamentos-por-dia" class="mobile-nav-link text-lg py-2 hover:text-gold">Agendamentos</a>
-            <a href="/clients" class="mobile-nav-link text-lg py-2 hover:text-gold">Clientes</a>
-            <a href="/admin/servicos" class="mobile-nav-link text-lg py-2 hover:text-gold">Serviços</a>
-            <a href="/admin/equipe" class="mobile-nav-link text-lg py-2 hover:text-gold">Equipe</a>
-            <a href="/financeiro" class="mobile-nav-link text-lg py-2 hover:text-gold">Financeiro</a>
-            <a href="/balanco" class="mobile-nav-link text-lg py-2 hover:text-gold">Balanço</a>
-            <a href="/expenses" class="mobile-nav-link text-gold text-lg font-bold py-2 border-b border-gray-700">Despesas</a>
-            
-            <button id="theme-toggle-btn-mobile" class="w-full flex items-center justify-center space-x-3 p-3 rounded-lg mobile-nav-link hover:bg-gray-700 hover:text-gold border border-gray-500 mt-4">
-                <i id="theme-icon-sun-mobile" class="fas fa-sun w-5 text-center"></i>
-                <i id="theme-icon-moon-mobile" class="fas fa-moon w-5 text-center hidden"></i>
-                <span>Alternar Tema</span>
-            </button>
-
-            <a href="/logout" class="mobile-nav-link text-red-400 text-lg py-2 font-bold mt-4">Sair do Sistema</a>
-        </div>
+  <!-- Nova despesa -->
+  <div class="flex flex-col gap-4">
+    <div class="card">
+      <div class="card-header">
+        <h3><i class="fas fa-plus-circle" style="color: var(--danger); margin-right: 8px;"></i> Nova Despesa</h3>
+      </div>
+      <div class="card-body">
+        <form action="/expenses" method="POST" id="expenseForm">
+          <div class="form-group">
+            <label class="form-label">Data</label>
+            <input type="date" name="date" id="expenseDate" required class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Categoria</label>
+            <select name="category" required class="form-control">
+              <option value="">Selecione...</option>
+              <option value="luz">Luz</option>
+              <option value="agua">Agua</option>
+              <option value="aluguel">Aluguel</option>
+              <option value="produtos">Produtos</option>
+              <option value="comissao calcinhas">Comissao Calcinhas</option>
+              <option value="comissao joias">Comissao Joias</option>
+              <option value="outros gastos">Outros Gastos</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Descricao (opcional)</label>
+            <input type="text" name="description" placeholder="Detalhes..." class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Valor (R$)</label>
+            <input type="text" name="amount" required placeholder="0,00" class="form-control">
+          </div>
+          <button type="submit" class="btn btn-danger btn-block">
+            <i class="fas fa-save"></i> Registrar Despesa
+          </button>
+        </form>
+      </div>
     </div>
 
-
-    <main class="flex-1 p-3 overflow-hidden flex flex-col gap-3 max-w-full mx-auto w-full">
-        
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 min-h-0">
-
-            <div class="lg:col-span-4 flex flex-col gap-3 overflow-y-auto custom-scroll p-1">
-                
-                <div class="bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden shrink-0">
-                    <div class="bg-shine-gold p-3">
-                        <h2 class="text-md font-bold text-white flex items-center">
-                            <i class="fas fa-plus-circle mr-2"></i>Nova Despesa
-                        </h2>
-                    </div>
-                    <div class="p-4">
-                        <form action="/expenses" method="POST" class="space-y-3">
-                            <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Data</label>
-                                <input type="date" name="date" required
-                                       class="form-input w-full p-2 text-sm rounded-lg border border-gray-300 transition-all">
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Categoria</label>
-                                <select name="category" required
-                                        class="form-input w-full p-2 text-sm rounded-lg border border-gray-300 transition-all">
-                                    <option value="">Selecione...</option>
-                                    <option value="Luz">💡 Luz</option>
-                                    <option value="Água">💧 Água</option>
-                                    <option value="Aluguel">🏠 Aluguel</option>
-                                    <option value="Produtos">📦 Produtos</option>
-                                    <option value="Comissão Calcinhas">👙 Comissão Calcinhas</option>
-                                    <option value="Comissão Joias">💎 Comissão Joias</option>
-                                    <option value="Outros Gastos">🔧 Outros Gastos</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Descrição</label>
-                                <input type="text" name="description" placeholder="Ex: Material de limpeza"
-                                       class="form-input w-full p-2 text-sm rounded-lg border border-gray-300 transition-all">
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Valor (R$)</label>
-                                <input type="number" name="amount" step="0.01" min="0" required placeholder="0,00"
-                                       class="form-input w-full p-2 text-sm rounded-lg border border-gray-300 transition-all">
-                            </div>
-
-                            <button type="submit" class="w-full bg-gold text-white py-2 rounded-lg font-semibold text-sm hover:opacity-90 transition-opacity flex items-center justify-center">
-                                <i class="fas fa-save mr-1"></i> Registrar
-                            </button>
-                        </form>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow-xl border border-gray-200 p-3 shrink-0">
-                    <h3 class="text-xs font-bold text-gray-500 uppercase mb-2">Total Registrado</h3>
-                    <div class="text-2xl font-bold text-red-600">
-                        R$ <%= money((expenses || []).reduce((sum, e) => sum + toNumber(e.amount), 0)) %>
-                    </div>
-                    <p class="text-xs text-gray-400 mt-1">
-                        <%= (expenses || []).length %> lançamento<%= (expenses || []).length !== 1 ? 's' : '' %>
-                    </p>
-                </div>
-
-            </div>
-
-            <div class="lg:col-span-8 bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col compact-card-container min-h-0">
-                
-                <div class="p-3 border-b border-gray-200 bg-gray-50 shrink-0 flex justify-between items-center">
-                    <h2 class="text-md font-bold text-gray-800 flex items-center">
-                        <i class="fas fa-list mr-2 text-red-600"></i>
-                        Lista de Despesas
-                    </h2>
-                </div>
-
-                <div class="compact-body custom-scroll p-2 space-y-2">
-                    <% if (!expenses || expenses.length === 0) { %>
-                        <div class="h-full flex flex-col items-center justify-center text-gray-400 py-12">
-                            <i class="fas fa-receipt text-3xl mb-2 opacity-50"></i>
-                            <p class="text-sm">Nenhuma despesa registrada.</p>
-                        </div>
-                    <% } else { %>
-                        <% expenses.forEach((e, index) => { %>
-                            <div class="expense-card bg-white p-3 rounded border border-gray-200 flex justify-between items-center group">
-                                <div class="flex items-center gap-3 overflow-hidden">
-                                    <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 text-red-600">
-                                        <i class="fas fa-receipt text-xs"></i>
-                                    </div>
-                                    <div class="min-w-0">
-                                        <div class="flex items-center space-x-2">
-                                            <span class="font-semibold text-sm text-gray-900 truncate"><%= e.category %></span>
-                                            <span class="text-[10px] text-gray-500 bg-gray-100 px-1.5 rounded"><%= formatDateBR(e.date) %></span>
-                                        </div>
-                                        <% if (e.description) { %>
-                                            <p class="text-xs text-gray-500 truncate flex items-center">
-                                                <i class="fas fa-comment mr-1 text-[10px]"></i> <%= e.description %>
-                                            </p>
-                                        <% } %>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center gap-3 ml-2">
-                                    <div class="text-right">
-                                        <div class="font-bold text-sm text-red-600">R$ <%= money(e.amount) %></div>
-                                    </div>
-                                    <form action="/expenses/<%= e.id %>/delete" method="POST" onsubmit="return confirm('Excluir esta despesa?')">
-                                        <button type="submit" class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Excluir">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        <% }); %>
-                    <% } %>
-                </div>
-            </div>
-
+    <!-- Total -->
+    <div class="stat-card">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="stat-label">Total em despesas</div>
+          <div class="stat-value amount-negative">
+            R$ <%
+              var totalExp = 0;
+              if (typeof expenses !== 'undefined' && expenses) {
+                expenses.forEach(function(e) { totalExp += parseFloat(e.amount || 0); });
+              }
+            %><%= totalExp.toFixed(2).replace('.', ',') %>
+          </div>
         </div>
-    </main>
+        <div class="stat-icon red"><i class="fas fa-arrow-down"></i></div>
+      </div>
+    </div>
+  </div>
 
-    <script>
-        // =================================================
-        // === LÓGICA DE TEMA ===
-        // =================================================
-        const THEMES = ["light", "medium-dark", "deep-dark"];
-        const htmlEl = document.documentElement;
+  <!-- Lista -->
+  <div class="card">
+    <div class="card-header">
+      <h3>Despesas Registradas</h3>
+      <span class="badge badge-neutral"><%= typeof expenses !== 'undefined' ? expenses.length : 0 %></span>
+    </div>
 
-        function getNextTheme(currentTheme) {
-            const currentIndex = THEMES.indexOf(currentTheme);
-            const nextIndex = (currentIndex + 1) % THEMES.length;
-            return THEMES[nextIndex];
-        }
+    <% if (!expenses || expenses.length === 0) { %>
+      <div class="empty-state">
+        <i class="fas fa-receipt"></i>
+        <p>Nenhuma despesa registrada.</p>
+      </div>
+    <% } else { %>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Categoria</th>
+              <th>Descricao</th>
+              <th class="text-right">Valor</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% expenses.forEach(function(e) { %>
+              <tr>
+                <td class="text-sm"><%= new Date(e.date).toLocaleDateString('pt-BR') %></td>
+                <td><span class="badge badge-neutral"><%= e.category %></span></td>
+                <td class="text-sm text-secondary"><%= e.description || '-' %></td>
+                <td class="text-right amount-negative">R$ <%= parseFloat(e.amount).toFixed(2).replace('.', ',') %></td>
+                <td class="text-right">
+                  <form action="/expenses/<%= e.id %>/delete" method="POST" onsubmit="return confirm('Excluir esta despesa?')" style="margin:0;">
+                    <button type="submit" class="btn btn-ghost btn-sm" style="color: var(--danger);"><i class="fas fa-trash"></i></button>
+                  </form>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
 
-        function updateIcons(theme) {
-            const sunDesktop = document.getElementById('theme-icon-sun');
-            const moonDesktop = document.getElementById('theme-icon-moon');
-            const sunMobile = document.getElementById('theme-icon-sun-mobile'); 
-            const moonMobile = document.getElementById('theme-icon-moon-mobile'); 
-            
-            const isLight = theme === 'light';
+<script>
+  // Set today as default date
+  var dateInput = document.getElementById('expenseDate');
+  if (dateInput && !dateInput.value) dateInput.valueAsDate = new Date();
+</script>
 
-            if (sunDesktop) sunDesktop.classList.toggle('hidden', !isLight);
-            if (moonDesktop) moonDesktop.classList.toggle('hidden', isLight);
-            
-            if (sunMobile) sunMobile.classList.toggle('hidden', !isLight);
-            if (moonMobile) moonMobile.classList.toggle('hidden', isLight);
-        }
-
-        function toggleTheme() {
-            const currentTheme = htmlEl.getAttribute('data-theme') || 'light';
-            const newTheme = getNextTheme(currentTheme);
-
-            htmlEl.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateIcons(newTheme);
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const initialTheme = htmlEl.getAttribute('data-theme') || 'light';
-            updateIcons(initialTheme);
-            
-            const toggleButtonDesktop = document.getElementById('theme-toggle-btn');
-            const toggleButtonMobile = document.getElementById('theme-toggle-btn-mobile'); 
-
-            if (toggleButtonDesktop) toggleButtonDesktop.addEventListener('click', toggleTheme);
-            if (toggleButtonMobile) toggleButtonMobile.addEventListener('click', toggleTheme);
-            
-            // Define data atual como padrão
-            const dateInput = document.querySelector('input[name="date"]');
-            if (dateInput && !dateInput.value) {
-                const today = new Date();
-                const formattedDate = today.toISOString().split('T')[0];
-                dateInput.value = formattedDate;
-            }
-
-            // Efeito loading no submit
-            const form = document.querySelector('form[action="/expenses"]');
-            if (form) {
-                form.addEventListener('submit', function() {
-                    const button = this.querySelector('button[type="submit"]');
-                    const originalText = button.innerHTML;
-                    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Salvando...';
-                    button.disabled = true;
-                    // Reverte em caso de erro (timeout simples para UX)
-                    setTimeout(() => { button.disabled = false; button.innerHTML = originalText; }, 5000);
-                });
-            }
-        });
-        // =================================================
-
-        // Mobile menu toggle
-        const menuButton = document.getElementById('menu-button');
-        const mobileMenu = document.getElementById('mobile-menu');
-        const closeMenu = document.getElementById('close-menu');
-
-        if (menuButton && mobileMenu) {
-            menuButton.addEventListener('click', () => {
-                mobileMenu.classList.remove('hidden');
-            });
-        }
-        if (closeMenu && mobileMenu) {
-            closeMenu.addEventListener('click', () => {
-                mobileMenu.classList.add('hidden');
-            });
-        }
-    </script>
-</body>
-</html>
+<%- include('partials/footer') %>

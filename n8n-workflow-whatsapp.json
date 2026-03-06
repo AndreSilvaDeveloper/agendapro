@@ -1,0 +1,107 @@
+{
+  "name": "AgendaPro - WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agendapro-whatsapp",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a1000001-0001-0001-0001-000000000001",
+      "name": "Webhook AgendaPro",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 300],
+      "webhookId": "agendapro-whatsapp-hook"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://wa.bellory.com.br/message/sendText/barbearia-teste",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "0626f19f09bd356cc21037164c7c3ca51752fef8"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $json.body.phone }}\",\n  \"text\": \"{{ $json.body.message }}\"\n}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "a1000002-0002-0002-0002-000000000002",
+      "name": "Enviar WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, message: 'Mensagem enviada com sucesso' }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "a1000003-0003-0003-0003-000000000003",
+      "name": "Resposta Sucesso",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [740, 240]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: false, error: 'Falha ao enviar mensagem' }) }}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "id": "a1000004-0004-0004-0004-000000000004",
+      "name": "Resposta Erro",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [740, 420]
+    }
+  ],
+  "connections": {
+    "Webhook AgendaPro": {
+      "main": [
+        [
+          {
+            "node": "Enviar WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Resposta Sucesso",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resposta Erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

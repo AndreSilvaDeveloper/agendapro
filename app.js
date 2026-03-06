@@ -3,62 +3,45 @@
 
 require('dotenv').config();
 
-const http = require('http'); // Importar módulo HTTP nativo
-const { Server } = require("socket.io"); // Importar Socket.IO
-
 const express = require('express');
-const whatsappService = require('./services/whatsappService');
 const schedulerService = require('./services/schedulerService');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const path = require('path');
 const flash = require('connect-flash');
 
-// --- Sequelize / Store de sessão ---
-const sequelize = require('./db'); // deve exportar a instância do Sequelize
+const sequelize = require('./db');
 const SequelizeStore = require('connect-session-sequelize')(session.Store);
 
-// Rotas
 const routes = require('./routes/index');
 
 const app = express();
 
-const server = http.createServer(app); // Criar servidor HTTP com o Express
-const io = new Server(server); // Vincular Socket.IO ao servidor
-
-// Proxy (Vercel/Heroku/etc.)
 app.set('trust proxy', 1);
 
-// Ambiente
 const isProd = process.env.NODE_ENV === 'production';
 
-// Store de sessão no PostgreSQL
-// IMPORTANTE: use `tableName` (string) ou passe um Model em `table`.
-// Como string: `tableName: 'Session'`
 const sessionStore = new SequelizeStore({
   db: sequelize,
-  tableName: 'Session',                     // ✅ CORRIGIDO (antes estava `table: 'Session'`)
-  checkExpirationInterval: 15 * 60 * 1000,  // limpa sessões expiradas a cada 15 min
-  expiration: 14 * 24 * 60 * 60 * 1000      // 14 dias
+  tableName: 'Session',
+  checkExpirationInterval: 15 * 60 * 1000,
+  expiration: 14 * 24 * 60 * 60 * 1000
 });
 
-// Sessão
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'salao-kadosh-segredo',
+  secret: process.env.SESSION_SECRET || 'agendapro-secret',
   resave: false,
   saveUninitialized: false,
   store: sessionStore,
   cookie: {
-    maxAge: 14 * 24 * 60 * 60 * 1000, // 14 dias
-    secure: isProd,                   // em produção exige HTTPS
-    sameSite: isProd ? 'none' : 'lax' // 'none' exige secure:true
+    maxAge: 14 * 24 * 60 * 60 * 1000,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax'
   }
 }));
 
-// Flash messages
 app.use(flash());
 
-// Middleware global para expor flash nas views
 app.use((req, res, next) => {
   res.locals.success_msg = req.flash('success_msg');
   res.locals.error_msg = req.flash('error_msg');
@@ -66,7 +49,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// View engine e estáticos
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
@@ -74,52 +56,33 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Rotas
-// (carregadas ANTES de sync para que models usados nos controllers já estejam importados)
 app.use('/', routes);
 
-// Tratamento de erro
 app.use((err, req, res, next) => {
-  console.error('⛔️ ERRO:', err.stack || err);
+  console.error('ERRO:', err.stack || err);
   res.status(err.status || 500).send('Erro interno no servidor');
 });
 
-// Inicialização
 const PORT = process.env.PORT || 3003;
-// --- MUDANÇA 1: Definir o HOST ---
-// '0.0.0.0' é necessário para a nuvem; 'localhost' é para desenvolvimento local
-const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
-// --- FIM DA MUDANÇA 1 ---
+const HOST = isProd ? '0.0.0.0' : 'localhost';
 
-
-// Sobe tudo em sequência segura
 (async () => {
   try {
-    // 1) Testa conexão com o banco
     await sequelize.authenticate();
-    console.log('🟢 Conexão com o PostgreSQL OK.');
+    console.log('Conexao com o PostgreSQL OK.');
 
-    // 2) Sincroniza a tabela de sessão
     await sessionStore.sync();
-    console.log('🟢 Tabela de Sessão sincronizada.');
+    await sequelize.sync({ alter: true });
+    console.log('Tabelas sincronizadas.');
 
-    // 3) Sincroniza seus models (User, Client, etc.)
-    await sequelize.sync({ alter: true }); // Adiciona colunas faltantes
-    console.log('🟢 Tabelas principais do PostgreSQL sincronizadas.');
+    schedulerService.init();
 
-
-   whatsappService.init(io);
-   schedulerService.init();
-
-    // 4) Sobe o servidor
-    // --- MUDANÇA 2: Adiciona o HOST ao app.listen ---
-    // const PORT = process.env.PORT || 3000;
-      server.listen(PORT, () => {
-        console.log(`🚀 Servidor rodando em: \x1b[36mhttp://${HOST}:${PORT}\x1b[0m`);
-      });
+    app.listen(PORT, () => {
+      console.log(`Servidor rodando em: http://${HOST}:${PORT}`);
+    });
 
   } catch (err) {
-    console.error('🔴 Erro ao iniciar a aplicação:', err);
+    console.error('Erro ao iniciar a aplicacao:', err);
     process.exit(1);
   }
 })();

@@ -1,0 +1,168 @@
+<%- include('../partials/head', { pageTitle: 'Configuracoes - Master' }) %>
+<%- include('../partials/master-sidebar', { path: 'configuracoes' }) %>
+
+<h1 class="mb-6">Configuracoes da Plataforma</h1>
+
+<!-- Gateways de Pagamento -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h3><i class="fas fa-credit-card"></i> Gateways de Pagamento</h3>
+  </div>
+  <div class="card-body">
+    <p class="text-secondary mb-4">Configure as integracoes com gateways de pagamento para cobrar assinaturas automaticamente.</p>
+
+    <div class="grid grid-2 gap-4">
+      <% gateways.forEach(function(gw) { %>
+        <div class="card" style="border: 2px solid <%= gw.configured ? 'var(--success)' : 'var(--border-light)' %>;">
+          <div class="card-body">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="font-medium">
+                <% if (gw.id === 'asaas') { %>
+                  <i class="fas fa-university" style="color: var(--primary); margin-right: 6px;"></i>
+                <% } else { %>
+                  <i class="fas fa-credit-card" style="color: var(--warning); margin-right: 6px;"></i>
+                <% } %>
+                <%= gw.name %>
+              </h4>
+              <div class="flex gap-1">
+                <% if (gw.configured) { %>
+                  <span class="badge badge-success"><i class="fas fa-check"></i> Configurado</span>
+                <% } else { %>
+                  <span class="badge badge-warning"><i class="fas fa-exclamation-triangle"></i> Pendente</span>
+                <% } %>
+                <% if (gw.sandbox) { %>
+                  <span class="badge badge-info">Sandbox</span>
+                <% } %>
+              </div>
+            </div>
+
+            <% if (gw.id === 'asaas') { %>
+              <div class="text-sm text-secondary mb-3">
+                <% if (gw.configured) { %>
+                  <p><i class="fas fa-check-circle text-success"></i> API Key configurada e ativa.</p>
+                  <% if (gw.sandbox) { %>
+                    <p class="mt-1"><i class="fas fa-flask text-info"></i> Rodando em modo <strong>Sandbox</strong> (testes). Para producao, altere <code>ASAAS_SANDBOX=false</code> no <code>.env</code></p>
+                  <% } else { %>
+                    <p class="mt-1"><i class="fas fa-shield-alt text-success"></i> Rodando em modo <strong>Producao</strong>.</p>
+                  <% } %>
+                <% } else { %>
+                  <p>Para configurar, adicione no arquivo <code>.env</code>:</p>
+                  <div style="background: var(--bg-body); padding: 12px; border-radius: 8px; margin-top: 8px; font-family: monospace; font-size: 0.8rem;">
+                    <div style="color: var(--text-muted);"># Asaas - Gateway de Pagamento</div>
+                    <div>ASAAS_API_KEY=<span style="color: var(--warning);">sua_api_key_aqui</span></div>
+                    <div>ASAAS_SANDBOX=<span style="color: var(--info);">true</span></div>
+                  </div>
+                <% } %>
+              </div>
+            <% } else if (gw.id === 'mercadopago') { %>
+              <div class="text-sm text-secondary mb-3">
+                <p>Integracao em desenvolvimento. Configure:</p>
+                <div style="background: var(--bg-body); padding: 12px; border-radius: 8px; margin-top: 8px; font-family: monospace; font-size: 0.8rem;">
+                  <div>MERCADOPAGO_ACCESS_TOKEN=<span style="color: var(--warning);">seu_token</span></div>
+                </div>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+  </div>
+</div>
+
+<!-- Como obter a API Key do Asaas -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h3><i class="fas fa-key"></i> Como obter a API Key do Asaas</h3>
+  </div>
+  <div class="card-body">
+    <div class="flex flex-col gap-3">
+      <div class="flex items-start gap-3">
+        <span class="badge badge-primary" style="min-width: 28px; text-align: center;">1</span>
+        <div>
+          <strong>Crie uma conta no Asaas</strong>
+          <p class="text-sm text-secondary">Para testes, acesse <strong>sandbox.asaas.com</strong>. Para producao, acesse <strong>www.asaas.com</strong></p>
+        </div>
+      </div>
+      <div class="flex items-start gap-3">
+        <span class="badge badge-primary" style="min-width: 28px; text-align: center;">2</span>
+        <div>
+          <strong>Acesse Integrações > API</strong>
+          <p class="text-sm text-secondary">No painel do Asaas, va em <strong>Minha Conta > Integrações > Gerar nova API Key</strong></p>
+        </div>
+      </div>
+      <div class="flex items-start gap-3">
+        <span class="badge badge-primary" style="min-width: 28px; text-align: center;">3</span>
+        <div>
+          <strong>Copie a API Key e cole no .env</strong>
+          <p class="text-sm text-secondary">Adicione <code>ASAAS_API_KEY=sua_chave</code> e <code>ASAAS_SANDBOX=true</code> no arquivo <code>.env</code></p>
+        </div>
+      </div>
+      <div class="flex items-start gap-3">
+        <span class="badge badge-primary" style="min-width: 28px; text-align: center;">4</span>
+        <div>
+          <strong>Configure o Webhook no painel do Asaas</strong>
+          <p class="text-sm text-secondary">Em <strong>Integrações > Webhooks</strong>, adicione a URL abaixo e marque os eventos de <strong>Pagamento</strong> e <strong>Assinatura</strong></p>
+        </div>
+      </div>
+      <div class="flex items-start gap-3">
+        <span class="badge badge-primary" style="min-width: 28px; text-align: center;">5</span>
+        <div>
+          <strong>Reinicie o servidor</strong>
+          <p class="text-sm text-secondary">Apos alterar o <code>.env</code>, reinicie o app para aplicar as mudancas</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Webhooks -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h3><i class="fas fa-link"></i> URLs de Webhook</h3>
+  </div>
+  <div class="card-body">
+    <p class="text-secondary mb-3">Configure estas URLs no painel de cada gateway para receber notificacoes de pagamento:</p>
+    <div class="mb-3">
+      <label class="form-label"><i class="fas fa-university"></i> Asaas</label>
+      <div class="flex gap-2">
+        <input type="text" class="form-control" value="https://SEU_DOMINIO/webhook/payment/asaas" readonly id="webhook-asaas" style="font-family: monospace; font-size: 0.85rem;">
+        <button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('webhook-asaas').value).then(()=>{this.innerHTML='<i class=\'fas fa-check\'></i>';setTimeout(()=>{this.innerHTML='<i class=\'fas fa-copy\'></i>'},2000)})">
+          <i class="fas fa-copy"></i>
+        </button>
+      </div>
+      <small class="text-secondary">Eventos recomendados: PAYMENT_CONFIRMED, PAYMENT_RECEIVED, PAYMENT_OVERDUE, SUBSCRIPTION_DELETED</small>
+    </div>
+    <div>
+      <label class="form-label"><i class="fas fa-credit-card"></i> Mercado Pago</label>
+      <div class="flex gap-2">
+        <input type="text" class="form-control" value="https://SEU_DOMINIO/webhook/payment/mercadopago" readonly id="webhook-mp" style="font-family: monospace; font-size: 0.85rem;">
+        <button class="btn btn-outline btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('webhook-mp').value).then(()=>{this.innerHTML='<i class=\'fas fa-check\'></i>';setTimeout(()=>{this.innerHTML='<i class=\'fas fa-copy\'></i>'},2000)})">
+          <i class="fas fa-copy"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Configuracoes Gerais -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h3><i class="fas fa-cog"></i> Configuracoes Gerais</h3>
+  </div>
+  <div class="card-body">
+    <div class="grid grid-2 gap-4">
+      <div>
+        <label class="form-label">Dias de Trial</label>
+        <input type="text" class="form-control" value="<%= process.env.TRIAL_DAYS || '14' %> dias" disabled>
+        <small class="text-secondary">Configuravel via .env: <code>TRIAL_DAYS=14</code></small>
+      </div>
+      <div>
+        <label class="form-label">Ambiente Asaas</label>
+        <input type="text" class="form-control" value="<%= process.env.ASAAS_SANDBOX === 'true' ? 'Sandbox (Testes)' : 'Producao' %>" disabled>
+        <small class="text-secondary">Configuravel via .env: <code>ASAAS_SANDBOX=true/false</code></small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

@@ -22,6 +22,11 @@ db.Payment = require('./Payment');
 db.AppointmentService = require('./AppointmentService');
 db.AppointmentProduct = require('./AppointmentProduct');
 db.AppointmentPayment = require('./AppointmentPayment');
+db.BotSession = require('./BotSession');
+
+// Modelos de "Planos e Assinaturas"
+db.Plan = require('./Plan');
+db.Subscription = require('./Subscription');
 
 
 // 2. Definindo Associações
@@ -111,6 +116,18 @@ db.AppointmentService.hasMany(db.AppointmentPayment, { foreignKey: 'appointmentS
 // ...ou a um Produto de Agendamento
 db.AppointmentPayment.belongsTo(db.AppointmentProduct, { foreignKey: 'appointmentProductId' });
 db.AppointmentProduct.hasMany(db.AppointmentPayment, { foreignKey: 'appointmentProductId', onDelete: 'CASCADE' });
+
+
+// ===============================================
+// === Relações de PLANOS e ASSINATURAS ==========
+// ===============================================
+// Um Plano pode ter Muitas Assinaturas
+db.Plan.hasMany(db.Subscription, { foreignKey: 'planId' });
+db.Subscription.belongsTo(db.Plan, { foreignKey: 'planId' });
+
+// Uma Organização tem Uma Assinatura
+db.Organization.hasOne(db.Subscription, { foreignKey: 'organizationId', onDelete: 'CASCADE' });
+db.Subscription.belongsTo(db.Organization, { foreignKey: 'organizationId' });
 
 
 // 3. Exportando o objeto 'db'

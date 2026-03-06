@@ -32,14 +32,14 @@ function toBool(v) {
 // --- FUNÇÃO HELPER (MODIFICADA) ---
 // Retorna um Objeto simples com os horários por dia
 function processWorkingHours(formData) {
+  if (!formData || typeof formData !== 'object') return {};
   const hoursObject = {};
   const days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
 
   days.forEach((day) => {
-    const dayData = formData && formData[day] ? formData[day] : {};
+    const dayData = formData[day] || {};
     const isOff = toBool(dayData.isOff);
-    
-    // MODIFICADO: Salva os dois turnos
+
     hoursObject[day] = {
       startTime1: !isOff ? (dayData.startTime1 || '') : '',
       endTime1:   !isOff ? (dayData.endTime1   || '') : '',
@@ -141,7 +141,7 @@ exports.getNewStaff = async (req, res) => {
  */
 exports.postNewStaff = async (req, res) => {
   const organizationId = getOrgId(req);
-  const { name, isActive, services, workingHours } = req.body;
+  const { name, phone, isActive, services, workingHours } = req.body;
 
   try {
     if (!organizationId) {
@@ -159,6 +159,7 @@ exports.postNewStaff = async (req, res) => {
         {
           organizationId,
           name: name?.trim(),
+          phone: phone || null,
           imageUrl,
           isActive: toBool(isActive),
           workingHours: processedHours
@@ -258,7 +259,7 @@ exports.postEditStaff = async (req, res) => {
   const idRaw = req.params.id;
   const id = /^\d+$/.test(idRaw) ? parseInt(idRaw, 10) : idRaw;
 
-  const { name, isActive, services, workingHours, oldImageUrl } = req.body;
+  const { name, phone, isActive, services, workingHours, oldImageUrl } = req.body;
 
   const selectedServiceIds = normalizeServiceIds(services);
   const processedHours = processWorkingHours(workingHours);
@@ -292,6 +293,7 @@ exports.postEditStaff = async (req, res) => {
       await staffMember.update(
         {
           name: name?.trim(),
+          phone: phone || null,
           imageUrl: newImageUrl,
           isActive: toBool(isActive),
           workingHours: processedHours
@@ -424,5 +426,48 @@ exports.apiGetStaffByService = async (req, res) => {
   } catch (err) {
     console.error('Erro em apiGetStaffByService:', err);
     return res.status(500).json({ error: 'Erro ao buscar profissionais.' });
+  }
+};
+
+/**
+ * GET /api/admin/services-by-staff/:staffId
+ * Retorna os servicos vinculados a um profissional
+ */
+exports.apiGetServicesByStaff = async (req, res) => {
+  try {
+    const organizationId = getOrgId(req);
+    if (!organizationId) {
+      return res.status(400).json({ error: 'Organizacao nao encontrada na sessao.' });
+    }
+
+    const raw = req.params.staffId;
+    const staffId = /^\d+$/.test(raw) ? parseInt(raw, 10) : null;
+    if (!staffId) {
+      return res.status(400).json({ error: 'staffId invalido.' });
+    }
+
+    const staffMember = await db.Staff.findOne({
+      where: { id: staffId, organizationId, isActive: true },
+      include: [{
+        model: db.Service,
+        where: { isActive: true },
+        attributes: ['id', 'name', 'price', 'duration'],
+        through: { attributes: [] },
+        required: false
+      }]
+    });
+
+    if (!staffMember) {
+      return res.json([]);
+    }
+
+    const services = (staffMember.Services || []).map(s => ({
+      id: s.id, name: s.name, price: s.price, duration: s.duration
+    }));
+
+    return res.json(services);
+  } catch (err) {
+    console.error('Erro em apiGetServicesByStaff:', err);
+    return res.status(500).json({ error: 'Erro ao buscar servicos.' });
   }
 };

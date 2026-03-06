@@ -1,311 +1,99 @@
-<!DOCTYPE html>
-<html lang="pt-BR" data-theme="light">
-<head>
-    <meta charset="UTF-8" />
-    <title>Minha Área – <%= orgName %></title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<%- include('../partials/head', { pageTitle: 'Minha Area - ' + (typeof orgName !== 'undefined' ? orgName : '') }) %>
+<body style="background: var(--bg-body); color: var(--text-primary);">
+  <!-- Header simples -->
+  <header style="background: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 0 20px; height: 56px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:30;">
+    <div class="flex items-center gap-3">
+      <i class="fas fa-calendar-check" style="color: var(--primary);"></i>
+      <span class="font-bold"><%= typeof orgName !== 'undefined' ? orgName : 'AgendaPro' %></span>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="/portal/agendar" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Agendar</a>
+      <a href="/portal/logout" class="btn btn-ghost btn-sm" style="color: var(--danger);"><i class="fas fa-sign-out-alt"></i></a>
+    </div>
+  </header>
 
-    <script>
-        (function() {
-            const THEMES = ["light", "medium-dark", "deep-dark"];
-            const savedTheme = localStorage.getItem('theme');
-            let initialTheme = 'light';
-            if (savedTheme && THEMES.includes(savedTheme)) {
-                initialTheme = savedTheme;
-            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                initialTheme = 'deep-dark';
-            }
-            document.documentElement.setAttribute('data-theme', initialTheme);
-        })();
-    </script>
+  <main style="max-width: 800px; margin: 0 auto; padding: 24px 16px;">
+    <!-- Saudacao -->
+    <div class="card mb-6" style="background: var(--primary); color: #fff;">
+      <div class="card-body">
+        <h1 style="color: #fff;">Ola, <%= typeof clientName !== 'undefined' ? clientName : 'Cliente' %>!</h1>
+        <p style="opacity: 0.85;">Bem-vindo(a) a sua area no <%= typeof orgName !== 'undefined' ? orgName : 'AgendaPro' %></p>
+      </div>
+    </div>
 
-    <style>
-        /* === TEMAS === */
-        :root, [data-theme="light"] {
-            --color-gold-light: #ffd700; --color-gold-dark: #b8860b; --color-gold-accent: #daa520;
-            --color-bg-primary: #f3f4f6; --color-bg-secondary: #ffffff; --color-bg-muted: #f9fafb;     
-            --color-bg-accent-light: #FFFBEB; --color-bg-accent-dark: #fefce8;
-            --color-text-primary: #1f2937; --color-text-secondary: #4b5563; --color-text-accent: #B8860B; --color-border: #e5e7eb;
-        }
-        [data-theme="medium-dark"] {
-            --color-gold-light: #FFD700; --color-gold-dark: #e0aa1f; --color-gold-accent: #DAA520;
-            --color-bg-primary: #1f2937; --color-bg-secondary: #374151; --color-bg-muted: #4b5563;     
-            --color-bg-accent-light: #422c01; --color-bg-accent-dark: #423001;
-            --color-text-primary: #f9fafb; --color-text-secondary: #d1d5db; --color-text-accent: #e0aa1f; --color-border: #4b5563;
-        }
-        [data-theme="deep-dark"] {
-            --color-gold-light: #FFD700; --color-gold-dark: #e0aa1f; --color-gold-accent: #DAA520;
-            --color-bg-primary: #0a0e14; --color-bg-secondary: #1f2937; --color-bg-muted: #374151;
-            --color-bg-accent-light: #422c01; --color-bg-accent-dark: #423001;
-            --color-text-primary: #f9fafb; --color-text-secondary: #d1d5db; --color-text-accent: #e0aa1f; --color-border: #4b5563;
-        }
-
-        /* === CORREÇÃO DE SCROLL E LAYOUT === */
-        html, body {
-            min-height: 100%;
-            /* Removemos overflow: hidden para permitir rolagem natural */
-            overflow-x: hidden; 
-        }
-        
-        body { 
-            display: flex; 
-            flex-direction: column; 
-            background-color: var(--color-bg-primary); 
-            color: var(--color-text-primary);
-            font-family: 'Segoe UI', sans-serif;
-        } 
-        
-        /* Mapeamento */
-        .bg-white { background-color: var(--color-bg-secondary) !important; }
-        .bg-gray-100, .bg-gray-50 { background-color: var(--color-bg-muted) !important; }
-        .bg-gold { background-color: var(--color-gold-accent) !important; }
-        .border-gray-200 { border-color: var(--color-border) !important; }
-        .text-gray-900 { color: var(--color-text-primary) !important; }
-        .text-gray-500, .text-gray-600, .text-gray-700 { color: var(--color-text-secondary) !important; }
-        .text-gold { color: var(--color-text-accent) !important; }
-
-        /* Cards */
-        .list-item-card {
-            background-color: var(--color-bg-secondary);
-            border: 1px solid var(--color-border);
-            transition: transform 0.2s;
-        }
-        .list-item-card:active { transform: scale(0.98); }
-
-        /* Status Tag */
-        .status-tag {
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            white-space: nowrap;
-        }
-        .status-pendente { background-color: rgba(251, 191, 36, 0.2); color: #d97706; border: 1px solid rgba(251, 191, 36, 0.3); }
-        [data-theme^="dark"] .status-pendente { color: #fbbf24; }
-        .status-confirmado { background-color: rgba(52, 211, 153, 0.2); color: #059669; border: 1px solid rgba(52, 211, 153, 0.3); }
-        [data-theme^="dark"] .status-confirmado { color: #34d399; }
-        .status-cancelado { background-color: rgba(248, 113, 113, 0.2); color: #dc2626; border: 1px solid rgba(248, 113, 113, 0.3); }
-        [data-theme^="dark"] .status-cancelado { color: #f87171; }
-
-        /* Shine Effect */
-        .bg-shine-gold { position: relative; overflow: hidden; background-color: var(--color-gold-accent) !important; }
-        .bg-shine-gold::after {
-            content: ""; position: absolute; top: -10%; left: -75%; width: 50%; height: 120%;
-            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
-            transform: skewX(-25deg); animation: bg-shine 6s infinite linear;
-        }
-        @keyframes bg-shine { 0% { left: -75%; } 100% { left: 125%; } }
-        .text-gradient-gold { background: linear-gradient(90deg, #b8860b, #ffd700, #daa520); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .text-white { color: #ffffff !important; }
-    </style>
-</head>
-<body class="antialiased">
-    
-    <header class="bg-white shadow-sm sticky top-0 z-20 border-b border-gray-100 h-16 flex items-center">
-        <nav class="container mx-auto max-w-7xl px-4 flex justify-between items-center">
-            <div>
-                <h1 class="text-xl font-bold text-gradient-gold"><%= orgName %></h1>
-                <p class="text-xs text-gray-500">Minha Área</p>
+    <!-- Proximos agendamentos -->
+    <div class="card mb-6">
+      <div class="card-header">
+        <h3><i class="fas fa-calendar-day" style="color: var(--primary); margin-right: 8px;"></i> Proximos Agendamentos</h3>
+      </div>
+      <% if (typeof proximosAgendamentos === 'undefined' || !proximosAgendamentos || proximosAgendamentos.length === 0) { %>
+        <div class="empty-state"><i class="fas fa-calendar-check"></i><p>Nenhum agendamento futuro.</p></div>
+      <% } else { %>
+        <% proximosAgendamentos.forEach(function(a) { %>
+          <div class="list-item">
+            <div class="list-item-avatar avatar-primary"><i class="fas fa-clock"></i></div>
+            <div class="flex-1">
+              <div class="font-semibold"><%= a.date %> as <%= a.time %></div>
+              <div class="text-xs text-secondary">
+                <% if (a.services) { %><%= a.services %><% } %>
+                <% if (a.staffName) { %> | <%= a.staffName %><% } %>
+              </div>
             </div>
-            <div class="flex items-center gap-3">
-                <button id="theme-toggle-btn" class="p-2 rounded-full hover:bg-gray-100 transition text-gray-600">
-                    <i id="theme-icon-sun" class="fas fa-sun"></i> <i id="theme-icon-moon" class="fas fa-moon hidden"></i> 
-                </button>
-                <a href="/portal/logout" class="text-red-500 hover:text-red-700 font-medium text-sm"><i class="fas fa-sign-out-alt"></i> Sair</a>
-            </div>
-        </nav>
-    </header>
+            <span class="badge badge-<%= a.status === 'confirmado' ? 'success' : a.status === 'pendente' ? 'warning' : 'neutral' %>">
+              <%= a.status %>
+            </span>
+          </div>
+        <% }); %>
+      <% } %>
+    </div>
 
-    <main class="flex-1 p-4 w-full max-w-3xl mx-auto flex flex-col gap-5 pb-10">
-        
-        <section class="bg-gold rounded-2xl shadow-lg p-6 bg-shine-gold text-white relative">
-            <h1 class="text-xl font-bold leading-tight">
-                Bem-vindo(a),<br>
-                <span class="text-2xl"><%= clientName %>!</span> 👋
-            </h1>
-            <p class="text-white/90 mt-2 text-sm">Aqui você acompanha seus agendamentos e compras.</p>
-        </section>
-
-        <% if (typeof error !== 'undefined' && error) { %>
-            <div class="p-4 bg-red-50 border-l-4 border-red-500 rounded-md text-red-800 text-sm font-medium shadow-sm">
-                <i class="fas fa-exclamation-circle mr-2"></i><%= error %>
+    <!-- Historico -->
+    <div class="card mb-6">
+      <div class="card-header"><h3><i class="fas fa-history" style="margin-right: 8px;"></i> Historico</h3></div>
+      <% if (typeof historicoAgendamentos === 'undefined' || !historicoAgendamentos || historicoAgendamentos.length === 0) { %>
+        <div class="empty-state" style="padding: 20px;"><p class="text-sm">Nenhum historico.</p></div>
+      <% } else { %>
+        <div style="max-height: 300px; overflow-y: auto;" class="custom-scroll">
+          <% historicoAgendamentos.forEach(function(a) { %>
+            <div class="list-item" style="opacity: 0.7;">
+              <div class="flex-1">
+                <div class="text-sm font-medium"><%= a.date %> - <%= a.time %></div>
+                <div class="text-xs text-secondary"><%= a.services || '' %></div>
+              </div>
+              <span class="badge badge-neutral"><%= a.status %></span>
             </div>
-        <% } %> 
-        <% if (typeof success !== 'undefined' && success) { %>
-            <div class="p-4 bg-green-50 border-l-4 border-green-500 rounded-md text-green-800 text-sm font-medium shadow-sm">
-                <i class="fas fa-check-circle mr-2"></i><%= success %>
-            </div>
-        <% } %>
-
-        <a href="/portal/agendar" class="w-full bg-gold text-white text-center py-4 rounded-xl font-bold text-lg shadow-md hover:brightness-110 transition-all bg-shine-gold flex items-center justify-center">
-            <i class="fas fa-calendar-plus mr-2"></i> Novo Agendamento
-        </a>
-
-        <div class="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
-            <div class="p-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
-                <i class="fas fa-calendar-check text-gold text-lg"></i>
-                <h2 class="font-bold text-gray-800">Próximos</h2>
-            </div>
-            
-            <div class="p-4 space-y-3">
-                <% if (proximosAgendamentos.length === 0) { %>
-                    <div class="text-center py-6 text-gray-400">
-                        <i class="far fa-calendar text-3xl mb-2 opacity-50"></i>
-                        <p class="text-sm">Nenhum agendamento futuro.</p>
-                    </div>
-                <% } else { %>
-                    <% proximosAgendamentos.forEach((appt) => { %>
-                        <div class="list-item-card p-4 rounded-xl shadow-sm">
-                            <div class="flex flex-col gap-2">
-                                <div class="flex flex-wrap justify-between items-start gap-2">
-                                    <h3 class="text-lg font-bold text-gold">
-                                        <%= appt.date %> <span class="text-sm text-gray-500 font-normal">às</span> <%= appt.time %>
-                                    </h3>
-                                    <span class="status-tag <% if (appt.status === 'pendente') { %> status-pendente <% } else { %> status-confirmado <% } %>">
-                                        <%= appt.status === 'pendente' ? 'Pendente' : 'Confirmado' %>
-                                    </span>
-                                </div>
-                                
-                                <div class="border-t border-gray-100 pt-2 mt-1">
-                                    <p class="text-sm text-gray-800 font-medium flex items-center">
-                                        <i class="fas fa-cut w-5 text-center text-gold mr-1"></i> <%= appt.services %>
-                                    </p>
-                                    <p class="text-xs text-gray-500 flex items-center mt-1">
-                                        <i class="fas fa-user w-5 text-center text-gray-400 mr-1"></i> <%= appt.staffName %>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    <% }); %>
-                <% } %>
-            </div>
+          <% }); %>
         </div>
+      <% } %>
+    </div>
 
-        <div class="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
-            <div class="p-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
-                <i class="fas fa-history text-gray-400 text-lg"></i>
-                <h2 class="font-bold text-gray-800">Histórico</h2>
+    <!-- Produtos pendentes -->
+    <% if (typeof produtosPendentes !== 'undefined' && produtosPendentes && produtosPendentes.length > 0) { %>
+      <div class="card mb-6">
+        <div class="card-header"><h3><i class="fas fa-box" style="color: var(--warning); margin-right: 8px;"></i> Produtos Pendentes</h3></div>
+        <% produtosPendentes.forEach(function(p) { %>
+          <div class="list-item">
+            <div class="flex-1">
+              <div class="font-medium"><%= p.name %></div>
+              <div class="text-xs text-secondary">R$ <%= parseFloat(p.price).toFixed(2) %></div>
             </div>
-            <div class="p-4 space-y-3 max-h-80 overflow-y-auto custom-scroll">
-                <% if (historicoAgendamentos.length === 0) { %>
-                    <div class="text-center py-6 text-gray-400">
-                        <p class="text-sm">Histórico vazio.</p>
-                    </div>
-                <% } else { %>
-                    <% historicoAgendamentos.forEach((appt) => { %>
-                        <div class="list-item-card p-3 rounded-xl border-l-4 border-gray-300">
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="text-sm font-bold text-gray-700"><%= appt.date %></span>
-                                <span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">
-                                    <%= appt.status.startsWith('cancelado') ? 'Cancelado' : 'Concluído' %>
-                                </span>
-                            </div>
-                            <p class="text-xs text-gray-500 truncate"><%= appt.services %></p>
-                        </div>
-                    <% }); %>
-                <% } %>
-            </div>
-        </div>
+            <span class="badge badge-warning">Pendente</span>
+          </div>
+        <% }); %>
+      </div>
+    <% } %>
+  </main>
 
-        <% if (produtosPendentes.length > 0 || historicoProdutos.length > 0) { %>
-        <div class="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
-            <div class="p-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
-                <i class="fas fa-shopping-bag text-gold text-lg"></i>
-                <h2 class="font-bold text-gray-800">Meus Produtos</h2>
-            </div>
-            <div class="p-4 space-y-3">
-                <% if (produtosPendentes.length > 0) { %>
-                    <p class="text-xs font-bold text-red-500 uppercase mb-2">Pendentes</p>
-                    <% produtosPendentes.forEach((prod) => { %>
-                        <div class="list-item-card p-3 rounded-xl border-l-4 border-red-400 bg-red-50">
-                            <div class="flex justify-between items-center">
-                                <span class="font-bold text-gray-800"><%= prod.name %></span>
-                                <span class="text-sm font-bold text-red-600">Restam R$ <%= (prod.price - prod.totalPaid).toFixed(2).replace('.', ',') %></span>
-                            </div>
-                        </div>
-                    <% }); %>
-                <% } %>
-                
-                <% if (historicoProdutos.length > 0) { %>
-                    <p class="text-xs font-bold text-gray-400 uppercase mt-4 mb-2">Pagos</p>
-                    <% historicoProdutos.forEach((prod) => { %>
-                        <div class="list-item-card p-3 rounded-xl opacity-75">
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm text-gray-700"><%= prod.name %></span>
-                                <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Pago</span>
-                            </div>
-                        </div>
-                    <% }); %>
-                <% } %>
-            </div>
-        </div>
-        <% } %>
-
-    </main>
-
-    <footer class="text-center py-6 pb-10 text-gray-500 text-xs">
-        <p>© <%= new Date().getFullYear() %> <%= orgName %></p>
-    </footer>
-
-    <div id="client-dashboard-data" class="hidden" data-notifications='<%- JSON.stringify(typeof notifications !== "undefined" ? notifications : []) %>'></div>
-
-    <script>
-        // === TEMA ===
-        const htmlEl = document.documentElement;
-        function updateIcons(theme) {
-            const sun = document.getElementById('theme-icon-sun');
-            const moon = document.getElementById('theme-icon-moon');
-            if (!sun || !moon) return;
-            const isLight = theme === 'light';
-            sun.classList.toggle('hidden', !isLight);
-            moon.classList.toggle('hidden', isLight);
-        }
-        function toggleTheme() {
-            const themes = ["light", "medium-dark", "deep-dark"];
-            const current = htmlEl.getAttribute('data-theme') || 'light';
-            const next = themes[(themes.indexOf(current) + 1) % themes.length];
-            htmlEl.setAttribute('data-theme', next);
-            localStorage.setItem('theme', next);
-            updateIcons(next);
-        }
-        document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
-        updateIcons(localStorage.getItem('theme') || 'light');
-
-        // === NOTIFICAÇÕES (SWEETALERT) ===
-        document.addEventListener('DOMContentLoaded', function() {
-            try {
-                const dataEl = document.getElementById("client-dashboard-data");
-                const notifs = JSON.parse(dataEl.dataset.notifications || '[]');
-                
-                if (notifs.length > 0) {
-                    let html = '<div class="text-left space-y-2">';
-                    notifs.forEach(n => {
-                        let color = n.type === 'confirmado' ? 'text-green-600' : 'text-red-600';
-                        let icon = n.type === 'confirmado' ? 'fa-check-circle' : 'fa-info-circle';
-                        html += `<div class="p-3 bg-gray-50 rounded border border-gray-200 flex items-start gap-3">
-                                    <i class="fas ${icon} ${color} mt-1"></i>
-                                    <span class="text-sm text-gray-700">${n.message}</span>
-                                 </div>`;
-                    });
-                    html += '</div>';
-
-                    Swal.fire({
-                        title: 'Atualizações',
-                        html: html,
-                        confirmButtonColor: '#DAA520',
-                        confirmButtonText: 'OK',
-                        background: 'var(--color-bg-secondary)',
-                        color: 'var(--color-text-primary)'
-                    });
-                }
-            } catch(e) {}
-        });
-    </script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    <% if (typeof notifications !== 'undefined' && notifications && notifications.length > 0) { %>
+      Swal.fire({
+        title: 'Atualizacoes',
+        html: '<%- notifications.map(function(n) { return "<p>" + n + "</p>"; }).join("") %>',
+        icon: 'info',
+        confirmButtonColor: '#4F46E5'
+      });
+    <% } %>
+  </script>
 </body>
 </html>

@@ -1,0 +1,152 @@
+<body>
+<div class="app-layout">
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <i class="fas fa-calendar-check"></i>
+      <span>Agenda</span>Pro
+    </div>
+
+    <nav class="sidebar-nav custom-scroll">
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Principal</div>
+        <a href="/dashboard" class="sidebar-link <%= typeof activePage !== 'undefined' && activePage === 'dashboard' ? 'active' : '' %>">
+          <i class="fas fa-home"></i> Dashboard
+        </a>
+        <a href="/agendamentos-por-dia" class="sidebar-link <%= typeof activePage !== 'undefined' && activePage === 'agenda' ? 'active' : '' %>">
+          <i class="fas fa-calendar-alt"></i> Agenda
+        </a>
+        <a href="/clients" class="sidebar-link <%= typeof activePage !== 'undefined' && activePage === 'clientes' ? 'active' : '' %>">
+          <i class="fas fa-users"></i> Clientes
+        </a>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Gerenciar</div>
+        <a href="/admin/servicos" class="sidebar-link <%= typeof activePage !== 'undefined' && activePage === 'servicos' ? 'active' : '' %>">
+          <i class="fas fa-cut"></i> Servicos
+        </a>
+        <a href="/admin/equipe" class="sidebar-link <%= typeof activePage !== 'undefined' && activePage === 'equipe' ? 'active' : '' %>">
+          <i class="fas fa-user-tie"></i> Equipe
+        </a>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Financeiro</div>
+        <a href="/financeiro" class="sidebar-link <%= typeof activePage !== 'undefined' && activePage === 'financeiro' ? 'active' : '' %>">
+          <i class="fas fa-chart-line"></i> Receitas
+        </a>
+        <a href="/expenses" class="sidebar-link <%= typeof activePage !== 'undefined' && activePage === 'despesas' ? 'active' : '' %>">
+          <i class="fas fa-receipt"></i> Despesas
+        </a>
+        <a href="/balanco" class="sidebar-link <%= typeof activePage !== 'undefined' && activePage === 'balanco' ? 'active' : '' %>">
+          <i class="fas fa-balance-scale"></i> Balanco
+        </a>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">Configurar</div>
+        <a href="/admin/whatsapp" class="sidebar-link <%= typeof activePage !== 'undefined' && activePage === 'whatsapp' ? 'active' : '' %>">
+          <i class="fab fa-whatsapp"></i> WhatsApp
+        </a>
+        <a href="/admin/configuracoes" class="sidebar-link <%= typeof activePage !== 'undefined' && activePage === 'config' ? 'active' : '' %>">
+          <i class="fas fa-cog"></i> Configuracoes
+        </a>
+        <a href="/admin/assinatura" class="sidebar-link <%= typeof activePage !== 'undefined' && activePage === 'assinatura' ? 'active' : '' %>">
+          <i class="fas fa-credit-card"></i> Assinatura
+        </a>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button id="themeToggle" class="btn btn-ghost btn-block" style="justify-content: flex-start;">
+        <i class="fas fa-moon" id="themeIcon"></i>
+        <span id="themeLabel">Modo escuro</span>
+      </button>
+      <a href="/logout" class="btn btn-ghost btn-block text-danger" style="justify-content: flex-start; color: var(--danger);">
+        <i class="fas fa-sign-out-alt"></i> Sair
+      </a>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <header class="main-header">
+      <div class="flex items-center gap-3">
+        <button class="mobile-toggle" id="menuToggle">
+          <i class="fas fa-bars"></i>
+        </button>
+        <span class="main-header-title"><%= typeof pageTitle !== 'undefined' ? pageTitle : '' %></span>
+      </div>
+      <div class="main-header-actions">
+        <% if (typeof org !== 'undefined' && org && org.name) { %>
+          <span class="text-sm text-secondary hidden-mobile"><%= org.name %></span>
+        <% } %>
+      </div>
+    </header>
+
+    <%
+      var _smsg = (typeof success_msg !== 'undefined' && success_msg) ? (Array.isArray(success_msg) ? success_msg.join('') : String(success_msg)) : '';
+      var _suc = (typeof success !== 'undefined' && success) ? (Array.isArray(success) ? success.join('') : String(success)) : '';
+      var _emsg = (typeof error_msg !== 'undefined' && error_msg) ? (Array.isArray(error_msg) ? error_msg.join('') : String(error_msg)) : '';
+      var _err = (typeof error !== 'undefined' && error) ? (Array.isArray(error) ? error.join('') : String(error)) : '';
+    %>
+    <% if (_smsg) { %>
+      <div class="alert alert-success" style="margin: 16px 24px 0;">
+        <i class="fas fa-check-circle"></i>
+        <span><%= _smsg %></span>
+        <button class="alert-close" onclick="this.parentElement.remove()">&times;</button>
+      </div>
+    <% } %>
+    <% if (_suc) { %>
+      <div class="alert alert-success" style="margin: 16px 24px 0;">
+        <i class="fas fa-check-circle"></i>
+        <span><%= _suc %></span>
+        <button class="alert-close" onclick="this.parentElement.remove()">&times;</button>
+      </div>
+    <% } %>
+    <% if (_emsg) { %>
+      <div class="alert alert-danger" style="margin: 16px 24px 0;">
+        <i class="fas fa-exclamation-circle"></i>
+        <span><%= _emsg %></span>
+        <button class="alert-close" onclick="this.parentElement.remove()">&times;</button>
+      </div>
+    <% } %>
+    <% if (_err) { %>
+      <div class="alert alert-danger" style="margin: 16px 24px 0;">
+        <i class="fas fa-exclamation-circle"></i>
+        <span><%= _err %></span>
+        <button class="alert-close" onclick="this.parentElement.remove()">&times;</button>
+      </div>
+    <% } %>
+
+    <% if (typeof daysAlert !== 'undefined' && daysAlert && typeof activePage !== 'undefined' && activePage !== 'assinatura') { %>
+      <div class="alert <%= daysAlert.days <= 1 ? 'alert-danger' : 'alert-warning' %>" style="margin: 16px 24px 0;">
+        <% if (daysAlert.type === 'trial') { %>
+          <i class="fas fa-<%= daysAlert.days <= 1 ? 'exclamation-triangle' : 'clock' %>"></i>
+          <span>
+            <% if (daysAlert.days === 0) { %>
+              <strong>Teste expira HOJE!</strong> <a href="/admin/assinatura" style="color: inherit; text-decoration: underline;">Assine agora</a>
+            <% } else if (daysAlert.days === 1) { %>
+              <strong>Teste expira AMANHA!</strong> <a href="/admin/assinatura" style="color: inherit; text-decoration: underline;">Assine um plano</a>
+            <% } else { %>
+              Seu teste expira em <strong><%= daysAlert.days %> dias</strong>. <a href="/admin/assinatura" style="color: inherit; text-decoration: underline;">Assine um plano</a>
+            <% } %>
+          </span>
+        <% } else if (daysAlert.type === 'invoice') { %>
+          <i class="fas fa-<%= daysAlert.days <= 1 ? 'exclamation-triangle' : 'file-invoice-dollar' %>"></i>
+          <span>
+            <% if (daysAlert.days === 0) { %>
+              <strong>Fatura vence HOJE!</strong> <a href="/admin/assinatura" style="color: inherit; text-decoration: underline;">Pagar agora</a>
+            <% } else if (daysAlert.days === 1) { %>
+              <strong>Fatura vence AMANHA!</strong> <a href="/admin/assinatura" style="color: inherit; text-decoration: underline;">Pagar agora</a>
+            <% } else { %>
+              Fatura vence em <strong><%= daysAlert.days %> dias</strong>. <a href="/admin/assinatura" style="color: inherit; text-decoration: underline;">Ver assinatura</a>
+            <% } %>
+          </span>
+        <% } %>
+        <button class="alert-close" onclick="this.parentElement.remove()">&times;</button>
+      </div>
+    <% } %>
+
+    <main class="page-content animate-fade-in">

@@ -2,6 +2,7 @@
 
 const db = require('../models');
 const { Op } = require('sequelize');
+const { notifyClient } = require('../services/clientNotificationService');
 
 const dayjs = require('dayjs');
 const utc = require('dayjs/plugin/utc');
@@ -189,8 +190,32 @@ exports.createAppointment = async (req, res) => {
       }
     });
 
+    // Notificar cliente sobre novo agendamento
+    try {
+      const client = await db.Client.findByPk(clientId, { attributes: ['name'] });
+      const staff = await db.Staff.findByPk(staffId, { attributes: ['name'] });
+      const d = dayjs(start).tz('America/Sao_Paulo');
+      const svcNames = (parsedServices || []).map(s => s.name).join(', ');
+      const firstName = client ? client.name.split(' ')[0] : 'Cliente';
+      await notifyClient(clientId, organizationId,
+        `📅 *Novo Agendamento!*\n\n` +
+        `Oi, ${firstName}! Um agendamento foi criado pra você:\n\n` +
+        `📋 ${svcNames || 'Serviço'}\n` +
+        `👩 ${staff ? staff.name : 'A definir'}\n` +
+        `📅 ${d.format('DD/MM/YYYY')} às ${d.format('HH:mm')}\n\n` +
+        `Te esperamos! 😊`
+      );
+    } catch (e) { console.error('[Notificação] Erro:', e.message); }
+
     const hourFormatted = dayjs(start).tz('America/Sao_Paulo').format('HH:mm');
-    res.redirect(`/agendamentos-por-dia?success=${hourFormatted}`);
+    const successMsg = encodeURIComponent('Agendamento realizado com sucesso para as ' + hourFormatted + '!');
+
+    const referer = req.get('Referer') || '';
+    const clientMatch = referer.match(/\/client\/(\d+)/);
+    if (clientMatch) {
+      return res.redirect('/client/' + clientMatch[1] + '?success=' + successMsg);
+    }
+    res.redirect('/agendamentos-por-dia?success=' + successMsg);
   } catch (err) {
     console.error('Erro ao criar agendamento:', err);
     res.redirect(
@@ -235,35 +260,58 @@ exports.removeServiceFromAppointment = async (req, res) => {
 };
 
 
-// --- Cancelar Agendamento (ATUALIZADO) ---
+// --- Excluir Agendamento (pela pagina do cliente) ---
 exports.cancelAppointment = async (req, res) => {
   try {
     const organizationId = getOrgId(req);
     const { id } = req.params;
-    const { cancellationReason } = req.body;
 
-    const appt = await db.Appointment.findOne({ 
-      where: { id: id, organizationId: organizationId } 
+    const appt = await db.Appointment.findOne({
+      where: { id: id, organizationId: organizationId }
     });
 
     if (!appt) {
-      return res.redirect(`/clients?error=${encodeURIComponent('Agendamento não encontrado.')}`);
-    }
-    
-    if (!cancellationReason || cancellationReason.trim() === '') {
-        return res.redirect(`/client/${appt.clientId}?error=${encodeURIComponent('O motivo do cancelamento é obrigatório.')}`);
+      return res.redirect(`/clients?error=${encodeURIComponent('Agendamento nao encontrado.')}`);
     }
 
-    await appt.update({
-      status: 'cancelado_pelo_salao',
-      cancellationReason: cancellationReason,
-      clientNotified: false
+    const clientId = appt.clientId;
+
+    // Guardar dados para notificação antes de deletar
+    let notifData = null;
+    try {
+      const client = await db.Client.findByPk(clientId, { attributes: ['name'] });
+      const staff = await db.Staff.findByPk(appt.staffId, { attributes: ['name'] });
+      const services = await db.AppointmentService.findAll({ where: { appointmentId: id }, attributes: ['name'] });
+      const d = dayjs(appt.date).tz('America/Sao_Paulo');
+      notifData = { firstName: client ? client.name.split(' ')[0] : 'Cliente', staffName: staff ? staff.name : '', svcNames: services.map(s => s.name).join(', '), dateStr: d.format('DD/MM/YYYY') + ' às ' + d.format('HH:mm') };
+    } catch (e) { /* ignora */ }
+
+    await db.sequelize.transaction(async (t) => {
+      const svcIds = (await db.AppointmentService.findAll({ where: { appointmentId: id }, attributes: ['id'], raw: true })).map(s => s.id);
+      const prodIds = (await db.AppointmentProduct.findAll({ where: { appointmentId: id }, attributes: ['id'], raw: true })).map(p => p.id);
+      if (svcIds.length) await db.AppointmentPayment.destroy({ where: { appointmentServiceId: svcIds }, transaction: t });
+      if (prodIds.length) await db.AppointmentPayment.destroy({ where: { appointmentProductId: prodIds }, transaction: t });
+      await db.AppointmentService.destroy({ where: { appointmentId: id }, transaction: t });
+      await db.AppointmentProduct.destroy({ where: { appointmentId: id }, transaction: t });
+      await appt.destroy({ transaction: t });
     });
 
-    res.redirect(`/client/${appt.clientId}?success=${encodeURIComponent('Agendamento cancelado com sucesso.')}`);
+    // Notificar cliente sobre cancelamento
+    if (notifData) {
+      try {
+        await notifyClient(clientId, organizationId,
+          `❌ *Agendamento Cancelado*\n\n` +
+          `Oi, ${notifData.firstName}. Seu agendamento foi cancelado:\n\n` +
+          `📋 ${notifData.svcNames}\n👩 ${notifData.staffName}\n📅 ${notifData.dateStr}\n\n` +
+          `Para reagendar, é só me mandar uma mensagem! 😊`
+        );
+      } catch (e) { console.error('[Notificação] Erro:', e.message); }
+    }
+
+    res.redirect('/client/' + clientId + '?success=' + encodeURIComponent('Agendamento excluido com sucesso.'));
   } catch (err) {
-    console.error('Erro no cancelamento:', err);
-    res.redirect(`/clients?error=${encodeURIComponent('Erro ao cancelar agendamento.')}`);
+    console.error('Erro ao excluir agendamento:', err);
+    res.redirect(`/clients?error=${encodeURIComponent('Erro ao excluir agendamento.')}`);
   }
 };
 
@@ -307,6 +355,15 @@ exports.payAppointmentService = async (req, res) => {
       method: methodLower,
       appointmentServiceId: idx
     });
+
+    // Notificar cliente sobre pagamento registrado
+    try {
+      const methodLabel = { pix: 'Pix', dinheiro: 'Dinheiro', cartao: 'Cartão' }[methodLower] || methodLower;
+      await notifyClient(a.clientId, organizationId,
+        `💰 *Pagamento Registrado!*\n\n` +
+        `Recebemos seu pagamento de *R$ ${val.toFixed(2).replace('.', ',')}* (${methodLabel}) referente ao serviço *${item.name}*.\n\nObrigado! 😊`
+      );
+    } catch (e) { console.error('[Notificação] Erro:', e.message); }
 
     res.redirect(`/client/${a.clientId}?success=${encodeURIComponent('Pagamento registrado.')}`);
   } catch (err) {
@@ -512,8 +569,25 @@ exports.editAppointmentDateTime = async (req, res) => {
     }
 
     const newDate = dayjs.tz(`${date}T${time}`, 'America/Sao_Paulo').toDate();
-    
+
     await a.update({ date: newDate });
+
+    // Notificar cliente sobre reagendamento
+    try {
+      const client = await db.Client.findByPk(a.clientId, { attributes: ['name'] });
+      const staff = await db.Staff.findByPk(a.staffId, { attributes: ['name'] });
+      const services = await db.AppointmentService.findAll({ where: { appointmentId: id }, attributes: ['name'] });
+      const d = dayjs(newDate).tz('America/Sao_Paulo');
+      const firstName = client ? client.name.split(' ')[0] : 'Cliente';
+      await notifyClient(a.clientId, organizationId,
+        `🔄 *Agendamento Reagendado*\n\n` +
+        `Oi, ${firstName}! Seu agendamento foi atualizado:\n\n` +
+        `📋 ${services.map(s => s.name).join(', ')}\n` +
+        `👩 ${staff ? staff.name : 'A definir'}\n` +
+        `📅 ${d.format('DD/MM/YYYY')} às ${d.format('HH:mm')}\n\n` +
+        `Te esperamos! 😊`
+      );
+    } catch (e) { console.error('[Notificação] Erro:', e.message); }
 
     res.redirect(`/client/${a.clientId}?success=${encodeURIComponent('Data/Hora atualizada.')}`);
   } catch (err)
@@ -541,10 +615,28 @@ exports.confirmAppointment = async (req, res) => {
             return res.redirect(`/agendamentos-por-dia?error=${encodeURIComponent('Agendamento não encontrado ou já processado.')}`);
         }
         
-        await appt.update({ 
+        await appt.update({
             status: 'confirmado',
             clientNotified: false
         });
+
+        // Notificar cliente via WhatsApp
+        try {
+          const client = await db.Client.findByPk(appt.clientId, { attributes: ['name'] });
+          const staff = await db.Staff.findByPk(appt.staffId, { attributes: ['name'] });
+          const services = await db.AppointmentService.findAll({ where: { appointmentId: id }, attributes: ['name'] });
+          const d = dayjs(appt.date).tz('America/Sao_Paulo');
+          await notifyClient(appt.clientId, organizationId,
+            `✅ *Agendamento Confirmado!*\n\n` +
+            `Oi, ${client ? client.name.split(' ')[0] : 'Cliente'}! Seu agendamento foi confirmado:\n\n` +
+            `📋 ${services.map(s => s.name).join(', ')}\n` +
+            `👩 ${staff ? staff.name : 'A definir'}\n` +
+            `📅 ${d.format('DD/MM/YYYY')} às ${d.format('HH:mm')}\n\n` +
+            `Te esperamos! 😊`
+          );
+        } catch (notifErr) {
+          console.error('[Notificação] Erro ao notificar cliente:', notifErr.message);
+        }
 
         const appointmentDate = dayjs(appt.date).format('YYYY-MM-DD');
         res.redirect(`/agendamentos-por-dia?date=${appointmentDate}&success=${encodeURIComponent('Agendamento confirmado!')}`);
@@ -555,36 +647,64 @@ exports.confirmAppointment = async (req, res) => {
     }
 };
 
+// --- Excluir Agendamento (pela pagina de agenda) ---
 exports.cancelAppointmentByAdmin = async (req, res) => {
     try {
         const organizationId = getOrgId(req);
         const { id } = req.params;
-        const { cancellationReason } = req.body;
 
-        const appt = await db.Appointment.findOne({ 
+        const appt = await db.Appointment.findOne({
           where: { id: id, organizationId: organizationId }
         });
 
         if (!appt) {
-             return res.redirect(`/agendamentos-por-dia?error=${encodeURIComponent('Agendamento não encontrado.')}`);
+            return res.redirect(`/agendamentos-por-dia?error=${encodeURIComponent('Agendamento nao encontrado.')}`);
         }
-        
+
         const appointmentDate = dayjs(appt.date).format('YYYY-MM-DD');
 
-        if (!cancellationReason || cancellationReason.trim() === '') {
-            return res.redirect(`/agendamentos-por-dia?date=${appointmentDate}&error=${encodeURIComponent('O motivo do cancelamento é obrigatório.')}`);
-        }
+        // Buscar dados antes de deletar para notificar o cliente
+        let clientPhone = null, clientName = '', staffName = '', serviceNames = '';
+        try {
+          const client = await db.Client.findByPk(appt.clientId);
+          const staff = await db.Staff.findByPk(appt.staffId);
+          const services = await db.AppointmentService.findAll({ where: { appointmentId: id }, attributes: ['name'] });
+          clientPhone = client ? client.phone : null;
+          clientName = client ? client.name : '';
+          staffName = staff ? staff.name : '';
+          serviceNames = services.map(s => s.name).join(', ');
+        } catch (e) { /* ignora erro de busca */ }
 
-        await appt.update({
-            status: 'cancelado_pelo_salao',
-            cancellationReason: cancellationReason,
-            clientNotified: false
+        await db.sequelize.transaction(async (t) => {
+            const svcIds = (await db.AppointmentService.findAll({ where: { appointmentId: id }, attributes: ['id'], raw: true })).map(s => s.id);
+            const prodIds = (await db.AppointmentProduct.findAll({ where: { appointmentId: id }, attributes: ['id'], raw: true })).map(p => p.id);
+            if (svcIds.length) await db.AppointmentPayment.destroy({ where: { appointmentServiceId: svcIds }, transaction: t });
+            if (prodIds.length) await db.AppointmentPayment.destroy({ where: { appointmentProductId: prodIds }, transaction: t });
+            await db.AppointmentService.destroy({ where: { appointmentId: id }, transaction: t });
+            await db.AppointmentProduct.destroy({ where: { appointmentId: id }, transaction: t });
+            await appt.destroy({ transaction: t });
         });
 
-        res.redirect(`/agendamentos-por-dia?date=${appointmentDate}&success=${encodeURIComponent('Agendamento cancelado.')}`);
+        // Notificar cliente via WhatsApp sobre cancelamento
+        try {
+          const d = dayjs(appt.date).tz('America/Sao_Paulo');
+          const firstName = clientName ? clientName.split(' ')[0] : 'Cliente';
+          await notifyClient(appt.clientId, organizationId,
+            `❌ *Agendamento Cancelado*\n\n` +
+            `Oi, ${firstName}. Infelizmente seu agendamento foi cancelado:\n\n` +
+            `📋 ${serviceNames}\n` +
+            `👩 ${staffName}\n` +
+            `📅 ${d.format('DD/MM/YYYY')} às ${d.format('HH:mm')}\n\n` +
+            `Para reagendar, é só me mandar uma mensagem! 😊`
+          );
+        } catch (notifErr) {
+          console.error('[Notificação] Erro ao notificar cliente:', notifErr.message);
+        }
+
+        res.redirect('/agendamentos-por-dia?date=' + appointmentDate + '&success=' + encodeURIComponent('Agendamento excluido com sucesso.'));
 
     } catch (err) {
-        console.error("Erro ao cancelar agendamento pelo admin:", err);
-        res.redirect(`/agendamentos-por-dia?error=${encodeURIComponent('Erro ao cancelar o agendamento.')}`);
+        console.error("Erro ao excluir agendamento:", err);
+        res.redirect(`/agendamentos-por-dia?error=${encodeURIComponent('Erro ao excluir o agendamento.')}`);
     }
 };

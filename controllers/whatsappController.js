@@ -1,137 +1,195 @@
+const db = require('../models');
+const evolutionService = require('../services/evolutionService');
 const whatsappService = require('../services/whatsappService');
 
+const N8N_BOT_WEBHOOK = process.env.N8N_BOT_WEBHOOK_URL || 'https://auto.bellory.com.br/webhook/agendapro-bot';
 
-// Função auxiliar robusta para pegar o usuário
-const getCurrentUser = (req) => {
-    // Tenta pegar do passport (req.user) ou da sessão manual (req.session)
-    if (req.session && req.session.loggedIn) {
-        return {
-            id: req.session.userId,
-            username: req.session.username,
-            role: req.session.role,
-            organizationId: req.session.organizationId
-        };
-    }
-    return req.user || null;
-};
+// GET /admin/whatsapp
+exports.renderSettingsPage = async (req, res) => {
+  try {
+    const orgId = req.session.organizationId;
+    const org = await db.Organization.findByPk(orgId);
+    if (!org) return res.redirect('/dashboard');
 
-// Função auxiliar para encontrar o ID da Organização
-const getOrgId = (user) => {
-    if (!user) return null;
-    return user.organizationId || user.OrganizationId || user.org_id || (user.Organization && user.Organization.id);
-};
+    const settings = org.settings || {};
+    let connectionStatus = 'disconnected';
+    let qrCode = null;
 
-// Rota: GET /admin/whatsapp/status
-exports.getStatus = async (req, res) => {
-    const user = getCurrentUser(req);
-    if (!user) return res.status(401).json({ error: 'Não autorizado' });
-
-    const orgId = getOrgId(user);
-    if (!orgId) return res.status(400).json({ error: 'Usuário sem organização vinculada' });
-
-    const status = whatsappService.getStatus(orgId);
-    res.json({ status });
-};
-
-// Rota: POST /admin/whatsapp/connect
-exports.connect = async (req, res) => {
-    const user = getCurrentUser(req);
-    if (!user) return res.status(401).json({ error: 'Não autorizado' });
-
-    const orgId = getOrgId(user);
-    if (!orgId) return res.status(400).json({ error: 'Usuário sem organização vinculada' });
-    
-    console.log(`Iniciando conexão para Org ID: ${orgId}`);
-    whatsappService.getClient(orgId); 
-    
-    res.json({ message: 'Inicializando conexão... Aguarde o QR Code.' });
-};
-
-// Rota: POST /admin/whatsapp/logout
-exports.logout = async (req, res) => {
-    const user = getCurrentUser(req);
-    if (!user) return res.status(401).json({ error: 'Não autorizado' });
-
-    const orgId = getOrgId(user);
-    await whatsappService.logoutClient(orgId);
-    
-    res.json({ message: 'Desconectado com sucesso.' });
-};
-
-// Renderiza a página de configuração
-exports.renderSettingsPage = (req, res) => {
-    const user = getCurrentUser(req);
-
-    if (!user) {
-        return res.redirect('/login');
-    }
-
-    const orgId = getOrgId(user);
-
-    if (!orgId) {
-        return res.status(500).send(`
-            <h1>Erro de Dados</h1>
-            <p>O usuário logado não possui um ID de Organização válido na sessão.</p>
-            <a href="/dashboard">Voltar</a>
-        `);
+    if (settings.whatsappInstanceName) {
+      try {
+        const status = await evolutionService.getConnectionStatus(settings.whatsappInstanceName);
+        connectionStatus = status.state === 'open' ? 'connected' : status.state || 'disconnected';
+      } catch (e) {
+        connectionStatus = 'error';
+      }
     }
 
     res.render('admin/whatsapp-settings', {
-        user: user,
-        orgId: orgId, // IMPORTANTE: Passando o ID para a view usar
-        pageTitle: 'Configuração do WhatsApp'
+      orgId,
+      org,
+      settings,
+      connectionStatus,
+      qrCode,
+      instanceName: settings.whatsappInstanceName || null,
+      botEnabled: settings.whatsappBotEnabled || false
     });
+  } catch (err) {
+    console.error('[WhatsApp] Erro ao renderizar:', err);
+    res.status(500).send('Erro interno');
+  }
 };
 
-// Função de envio
-exports.sendReminder = async (req, res) => {
-    try {
-        const user = getCurrentUser(req);
-        if (!user) return res.status(401).json({ error: 'Sessão expirada' });
+// POST /api/whatsapp/create-instance
+exports.createInstance = async (req, res) => {
+  try {
+    const orgId = req.session.organizationId;
+    const org = await db.Organization.findByPk(orgId);
+    if (!org) return res.status(404).json({ error: 'Organizacao nao encontrada' });
 
-        const { phone, message } = req.body;
-        const orgId = user.organizationId;
+    const name = evolutionService.instanceName(orgId, org.slug);
 
-        if (!orgId) return res.status(400).json({ error: 'Organização inválida' });
-
-        // Recupera a sessão
-        const client = await whatsappService.getClient(orgId);
-
-        // Verifica status
-        const status = whatsappService.getStatus(orgId);
-        if (status !== 'CONNECTED') {
-            return res.status(400).json({ 
-                error: 'WhatsApp desconectado. Vá em Menu > WhatsApp para conectar.' 
-            });
-        }
-
-        // 1. Limpeza básica do número (deixa só números)
-        let formattedPhone = phone.replace(/\D/g, ''); 
-
-        // 2. Garante que tem o 55 (Brasil)
-        if (!formattedPhone.startsWith('55')) {
-            formattedPhone = '55' + formattedPhone;
-        }
-
-        // 3. A MÁGICA: Verifica se o número existe e pega o ID correto (com ou sem 9)
-        // Isso retorna o objeto do contato ou null se não existir
-        const contact = await client.getNumberId(formattedPhone);
-
-        if (!contact) {
-            // Se não achou, tenta adicionar o 9 (caso o usuário tenha digitado sem)
-            // ou remover o 9 (caso tenha digitado com) para tentar achar.
-            // Mas geralmente, se o número é válido, o getNumberId acha.
-            return res.status(404).json({ error: 'Número não possui WhatsApp válido.' });
-        }
-
-        // 4. Envia para o ID serializado correto (contact._serialized)
-        // O _serialized é o ID interno real (ex: 553299998888@c.us)
-        await client.sendMessage(contact._serialized, message);
-
-        return res.json({ success: true, message: 'Mensagem enviada e validada!' });
-
-    } catch (error) {
-        console.error('[WhatsApp] Erro ao enviar:', error);
-        return res.status(500).json({ error: 'Erro interno ao processar envio.' });
+    // Verifica se ja existe
+    const exists = await evolutionService.instanceExists(name);
+    if (exists) {
+      // Ja existe, so atualiza o webhook
+      await evolutionService.setWebhook(name, N8N_BOT_WEBHOOK);
+    } else {
+      await evolutionService.createInstance(name, N8N_BOT_WEBHOOK);
     }
+
+    // Salvar no settings da org
+    const newSettings = { ...org.settings, whatsappInstanceName: name };
+    org.settings = newSettings;
+    org.changed('settings', true);
+    await org.save();
+
+    res.json({ success: true, instanceName: name });
+  } catch (err) {
+    console.error('[WhatsApp] Erro ao criar instancia:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// GET /api/whatsapp/qrcode
+exports.getQrCode = async (req, res) => {
+  try {
+    const orgId = req.session.organizationId;
+    const org = await db.Organization.findByPk(orgId);
+    const instanceName = org && org.settings && org.settings.whatsappInstanceName;
+
+    if (!instanceName) {
+      return res.status(400).json({ error: 'Instancia nao criada. Crie primeiro.' });
+    }
+
+    const data = await evolutionService.getQrCode(instanceName);
+    res.json({
+      qrcode: data.base64 || null,
+      pairingCode: data.pairingCode || null,
+      code: data.code || null
+    });
+  } catch (err) {
+    console.error('[WhatsApp] Erro QR:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// GET /api/whatsapp/status
+exports.getStatus = async (req, res) => {
+  try {
+    const orgId = req.session.organizationId;
+    const org = await db.Organization.findByPk(orgId);
+    const instanceName = org && org.settings && org.settings.whatsappInstanceName;
+
+    if (!instanceName) {
+      return res.json({ status: 'not_created' });
+    }
+
+    const status = await evolutionService.getConnectionStatus(instanceName);
+    const connected = status.state === 'open';
+
+    // Atualiza settings se mudou
+    if (org.settings.whatsappConnected !== connected) {
+      org.settings = { ...org.settings, whatsappConnected: connected };
+      org.changed('settings', true);
+      await org.save();
+    }
+
+    res.json({ status: connected ? 'connected' : status.state || 'disconnected' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// POST /api/whatsapp/disconnect
+exports.disconnect = async (req, res) => {
+  try {
+    const orgId = req.session.organizationId;
+    const org = await db.Organization.findByPk(orgId);
+    const instanceName = org && org.settings && org.settings.whatsappInstanceName;
+
+    if (!instanceName) {
+      return res.status(400).json({ error: 'Nenhuma instancia configurada' });
+    }
+
+    await evolutionService.logoutInstance(instanceName);
+
+    org.settings = { ...org.settings, whatsappConnected: false };
+    org.changed('settings', true);
+    await org.save();
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[WhatsApp] Erro ao desconectar:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// POST /api/whatsapp/toggle-bot
+exports.toggleBot = async (req, res) => {
+  try {
+    const orgId = req.session.organizationId;
+    const org = await db.Organization.findByPk(orgId);
+    if (!org) return res.status(404).json({ error: 'Org nao encontrada' });
+
+    const currentState = org.settings && org.settings.whatsappBotEnabled;
+    org.settings = { ...org.settings, whatsappBotEnabled: !currentState };
+    org.changed('settings', true);
+    await org.save();
+
+    res.json({ success: true, botEnabled: !currentState });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// POST /api/whatsapp/test
+exports.testConnection = async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ error: 'Informe um numero de telefone.' });
+
+    const orgId = req.session.organizationId;
+    await whatsappService.sendMessage(phone, 'Teste do AgendaPro - WhatsApp funcionando! ✅', orgId);
+    res.json({ success: true, message: 'Mensagem de teste enviada!' });
+  } catch (err) {
+    console.error('[WhatsApp] Erro no teste:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// POST /api/send-reminder
+exports.sendReminder = async (req, res) => {
+  try {
+    const { phone, message } = req.body;
+    if (!phone || !message) {
+      return res.status(400).json({ error: 'Telefone e mensagem sao obrigatorios.' });
+    }
+
+    const orgId = req.session.organizationId;
+    await whatsappService.sendMessage(phone, message, orgId);
+    res.json({ success: true, message: 'Mensagem enviada!' });
+  } catch (err) {
+    console.error('[WhatsApp] Erro ao enviar:', err.message);
+    res.status(500).json({ error: err.message });
+  }
 };
